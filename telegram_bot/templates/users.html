@@ -1,0 +1,170 @@
+<!-- templates/users.html -->
+
+{% extends "base.html" %}
+
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Пользователи</h2>
+
+<!-- Форма поиска -->
+<form method="post" action="{{ url_for('users') }}" class="mb-4">
+    <!-- Добавление CSRF-токена -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="client_type" value="{{ client_type }}">
+    
+    <div class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label for="search_field" class="form-label">Поиск по:</label>
+            <select name="search_field" id="search_field" class="form-select">
+                <option value="user_id" {% if search_field == 'user_id' %}selected{% endif %}>ID Пользователя</option>
+                <option value="name" {% if search_field == 'name' %}selected{% endif %}>Имя</option>
+                <option value="phone" {% if search_field == 'phone' %}selected{% endif %}>Телефон</option>
+                <option value="email" {% if search_field == 'email' %}selected{% endif %}>Email</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="search_term" class="form-label">Термин поиска:</label>
+            <input type="text" name="search_term" id="search_term" class="form-control" placeholder="Введите термин поиска" value="{{ search_term }}">
+        </div>
+        <div class="col-md-2">
+            <label for="payment_method_filter" class="form-label">Метод оплаты:</label>
+            <select name="payment_method_filter" id="payment_method_filter" class="form-select">
+                <option value="">Все</option>
+                <option value="cash" {% if payment_method_filter == 'cash' %}selected{% endif %}>Наличные</option>
+                <option value="PayMe" {% if payment_method_filter == 'PayMe' %}selected{% endif %}>PayMe</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="paid_filter" class="form-label">Оплата:</label>
+            <select name="paid_filter" id="paid_filter" class="form-select">
+                <option value="">Все</option>
+                <option value="1" {% if paid_filter == '1' %}selected{% endif %}>Оплачено</option>
+                <option value="0" {% if paid_filter == '0' %}selected{% endif %}>Не оплачено</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="language_filter" class="form-label">Язык:</label>
+            <select name="language_filter" id="language_filter" class="form-select">
+                <option value="">Все</option>
+                <option value="ru" {% if language_filter == 'ru' %}selected{% endif %}>Русский</option>
+                <option value="en" {% if language_filter == 'en' %}selected{% endif %}>English</option>
+                <option value="uz" {% if language_filter == 'uz' %}selected{% endif %}>O‘zbekcha</option>
+                <!-- Добавьте другие языки при необходимости -->
+            </select>
+        </div>
+    </div>
+    <div class="row g-3 align-items-end mt-3">
+        <div class="col-md-2">
+            <label for="start_date" class="form-label">Дата с:</label>
+            <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}">
+        </div>
+        <div class="col-md-2">
+            <label for="end_date" class="form-label">Дата по:</label>
+            <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Поиск</button>
+        </div>
+    </div>
+</form>
+
+<!-- Вкладки для разных категорий клиентов -->
+<ul class="nav nav-tabs mb-4" id="clientTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if client_type == 'current' %}active{% endif %}" href="{{ url_for('users', client_type='current', search_field=search_field, search_term=search_term, language_filter=language_filter, payment_method_filter=payment_method_filter, paid_filter=paid_filter, start_date=start_date, end_date=end_date, page=1) }}">Текущие клиенты</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if client_type == 'previous' %}active{% endif %}" href="{{ url_for('users', client_type='previous', search_field=search_field, search_term=search_term, language_filter=language_filter, payment_method_filter=payment_method_filter, paid_filter=paid_filter, start_date=start_date, end_date=end_date, page=1) }}">Предыдущие клиенты</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if client_type == 'no_orders' %}active{% endif %}" href="{{ url_for('users', client_type='no_orders', search_field=search_field, search_term=search_term, language_filter=language_filter, payment_method_filter=payment_method_filter, paid_filter=paid_filter, start_date=start_date, end_date=end_date, page=1) }}">Клиенты без заказов</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if client_type == 'all' %}active{% endif %}" href="{{ url_for('users', client_type='all', search_field=search_field, search_term=search_term, language_filter=language_filter, payment_method_filter=payment_method_filter, paid_filter=paid_filter, start_date=start_date, end_date=end_date, page=1) }}">Все клиенты</a>
+    </li>
+</ul>
+
+<!-- Таблица пользователей -->
+<div class="table-responsive">
+    {% if clients %}
+    <table class="table table-bordered table-striped">
+        <thead class="table-light">
+            <tr>
+                <th>ID Пользователя</th>
+                <th>Имя</th>
+                <th>Телефон</th>
+                <th>Email</th>
+                <th>Количество Заказов</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr>
+                <td>{{ client.user_id }}</td>
+                <td>{{ client.name }}</td>
+                <td>{{ client.phone }}</td>
+                <td>{{ client.email }}</td>
+                <td>{{ client.order_count }}</td>
+                <td>
+                    <a href="{{ url_for('add_order', user_id=client.user_id) }}" class="btn btn-success btn-sm me-1">Добавить заказ</a>
+                    <a href="{{ url_for('client_orders', user_id=client.user_id) }}" class="btn btn-primary btn-sm me-1">Просмотр</a>
+                    <form action="{{ url_for('delete_user', user_id=client.user_id) }}" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить этого пользователя?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Пагинация -->
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Пагинация">
+        <ul class="pagination justify-content-center">
+            <!-- Предыдущая страница -->
+            {% if pagination.page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('users', client_type=client_type, search_field=search_field, search_term=search_term, language_filter=language_filter, payment_method_filter=payment_method_filter, paid_filter=paid_filter, start_date=start_date, end_date=end_date, page=pagination.page - 1) }}" aria-label="Предыдущая">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link" aria-label="Предыдущая">
+                    <span aria-hidden="true">&laquo;</span>
+                </span>
+            </li>
+            {% endif %}
+
+            <!-- Номера страниц -->
+            {% for p in range(1, pagination.pages + 1) %}
+            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('users', client_type=client_type, search_field=search_field, search_term=search_term, language_filter=language_filter, payment_method_filter=payment_method_filter, paid_filter=paid_filter, start_date=start_date, end_date=end_date, page=p) }}">{{ p }}</a>
+            </li>
+            {% endfor %}
+
+            <!-- Следующая страница -->
+            {% if pagination.page < pagination.pages %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('users', client_type=client_type, search_field=search_field, search_term=search_term, language_filter=language_filter, payment_method_filter=payment_method_filter, paid_filter=paid_filter, start_date=start_date, end_date=end_date, page=pagination.page + 1) }}" aria-label="Следующая">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link" aria-label="Следующая">
+                    <span aria-hidden="true">&raquo;</span>
+                </span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <p>Пользователи отсутствуют.</p>
+    {% endif %}
+</div>
+{% endblock %}
