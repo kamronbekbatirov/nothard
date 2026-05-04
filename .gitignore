@@ -1,0 +1,78 @@
+# --- Node / Next.js ---
+node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+.swc/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+.eggs/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Databases (development data) ---
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# --- Logs / runtime ---
+*.log
+gunicorn.ctl
+gunicorn.pid
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.pem
+
+# --- Dotfile dump when $HOME is the project directory ---
+.config/
+.npm/
+.cache/
+.local/
+.profile
+.bashrc
+.bash_history
+.bash_logout
+.wget-hsts
+.viminfo
+.lesshst
+.pm2/
+.claude/
+
+# --- Coverage / test ---
+/coverage

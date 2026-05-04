@@ -1,0 +1,638 @@
+<!-- templates/order_detail.html -->
+
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <title>Детали Заказа #{{ order.order_id }}</title>
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+        <style>
+            /* Дополнительные стили для сообщений */
+            .message-admin {
+                background-color: #0d6efd;
+                color: white;
+                border-radius: 10px;
+                padding: 10px;
+                max-width: 70%;
+            }
+            .message-user {
+                background-color: #f1f1f1;
+                border-radius: 10px;
+                padding: 10px;
+                max-width: 70%;
+            }
+            .message-timestamp {
+                font-size: 0.8em;
+                color: #6c757d;
+            }
+            /* Стиль для кнопки эмоджи */
+            .emoji-button {
+                cursor: pointer;
+                border: none;
+                background: transparent;
+                padding: 0 10px;
+                font-size: 1.5rem;
+            }
+        </style>
+    </head>
+<body>
+    <div class="container mt-5">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="mb-4">
+              {% for message in messages %}
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        
+        <h1 class="mb-4">Детали Заказа #{{ order.order_id }}</h1>
+
+        <!-- Информация о Пользователе -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Информация о пользователе</strong>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_user_info', order_id=order.order_id, user_id=user['user_id']) }}" method="post" class="row g-3">
+                    <!-- Добавление CSRF-токена как скрытого поля -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                    <div class="col-md-3">
+                        <label for="name" class="form-label">Имя</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="phone" class="form-label">Телефон</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.phone }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="language" class="form-label">Язык</label>
+                        <select name="language" id="language" class="form-select" required>
+                            <option value="ru" {% if user.language == 'ru' %}selected{% endif %}>Русский</option>
+                            <option value="en" {% if user.language == 'en' %}selected{% endif %}>English</option>
+                            <option value="uz" {% if user.language == 'uz' %}selected{% endif %}>O‘zbekcha</option>
+                            <!-- Добавьте другие языки при необходимости -->
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Обновить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Информация о Заказе -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Информация о заказе</strong>
+            </div>
+            <div class="card-body">
+                <p><strong>Пользователь ID:</strong> {{ order.user_id }}</p>
+                <p><strong>Дата заказа:</strong> {{ order['order_date'] | format_datetime('%d-%m-%Y %H:%M') }}</p>
+                <p><strong>Статус:</strong>
+                    <form action="{{ url_for('update_order_status_route', order_id=order.order_id) }}" method="post" class="d-inline">
+                        <!-- Добавление CSRF-токена как скрытого поля -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="input-group input-group-sm">
+                            <select name="status" class="form-select" onchange="toggleLinkInput(this, 'link_order_status', 'order')">
+                                <option value="order_status_accepted" {% if order.status == 'order_status_accepted' %}selected{% endif %}>Принято</option>
+                                <option value="order_status_in_progress" {% if order.status == 'order_status_in_progress' %}selected{% endif %}>Выполняется</option>
+                                <option value="order_status_waiting_payment" {% if order.status == 'order_status_waiting_payment' %}selected{% endif %}>Ожидание оплаты</option>
+                                <option value="order_status_completed" {% if order.status == 'order_status_completed' %}selected{% endif %}>Выполнено</option>
+                                <option value="order_status_pending" {% if order.status == 'order_status_pending' %}selected{% endif %}>Ожидание</option>
+                                <option value="order_status_cancelled" {% if order.status == 'order_status_cancelled' %}selected{% endif %}>Отменен</option>
+                                <option value="order_status_returned" {% if order.status == 'order_status_returned' %}selected{% endif %}>Возврат</option>
+                            </select>
+                            <input type="url" class="form-control ms-2" id="link_order_status" name="link" placeholder="Введите ссылку на результат" style="display: none;">
+                            <button type="submit" class="btn btn-primary btn-sm ms-2">Обновить</button>
+                        </div>
+                    </form>
+                </p>
+                <p><strong>Статус оплаты:</strong>
+                    <form action="{{ url_for('update_payment_status_route', order_id=order.order_id) }}" method="post" class="d-inline">
+                        <!-- Добавление CSRF-токена как скрытого поля -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="input-group input-group-sm">
+                            <select name="paid" class="form-select">
+                                <option value="1" {% if order.paid == 1 %}selected{% endif %}>Оплачено</option>
+                                <option value="0" {% if order.paid == 0 %}selected{% endif %}>Не оплачено</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm ms-2">Обновить</button>
+                        </div>
+                    </form>
+                </p>
+                <p><strong>Метод оплаты:</strong></p>
+                <form action="{{ url_for('update_payment_method_route', order_id=order.order_id) }}" method="post" class="mt-2">
+                    <!-- Добавление CSRF-токена как скрытого поля -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="input-group input-group-sm">
+                        <select name="payment_method" class="form-select" onchange="toggleLinkInput(this, 'link_payment_method', 'payment')">
+                            <option value="cash" {% if order.payment_method == 'cash' %}selected{% endif %}>💵 Наличные</option>
+                            <option value="PayMe" {% if order.payment_method == 'PayMe' %}selected{% endif %}>💳 PayMe</option>
+                        </select>
+                        <input type="url" class="form-control ms-2" id="link_payment_method" name="payment_link" placeholder="Введите ссылку на платеж" style="display: none;">
+                        <button type="submit" class="btn btn-primary btn-sm ms-2">Обновить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Зачислить/Удалить Бонус -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Зачислить/Удалить Бонус</strong>
+            </div>
+            <div class="card-body">
+                <p><strong>Текущий баланс бонусов:</strong> {{ order.bonuses }}</p>
+                
+                <!-- Зачисление бонусов -->
+                <form action="{{ url_for('credit_bonus_route', order_id=order.order_id) }}" method="post">
+                    <!-- Добавление CSRF-токена как скрытого поля -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <label for="bonus_amount" class="form-label">Сумма Бонуса для зачисления</label>
+                            <input type="number" step="1" class="form-control" id="bonus_amount" name="bonus_amount" placeholder="Введите сумму бонуса" required>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-success">Зачислить</button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Удаление бонусов -->
+                <form action="{{ url_for('delete_bonus_route', order_id=order.order_id) }}" method="post" class="mt-3" onsubmit="return confirm('Вы уверены, что хотите удалить этот бонус?');">
+                    <!-- Добавление CSRF-токена как скрытого поля -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <label for="delete_amount" class="form-label">Сумма Бонуса для удаления</label>
+                            <input type="number" step="1" class="form-control" id="delete_amount" name="delete_amount" placeholder="Введите сумму бонуса для удаления" required>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-danger">Удалить бонус</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Задачи -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Задачи</strong>
+            </div>
+            <div class="card-body">
+                {% if tasks %}
+                    <ul class="list-group">
+                        {% for task in tasks %}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ task.translated_description }}</strong><br>
+                                        <strong>Статус:</strong> {{ task.status_display }}
+                                        {% if task.cloud_link %}
+                                            <br>
+                                            <a href="{{ task.cloud_link }}" target="_blank">Ссылка на результат</a>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <!-- Кнопка "Удалить Задачу" -->
+                                        <form action="{{ url_for('delete_task', order_id=order.order_id, task_id=task.task_id) }}" method="post" style="margin: 0; margin-right: 5px;" onsubmit="return confirm('Вы уверены, что хотите удалить эту задачу?');">
+                                            <!-- Добавление CSRF-токена как скрытого поля -->
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                                        </form>
+                                        <!-- Форма обновления статуса задачи -->
+                                        <form action="{{ url_for('update_task_status_web', order_id=order.order_id, task_id=task.task_id) }}" method="post" class="d-flex align-items-center">
+                                            <!-- Добавление CSRF-токена как скрытого поля -->
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="input-group input-group-sm">
+                                                <select name="status" class="form-select" onchange="toggleLinkInput(this, 'link_task_{{ task.task_id }}', 'task')">
+                                                    <option value="task_status_completed" {% if task.status_key == 'task_status_completed' %}selected{% endif %}>Выполнено</option>
+                                                    <option value="task_status_not_completed" {% if task.status_key == 'task_status_not_completed' %}selected{% endif %}>Не выполнено</option>
+                                                    <option value="task_status_in_progress" {% if task.status_key == 'task_status_in_progress' %}selected{% endif %}>Выполняется</option>
+                                                </select>
+                                                <input type="url" class="form-control ms-2" id="link_task_{{ task.task_id }}" name="link" placeholder="Введите ссылку на результат" style="display: none;">
+                                                <button type="submit" class="btn btn-primary btn-sm ms-2">Обновить</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Задачи отсутствуют.</p>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="{{ url_for('add_task', order_id=order.order_id) }}" class="btn btn-success">Добавить Задачу</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Недвижимость -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Недвижимость</strong>
+            </div>
+            <div class="card-body">
+                {% if properties %}
+                    <ul class="list-group">
+                        {% for prop in properties %}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ prop.translated_title }}</strong><br>
+                                        <strong>Статус:</strong> {{ prop.status_display }}
+                                        {% if prop.status_text == 'Результат готов' and prop.result_link %}
+                                            <br>
+                                            <strong>Ссылка на результат:</strong> <a href="{{ prop.result_link }}" target="_blank">{{ prop.result_link }}</a>
+                                        {% elif prop.status_text == 'Просмотр отменен' and prop.cancel_reason %}
+                                            <br>
+                                            <strong>Причина отмены:</strong> {{ prop.cancel_reason }}
+                                        {% elif prop.status_text == 'Бронь забронирована' and prop.cloud_link %}
+                                            <br>
+                                            <strong>Дата и время брони:</strong> {{ prop.cloud_link | format_datetime('%d-%m-%Y %H:%M') }}
+                                        {% endif %}
+                                        {% if prop.link %}
+                                            <br>
+                                            <a href="{{ prop.link }}" target="_blank">Ссылка на объект</a>
+                                        {% endif %}
+                                    </div>
+                                    <!-- Кнопки для удаления и обновления статуса недвижимости -->
+                                    <div class="d-flex align-items-center">
+                                        <!-- Кнопка "Удалить Недвижимость" -->
+                                        <form action="{{ url_for('delete_property', order_id=order.order_id, property_id=prop.order_item_id) }}" method="post" style="margin: 0; margin-right: 5px;" onsubmit="return confirm('Вы уверены, что хотите удалить эту недвижимость?');">
+                                            <!-- Добавление CSRF-токена как скрытого поля -->
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                                        </form>
+                                        <!-- Форма обновления статуса недвижимости -->
+                                        <form action="{{ url_for('update_property_status_web', order_id=order.order_id, property_id=prop.order_item_id) }}" method="post" class="d-flex align-items-center">
+                                            <!-- Добавление CSRF-токена как скрытого поля -->
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <div class="input-group input-group-sm">
+                                                <select name="status" class="form-select" onchange="toggleLinkInput(this, 'link_property_{{ prop.order_item_id }}', 'property')">
+                                                    <option value="Ожидание ответа агента" {% if prop.status_text == 'Ожидание ответа агента' %}selected{% endif %}>Ожидание ответа агента</option>
+                                                    <option value="Бронь забронирована" {% if prop.status_text == 'Бронь забронирована' %}selected{% endif %}>Бронь забронирована</option>
+                                                    <option value="Иду смотреть" {% if prop.status_text == 'Иду смотреть' %}selected{% endif %}>Иду смотреть</option>
+                                                    <option value="Идет просмотр объекта" {% if prop.status_text == 'Идет просмотр объекта' %}selected{% endif %}>Идет просмотр объекта</option>
+                                                    <option value="Объект просмотрен" {% if prop.status_text == 'Объект просмотрен' %}selected{% endif %}>Объект просмотрен</option>
+                                                    <option value="Результат готов" {% if prop.status_text == 'Результат готов' %}selected{% endif %}>Результат готов</option>
+                                                    <option value="Просмотр отменен" {% if prop.status_text == 'Просмотр отменен' %}selected{% endif %}>Просмотр отменен</option>
+                                                </select>
+                                                <!-- Обновлённый placeholder и тип для разных статусов -->
+                                                <input type="text" class="form-control ms-2" id="link_property_{{ prop.order_item_id }}" name="link_or_reason" placeholder="Введите ссылку на результат, причину отмены или дату брони" style="display: none;">
+                                                <button type="submit" class="btn btn-primary btn-sm ms-2">Обновить</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>Недвижимость отсутствует.</p>
+                {% endif %}
+                <div class="mt-3">
+                    <a href="{{ url_for('add_property', order_id=order.order_id) }}" class="btn btn-success">Добавить Недвижимость</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- События -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>События</strong>
+            </div>
+            <div class="card-body">
+                {% if events %}
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Описание</th>
+                                <th>Дата События</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in events %}
+                            <tr>
+                                <td>{{ event.event_description }}</td>
+                                <td>
+                                    {{ event.event_timestamp | format_datetime('%d-%m-%Y %H:%M') }}
+                                    {% if event.event_link %}
+                                        <br>
+                                        <a href="{{ event.event_link }}" target="_blank">Ссылка на событие</a>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form action="{{ url_for('delete_event_route', order_id=order.order_id, event_id=event.event_id) }}" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить это событие?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                                    </form>
+                                    <a href="{{ url_for('edit_event', order_id=order.order_id, event_id=event.event_id) }}" class="btn btn-secondary btn-sm ms-2">Изменить</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>События отсутствуют.</p>
+                {% endif %}
+
+                <!-- Форма Добавления События -->
+                <h5 class="mt-4">Добавить Событие</h5>
+                <form action="{{ url_for('add_event_route', order_id=order.order_id) }}" method="post" class="row g-3">
+                    <!-- Добавление CSRF-токена как скрытого поля -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-md-4">
+                        <label for="description" class="form-label">Описание события</label>
+                        <input type="text" class="form-control" id="description" name="description" placeholder="Описание события" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="event_date" class="form-label">Дата События</label>
+                        <input type="datetime-local" class="form-control" id="event_date" name="event_date" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="link" class="form-label">Ссылка (опционально)</label>
+                        <input type="url" class="form-control" id="link" name="link" placeholder="https://example.com">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success">Добавить Событие</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Раздел Доходов -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Доходы</strong>
+            </div>
+            <div class="card-body">
+                <!-- Таблица Доходов -->
+                {% if incomes %}
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Сумма</th>
+                            <th>Описание</th>
+                            <th>Дата Дохода</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for income in incomes %}
+                        <tr>
+                            <td>{{ income.amount }}</td>
+                            <td>{{ income.description }}</td>
+                            <td>{{ income.income_date | format_datetime('%d-%m-%Y %H:%M') }}</td>
+                            <td>
+                                <form action="{{ url_for('delete_income', order_id=order.order_id, income_id=income.income_id) }}" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить этот доход?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                                </form>
+                                <a href="{{ url_for('edit_income', order_id=order.order_id, income_id=income.income_id) }}" class="btn btn-secondary btn-sm ms-2">Изменить</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>Доходы отсутствуют.</p>
+                {% endif %}
+
+                <!-- Форма Добавления Дохода -->
+                <h5 class="mt-4">Добавить Доход</h5>
+                <form action="{{ url_for('add_income', order_id=order.order_id) }}" method="post" class="row g-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-md-3">
+                        <label for="amount" class="form-label">Сумма</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="Введите сумму" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="description" class="form-label">Описание</label>
+                        <input type="text" class="form-control" id="description" name="description" placeholder="Описание дохода">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="income_date" class="form-label">Дата Дохода</label>
+                        <input type="datetime-local" class="form-control" id="income_date" name="income_date" required>
+                    </div>
+                    <div class="col-md-3 align-self-end">
+                        <button type="submit" class="btn btn-success">Добавить Доход</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+                
+        <!-- Раздел Расходов -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Расходы</strong>
+            </div>
+            <div class="card-body">
+                <!-- Таблица Расходов -->
+                {% if expenses %}
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Сумма</th>
+                            <th>Описание</th>
+                            <th>Дата Расхода</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.amount }}</td>
+                            <td>{{ expense.description }}</td>
+                            <td>{{ expense.expense_date | format_datetime('%d-%m-%Y %H:%M') }}</td>
+                            <td>
+                                <form action="{{ url_for('delete_expense', order_id=order.order_id, expense_id=expense.expense_id) }}" method="post" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить этот расход?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                                </form>
+                                <a href="{{ url_for('edit_expense', order_id=order.order_id, expense_id=expense.expense_id) }}" class="btn btn-secondary btn-sm ms-2">Изменить</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>Расходы отсутствуют.</p>
+                {% endif %}
+
+            <!-- Форма Добавления Расхода -->
+            <h5 class="mt-4">Добавить Расход</h5>
+            <form action="{{ url_for('add_expense', order_id=order.order_id) }}" method="post" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-3">
+                    <label for="amount" class="form-label">Сумма</label>
+                    <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="Введите сумму" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="description" class="form-label">Описание</label>
+                    <input type="text" class="form-control" id="description" name="description" placeholder="Описание расхода">
+                </div>
+                <div class="col-md-3">
+                    <label for="expense_date" class="form-label">Дата Расхода</label>
+                    <input type="datetime-local" class="form-control" id="expense_date" name="expense_date" required>
+                </div>
+                <div class="col-md-3 align-self-end">
+                    <button type="submit" class="btn btn-success">Добавить Расход</button>
+                </div>
+            </form>
+            </div>
+        </div>
+        
+        <!-- История Сообщений и Поле Ввода -->
+        <div class="card mb-4" style="display: flex; flex-direction: column; height: 500px;">
+            <div class="card-header">
+                <strong>Переписка с Пользователем</strong>
+            </div>
+            <div class="card-body" id="message-container" style="flex: 1; overflow-y: auto;">
+                {% for message in messages %}
+                    {% if message.sender_type == 'admin' %}
+                        <div class="d-flex justify-content-end mb-2">
+                            <div class="bg-primary text-white p-2 rounded" style="max-width: 70%;">
+                                <p>{{ message.message_text | safe }}</p>
+                                <small class="text-muted">{{ message.timestamp | format_datetime }}</small>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="d-flex justify-content-start mb-2">
+                            <div class="bg-light p-2 rounded" style="max-width: 70%;">
+                                <p>{{ message.message_text | safe }}</p>
+                                <small class="text-muted">{{ message.timestamp | format_datetime }}</small>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <p class="text-center">Нет сообщений.</p>
+                {% endfor %}
+            </div>
+            <!-- Отправить Сообщение Пользователю -->
+            <div class="card-footer">
+                <form action="{{ url_for('send_message_route', order_id=order.order_id) }}" method="post">
+                    <!-- Добавление CSRF-токена как скрытого поля -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="input-group">
+                        <textarea class="form-control" name="message" rows="2" placeholder="Введите сообщение" required></textarea>
+                        <button id="emoji-trigger" type="button" class="btn btn-secondary">😊</button>
+                        <button class="btn btn-primary" type="submit">Отправить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <a href="{{ url_for('orders') }}" class="btn btn-primary">Вернуться к списку заказов</a>
+        </div>
+        
+
+        <!-- Подключение Emoji Button через CDN и инициализация -->
+        <script type="module">
+            import { EmojiButton } from 'https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.2/dist/index.min.js';
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const picker = new EmojiButton({
+                    autoHide: false // Отключаем автоматическое скрытие меню
+                });
+                const trigger = document.querySelector('#emoji-trigger');
+                const textarea = document.querySelector('textarea[name="message"]');
+                const messageContainer = document.getElementById('message-container');
+
+                // Обработка выбора эмодзи
+                picker.on('emoji', selection => {
+                    const emoji = selection.emoji; // Получаем строку эмодзи из объекта
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const text = textarea.value;
+                    textarea.value = text.slice(0, start) + emoji + text.slice(end);
+                    // Перемещение курсора после вставленного эмодзи
+                    textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+                    textarea.focus();
+                });
+
+                // Обработка клика по кнопке эмодзи
+                trigger.addEventListener('click', () => picker.togglePicker(trigger));
+
+                // Функция для прокрутки к последнему сообщению
+                function scrollToBottom() {
+                    messageContainer.scrollTop = messageContainer.scrollHeight;
+                }
+
+                // Прокрутка при загрузке страницы
+                scrollToBottom();
+
+                // Прокрутка после отправки формы
+                const form = document.querySelector('.card-footer form');
+                form.addEventListener('submit', () => {
+                    // Используем setTimeout, чтобы дождаться обновления DOM
+                    setTimeout(scrollToBottom, 100);
+                });
+            });
+        </script>
+
+        <script>
+        // Функция для отображения/скрытия поля ввода ссылки или причины
+        function toggleLinkInput(selectElement, linkId, section) {
+            const selectedValue = selectElement.value;
+            const linkInput = document.getElementById(linkId);
+
+            if (section === 'task') {
+                if (selectedValue === 'task_status_completed') {
+                    linkInput.style.display = 'block';
+                    linkInput.required = true;
+                    linkInput.placeholder = 'Введите ссылку на результат';
+                    linkInput.type = 'url';
+                } else {
+                    linkInput.style.display = 'none';
+                    linkInput.required = false;
+                    linkInput.value = '';
+                    linkInput.type = 'text';
+                }
+            } else if (section === 'property') {
+                if (selectedValue === 'Результат готов') {
+                    linkInput.style.display = 'block';
+                    linkInput.required = true;
+                    linkInput.placeholder = 'Введите ссылку на результат';
+                    linkInput.type = 'url';
+                } else if (selectedValue === 'Просмотр отменен') {
+                    linkInput.style.display = 'block';
+                    linkInput.required = true;
+                    linkInput.placeholder = 'Введите причину отмены';
+                    linkInput.type = 'text';
+                } else if (selectedValue === 'Бронь забронирована') {
+                    linkInput.style.display = 'block';
+                    linkInput.required = true;
+                    linkInput.placeholder = 'Введите дату и время брони';
+                    linkInput.type = 'datetime-local';
+                    // Если нужно установить начальное значение, можно добавить:
+                    // linkInput.value = ''; // или другое значение
+                } else {
+                    linkInput.style.display = 'none';
+                    linkInput.required = false;
+                    linkInput.value = '';
+                    linkInput.type = 'text';
+                }
+            }
+        }
+        </script>
+    </body>
+</html>
