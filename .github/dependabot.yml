@@ -1,0 +1,45 @@
+version: 2
+updates:
+  # Next.js frontend
+  - package-ecosystem: "npm"
+    directory: "/nothard_website"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Tashkent"
+    open-pull-requests-limit: 5
+    groups:
+      next-and-react:
+        patterns:
+          - "next*"
+          - "react*"
+          - "@types/react*"
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+
+  # Python — Telegram bot
+  - package-ecosystem: "pip"
+    directory: "/telegram_bot"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Tashkent"
+    open-pull-requests-limit: 3
+
+  # Python — Payme webhook
+  - package-ecosystem: "pip"
+    directory: "/payme"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Tashkent"
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
