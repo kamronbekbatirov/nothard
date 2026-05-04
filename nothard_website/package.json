@@ -27,7 +27,7 @@
     "react-dom": "^19.2.3",
     "react-remove-scroll-bar": "^2.3.8",
     "react-style-singleton": "^2.2.3",
-    "tailwind-merge": "^1.14.0",
+    "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.5"
   },
   "devDependencies": {
