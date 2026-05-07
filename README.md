@@ -163,6 +163,128 @@ nothard.uz, www.nothard.uz {
 }
 ```
 
+---
+
+## For contributors / AI agents
+
+> A short technical orientation for anyone (human or AI) being handed this repo for the first time.
+
+### Mental model
+**A monorepo with three independent processes**, each with its own runtime, its own deploy unit, and its own job:
+
+1. **`nothard_website/`** — Next.js (TS) for the public site, agency dashboard, admin console, and runner panel + a small Flask app exposing a REST API.
+2. **`telegram_bot/`** — Long-running Python process (python-telegram-bot 20). The conversational front door for tenants. Has its own auxiliary Flask app for ops views.
+3. **`payme/`** — A tiny Flask service that implements the seven Payme.uz JSON-RPC merchant methods.
+
+They share **two persistence layers**: a SQLite file (`bot.db` — read by the Flask API and the bot) and Redis (sessions + short-lived state). Communication between services goes over HTTP (Next.js → Flask) and Telegram (bot ↔ user, payme → bot for payment confirmation).
+
+### Project tree
+
+```
+.
+├── nothard_website/                    Next.js + Flask
+│   ├── app/                            Next.js App Router pages
+│   │   ├── page.tsx                    Landing
+│   │   ├── login/, register/           Tenant auth
+│   │   ├── profile/                    Tenant profile + order history
+│   │   ├── search/                     Property search
+│   │   ├── agency/                     Agency dashboard
+│   │   ├── runner/                     Runner panel
+│   │   └── admin/                      Admin console
+│   ├── components/                     React components
+│   ├── lib/, app/api/                  Frontend helpers + Next API routes
+│   ├── app.py                          ★ Flask backend (~21 endpoints)
+│   ├── wsgi.py                         gunicorn entrypoint
+│   ├── property_typefinder.py          Listing categorisation helper
+│   └── DOCUMENTATION.md                Internal API doc
+│
+├── telegram_bot/                       Conversational entry point
+│   ├── main.py                         Bootstrap: registers handlers, starts polling
+│   ├── web_app.py · app_ready.py       Auxiliary Flask (admin web view)
+│   ├── bot/
+│   │   ├── handlers/                   13 handler modules (state machine)
+│   │   │   ├── registration.py         4-step sign-up + website link
+│   │   │   ├── property_search.py      Filter wizard, cart, order, Payme flow
+│   │   │   ├── addproperty.py          Agency listing posting
+│   │   │   ├── services.py             Supplementary-services catalogue
+│   │   │   ├── subscribe.py            Bot↔website linking bonuses
+│   │   │   ├── orders.py               Order timeline
+│   │   │   ├── profile_management.py   Edit profile fields
+│   │   │   ├── feedback.py             Post-order feedback
+│   │   │   ├── admin.py                Operator commands
+│   │   │   └── common.py · info.py · oferta.py · contact.py · language.py
+│   │   ├── keyboards/                  Inline keyboards
+│   │   └── utils/database.py           init_db() + helpers (writes to bot.db)
+│   ├── bot.db                          SQLite (gitignored) — shared with Flask API
+│   ├── images/, templates/             Bot media + Flask templates
+│   ├── payme.py                        Bot-side Payme helper
+│   ├── group.py · get.py · forms.py    Misc helpers
+│   └── requirements.txt
+│
+├── payme/                              Payme.uz JSON-RPC webhook
+│   ├── app.py                          7 merchant methods
+│   ├── wsgi.py                         gunicorn entrypoint
+│   ├── payme.db                        Transaction log (gitignored)
+│   ├── add_sample_transactions.py      Dev seed
+│   └── requirements.txt
+│
+├── README.md
+└── LICENSE
+```
+
+### Where things live
+
+| You want to … | Open … |
+| --- | --- |
+| Add a website page | `nothard_website/app/<route>/page.tsx` |
+| Add a website API endpoint | A handler in `nothard_website/app.py` (Flask) |
+| Add a bot screen / state | A new handler in `telegram_bot/bot/handlers/` + register it in `main.py` |
+| Change the search wizard logic | `telegram_bot/bot/handlers/property_search.py` |
+| Touch DB schema | `telegram_bot/bot/utils/database.py` (`init_db()` is the source of truth — both bot and Flask read the same file). Add a migration shim if existing rows need backfill. |
+| Touch payment flow | `telegram_bot/bot/handlers/property_search.py` (invoice creation) + `payme/app.py` (merchant webhook). Both must agree on the order ID format. |
+| Localise bot copy | The handler files themselves — strings live inline, language comes from the user's `language_code` |
+| Cron-like sweepers | None right now — orders / tasks are state-machine driven |
+
+### Conventions and gotchas
+
+- ⚠️ **One SQLite file. Two writers.** `telegram_bot/bot.db` is opened both by the Flask API and the bot process. SQLite handles this fine for low-write workloads (default journal mode + `-wal` keeps reads non-blocking), but **never run heavy migrations while the bot is up** — stop the bot, migrate, restart. There is no separate migration tool; `init_db()` in `database.py` is the source of truth.
+- ⚠️ **Telegram Payments + Payme are two-stage.** The bot issues an invoice via Telegram Payments; Payme then hits the `/payme/` webhook with a `CreateTransaction`/`PerformTransaction` cycle; on `PerformTransaction`, the Payme service forwards a confirmation back to the bot. Both sides must agree on the order/account ID format — see `bot/handlers/property_search.py` and `payme/app.py`.
+- ⚠️ **The 7 Payme methods are non-negotiable.** Implementing only some of them gets the merchant account flagged. If you change anything in `payme/app.py`, run through all 7 in a sandbox before deploying.
+- ⚠️ **Two Flask apps live in this repo.** `nothard_website/app.py` is the user-facing API; `telegram_bot/web_app.py` is an admin-facing view. Don't conflate them or move endpoints between them — they're deployed as separate systemd units.
+- ⚠️ **Bot ↔ website account linking is the trust boundary.** The 4-step bot registration verifies the password against an existing website account before promoting the bot user. The "linking bonus" subsystem in `subscribe.py` rewards users who connect both. Don't add bot-only registration that skips this verification.
+- **Each service has its own venv and `requirements.txt`.** Don't share a virtualenv across `nothard_website/`, `telegram_bot/`, and `payme/`. Their dependency sets diverge.
+- **Each service has its own `.env.example`.** Never commit a real `.env`. The root `.gitignore` blocks `.env`, `*.db`, `__pycache__/`, `venv/`, `node_modules/`, `gunicorn.ctl`, `*.log`.
+- **Production = four systemd units.** `nothard.service` (Next.js), `nothard-api.service` (Flask, gunicorn 2 workers), `nothard-payme.service` (Flask, gunicorn 2 workers), `nothard-bot.service` (long-running Python). Each as its own user. The reference Caddy config above routes `/api/*` and `/payme/*` to the right services.
+- **The bot uses python-telegram-bot v20** — async-first. `Update`, `ContextTypes`, conversation handlers all follow the v20 API. v13 patterns will not work.
+- **Photos for property listings are pulled by URL** (cloud-storage links pasted by agencies into the bot). The bot parses with BeautifulSoup. Don't rewire to a self-hosted upload — the agency workflow specifically wants Google Drive / Dropbox-style sharing.
+
+### Run / build / deploy
+
+```bash
+# nothard_website (two processes — Next.js + Flask)
+cd nothard_website
+cp .env.example .env.local && npm install && npm run dev    # :3000
+python3 -m venv venv && source venv/bin/activate
+pip install flask flask-cors bcrypt python-dotenv redis
+python app.py                                                # :5000
+
+# telegram_bot
+cd telegram_bot
+cp .env.example .env
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python main.py
+
+# payme
+cd payme
+cp .env.example .env
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+gunicorn -w 2 -b 127.0.0.1:5001 wsgi:app
+```
+
+In production each service runs as a systemd unit on a fixed port — see the table in the *Production* section above. Caddy is the single TLS terminator and router.
+
 ## License
 
 [MIT](LICENSE)
