@@ -1,26 +1,24 @@
-// /app/login/page.tsx
-
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from "../components/ui/button"
-import { Input } from "../components/ui/input"
-import { Label } from "../components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card"
-import { useToast } from "../components/ui/use-toast"
-import { Navbar } from "../components/navbar"
-import { Footer } from "../components/footer"
+import { useTranslations } from 'next-intl'
+import { Link, useRouter } from '@/i18n/navigation'
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../../components/ui/card"
+import { useToast } from "../../components/ui/use-toast"
+import { Navbar } from "../../components/navbar"
+import { Footer } from "../../components/footer"
 
 export default function LoginPage() {
+  const t = useTranslations('Login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [telegramToken, setTelegramToken] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
-  // Get API URL and Bot Username from environment variables
   const apiUrl = process.env.NEXT_PUBLIC_API_URL
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
 
@@ -40,37 +38,36 @@ export default function LoginPage() {
         localStorage.setItem('website_id', data.website_id?.toString() || '')
         localStorage.setItem('user_role', data.role || 'user')
         localStorage.setItem('user_name', data.name || '')
-        
+
         toast({
-          title: "Успешный вход",
-          description: "Добро пожаловать!",
+          title: t('successTitle'),
+          description: t('successDesc'),
         })
 
-        // Перенаправление в зависимости от роли
         switch(data.role) {
           case 'admin':
-            router.push('/admin')
+            window.location.href = '/admin'
             break
           case 'agency':
-            router.push('/agency')
+            window.location.href = '/agency'
             break
           case 'runner':
-            router.push('/runner')
+            window.location.href = '/runner'
             break
           default:
-            router.push('/profile')
+            window.location.href = '/profile'
         }
       } else {
         toast({
-          title: "Ошибка входа",
+          title: t('errorTitle'),
           description: data.error,
           variant: "destructive",
         })
       }
     } catch (error) {
       toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при входе",
+        title: t('errorGeneric'),
+        description: t('errorMessage'),
         variant: "destructive",
       })
     }
@@ -83,26 +80,25 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: 'auth' }), // Indicate that this is an auth request
+        body: JSON.stringify({ action: 'auth' }),
       })
       const data = await response.json()
       if (response.ok) {
         const telegramToken = data.token
         setTelegramToken(telegramToken)
         const telegramLoginUrl = `https://t.me/${botUsername}?start=${telegramToken}`
-        // Redirect the user to the Telegram bot with the token
         window.location.href = telegramLoginUrl
       } else {
         toast({
-          title: "Ошибка",
+          title: t('errorGeneric'),
           description: data.error,
           variant: "destructive",
         })
       }
     } catch (error) {
       toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при запросе авторизации через Telegram",
+        title: t('errorGeneric'),
+        description: t('telegramError'),
         variant: "destructive",
       })
     }
@@ -110,12 +106,11 @@ export default function LoginPage() {
 
   const handleGmailLogin = () => {
     toast({
-      title: "Gmail Login",
-      description: "Функция входа через Gmail еще не реализована",
+      title: t('gmailTitle'),
+      description: t('gmailDesc'),
     })
   }
 
-  // Polling to check if the user has authenticated via Telegram
   useEffect(() => {
     let interval: NodeJS.Timeout
 
@@ -134,53 +129,50 @@ export default function LoginPage() {
           localStorage.setItem('website_id', data.website_id?.toString() || '')
           localStorage.setItem('user_role', data.user_profile?.role || 'user')
           localStorage.setItem('user_name', data.user_profile?.name || '')
-          
+
           toast({
-            title: "Успешный вход через Telegram",
-            description: "Добро пожаловать!",
+            title: t('telegramSuccess'),
+            description: t('successDesc'),
           })
 
-          // Перенаправление в зависимости от роли
           const role = data.user_profile?.role
           switch(role) {
             case 'admin':
-              router.push('/admin')
+              window.location.href = '/admin'
               break
             case 'agency':
-              router.push('/agency')
+              window.location.href = '/agency'
               break
             case 'runner':
-              router.push('/runner')
+              window.location.href = '/runner'
               break
             default:
-              router.push('/profile')
+              window.location.href = '/profile'
           }
         } else if (response.ok && !data.authenticated) {
           // Still waiting for authentication
         } else {
-          // Handle errors
           toast({
-            title: "Ошибка",
-            description: data.error || "Ошибка при проверке авторизации",
+            title: t('errorGeneric'),
+            description: data.error || t('errorMessage'),
             variant: "destructive",
           })
           clearInterval(interval)
         }
       } catch (error) {
-        // Handle errors
         console.error(error)
         clearInterval(interval)
       }
     }
 
     if (telegramToken) {
-      interval = setInterval(checkTelegramAuth, 5000) // Check every 5 seconds
+      interval = setInterval(checkTelegramAuth, 5000)
     }
 
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [telegramToken, apiUrl, router, toast])
+  }, [telegramToken, apiUrl, router, toast, t])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -188,17 +180,17 @@ export default function LoginPage() {
       <main className="flex-grow flex items-center justify-center bg-gray-100 py-12">
         <Card className="w-[350px]">
           <CardHeader>
-            <CardTitle>Вход</CardTitle>
-            <CardDescription>Войдите в свой аккаунт</CardDescription>
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('subtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit}>
               <div className="grid w-full items-center gap-4">
                 <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
+                  <Label htmlFor="email">{t('email')}</Label>
+                  <Input
+                    id="email"
+                    type="email"
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -206,9 +198,9 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="password">Пароль</Label>
-                  <Input 
-                    id="password" 
+                  <Label htmlFor="password">{t('password')}</Label>
+                  <Input
+                    id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -216,7 +208,7 @@ export default function LoginPage() {
                   />
                 </div>
               </div>
-              <Button className="w-full mt-4" type="submit">Войти</Button>
+              <Button className="w-full mt-4" type="submit">{t('submit')}</Button>
             </form>
             <div className="mt-4 flex justify-between">
               <Button variant="outline" className="w-[48%]" onClick={handleTelegramLogin}>
@@ -238,9 +230,9 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-gray-600">
-              Нет аккаунта?{" "}
+              {t('noAccount')}{" "}
               <Link href="/register" className="text-blue-600 hover:underline">
-                Зарегистрироваться
+                {t('registerLink')}
               </Link>
             </p>
           </CardFooter>

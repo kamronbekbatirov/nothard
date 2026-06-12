@@ -1,0 +1,225 @@
+{
+  "Navbar": {
+    "packages": "Paketlar",
+    "services": "Alohida xizmatlar",
+    "login": "Kirish",
+    "register": "Ro'yxatdan o'tish",
+    "contact": "Biz bilan bog'lanish",
+    "logout": "Chiqish",
+    "greeting": "Salom, {name}",
+    "cart": "Savat",
+    "menu": "Menyu",
+    "dashboard": {
+      "admin": "Admin paneli",
+      "agency": "Agentlik paneli",
+      "runner": "Ranner paneli",
+      "profile": "Profil"
+    },
+    "language": "Til"
+  },
+  "Footer": {
+    "tagline": "Ko'chib o'tish bo'yicha kompleks xizmatlar — Londonga ko'chishingizni oson va xavotirsiz qilamiz.",
+    "contacts": "Kontaktlar",
+    "navigation": "Navigatsiya",
+    "newsletter": "Xabarnoma",
+    "newsletterText": "Yangiliklar va maxsus takliflar — vaqti-vaqti bilan va ish bo'yicha.",
+    "emailPlaceholder": "Email manzilingiz",
+    "subscribe": "Obuna bo'lish",
+    "home": "Bosh sahifa",
+    "packages": "Paketlar",
+    "services": "Xizmatlar",
+    "login": "Kirish",
+    "privacy": "Maxfiylik",
+    "terms": "Shartlar",
+    "rights": "© {year} Nothard. Barcha huquqlar himoyalangan."
+  },
+  "Landing": {
+    "badge": "Ko'chib o'tish · London · 2026",
+    "heroTitleA": "Londonga ko'chish",
+    "heroTitleB": "ortiqcha tashvishsiz",
+    "heroSubtitle": "Aeroportda kutib olish, uy-joy izlash, hujjatlar, bank, NHS — odatda haftalab vaqt oladigan ishlarni biz o'z zimmamizga olamiz. Siz shunchaki kelib, yashashni boshlaysiz.",
+    "viewPackages": "Paketlarni ko'rish",
+    "individualServices": "Alohida xizmatlar",
+    "packagesTitle": "Paketlar",
+    "packagesSubtitle": "O'zingizga mos qo'llab-quvvatlash hajmini tanlang — aeroportda kutib olishdan to'liq kuzatib borishgacha.",
+    "servicesTitle": "Alohida xizmatlar",
+    "servicesSubtitle": "Faqat bir-ikki narsa kerakmi? Faqat kerakligini oling — ortiqcha to'lovsiz.",
+    "popular": "Mashhur tanlov",
+    "addToCart": "Savatga qo'shish",
+    "add": "Qo'shish",
+    "loading": "Yuklanmoqda...",
+    "errors": {
+      "packageExists": "Savatda allaqachon paket bor. Yangisini qo'shishdan oldin uni olib tashlang.",
+      "serviceExists": "Bu xizmat allaqachon savatda.",
+      "error": "Xatolik",
+      "success": "Muvaffaqiyatli",
+      "added": "Element savatga qo'shildi.",
+      "removed": "Element savatdan olib tashlandi."
+    },
+    "currency": {
+      "sum": "so'm"
+    }
+  },
+  "Packages": {
+    "meet": {
+      "name": "«Kutib ol» paketi",
+      "tagline": "Londondagi birinchi qadam",
+      "includes": [
+        "✈️ Aeroportda kutib olish",
+        "🚌 Jamoat transporti to'lovi va Londondagi yashash joyingizgacha yoki vokzalgacha kuzatib borish",
+        "📱 SIM-karta (tarif aktivatsiya paytida mijoz tomonidan to'lanadi)",
+        "🎫 Oyster-karta (karta o'z ichida, to'ldirish mijoz hisobidan)"
+      ],
+      "note": "⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "housing": {
+      "name": "«Uy-joy» paketi",
+      "tagline": "Uy topishda yordam",
+      "featured": true,
+      "includes": [
+        "«Kutib ol» paketidagi barchasi",
+        "🏠 Sizning mezonlaringizga mos cheksiz variantlarni qo'ng'iroq qilib tanlash",
+        "🏢 3 tagacha kvartirani ko'rishni tashkil qilish",
+        "🏨 Vaqtinchalik uy-joyda yordam",
+        "🚚 Yuk tashish tashkil qilinishi"
+      ],
+      "note": "⚠️ Barcha xizmatlar London hududida. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "premium": {
+      "name": "Premium paket",
+      "tagline": "«Kalit topshirish» to'liq ko'chish",
+      "includes": [
+        "«Uy-joy» paketidagi barchasi",
+        "📝 Local GP (NHS)da ro'yxatdan o'tish",
+        "🕐 7 kunlik qo'llab-quvvatlash (9:00–17:00)",
+        "📊 Yashash joyini baholash",
+        "💡 Kommunal xizmatlarni ulash",
+        "🏦 Raqamli hisob ochish",
+        "📜 Ijara shartnomasini tarjima qilish va kuzatib borish",
+        "🎁 Kompaniyadan sovg'a"
+      ],
+      "note": "⚠️ Barcha oflayn xizmatlar London hududida. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    }
+  },
+  "Services": {
+    "airportPublic": {
+      "name": "✈️ Aeroportda kutib olish + transport (jamoat)",
+      "description": "Londondagi yashash joyingizgacha yoki vokzalgacha kutib olish va kuzatib borish. Jamoat transporti narxga kiradi. ⚠️ Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "airportTaxi": {
+      "name": "✈️ Aeroportda kutib olish + xususiy transfer (taksi)",
+      "description": "Londondagi yashash joyingizgacha yoki vokzalgacha kutib olish va kuzatib borish. Taksi kompaniya tomonidan bron qilinadi va to'lanadi (narxga kiradi). ⚠️ Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "sim": {
+      "name": "📱 SIM-karta",
+      "description": "SIM-karta berish va aktivatsiyada yordam. Tarif mijoz tomonidan to'lanadi. ⚠️ Xizmat Londonda ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "oyster": {
+      "name": "🎫 Oyster-karta",
+      "description": "Jamoat transporti uchun Oyster-karta xaridi. Karta narxga kiradi, to'ldirish mijoz hisobidan. ⚠️ Xizmat Londonda ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "housingSearch": {
+      "name": "🔍 Uy-joy izlash va tanlash",
+      "description": "• Mezonlaringizga mos cheksiz variantlarni qo'ng'iroq qilib tanlash. • Yakuniy ro'yxat mijozga taqdim etiladi. • Har bir borib ko'rish (viewing) alohida to'lanadi — £38 ($50). ⚠️ Ko'rishlar London hududida tashkil qilinadi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "tempHousing": {
+      "name": "🏨 Vaqtinchalik uy-joyda yordam",
+      "description": "Birinchi kunlar uchun mehmonxona/xostel tanlash va bron qilish. Yashash mijoz hisobidan."
+    },
+    "moving": {
+      "name": "🚚 Yuk tashish",
+      "description": "Yuk tashish kompaniyasini tanlash va buyurtma berishda yordam. Yuk tashish narxi mijoz tomonidan to'lanadi. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "gp": {
+      "name": "📝 Local GP (NHS)da ro'yxatdan o'tish",
+      "description": "Mahalliy shifokorda ro'yxatdan o'tishda shaxsiy hamrohlik. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "support": {
+      "name": "🕐 Dastlabki 7 kun qo'llab-quvvatlash (9:00–17:00)",
+      "description": "Telegram orqali va kerak bo'lganda shaxsan qo'llab-quvvatlash va maslahat. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "neighborhood": {
+      "name": "📊 Yashash hududini baholash",
+      "description": "Tanlangan hududga borish, foto/video hisobot, infratuzilma sharhi. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "utilities": {
+      "name": "💡 Kommunal xizmatlarni ulash",
+      "description": "Internet, gaz va elektrni ulashda yordam. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "bank": {
+      "name": "🏦 Hisob ochishda yordam (onlayn-banking)",
+      "description": "Internet-banking imkoniyatli raqamli hisob ochishda qo'llab-quvvatlash. ✅ Onlayn, har qanday shaharda mavjud."
+    },
+    "lease": {
+      "name": "📜 Ijara shartnomasini tarjima qilish va yordam",
+      "description": "Ijara shartnomasini tarjima qilish va imzolashda kuzatib borish. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
+    },
+    "docs": {
+      "name": "📄 Hujjatlarni tarjima qilish",
+      "description": "Rasmiy hujjatlarni tarjima qilish (onlayn ham mumkin)."
+    }
+  },
+  "Cart": {
+    "title": "Savat",
+    "itemsCount": "{count, plural, one {# element savatda} other {# element savatda}}",
+    "type": {
+      "package": "paket",
+      "service": "xizmat"
+    },
+    "total": "Jami:",
+    "checkout": "Buyurtma berish",
+    "currency": "so'm",
+    "removed": "Element olib tashlandi",
+    "removedDesc": "{name} savatdan olib tashlandi.",
+    "checkoutToast": "Buyurtma berish",
+    "checkoutToastDesc": "Buyurtma berish funksiyasi hali ishlamaydi."
+  },
+  "Login": {
+    "title": "Kirish",
+    "subtitle": "Hisobingizga kiring",
+    "email": "Email",
+    "password": "Parol",
+    "submit": "Kirish",
+    "noAccount": "Hisobingiz yo'qmi?",
+    "registerLink": "Ro'yxatdan o'tish",
+    "successTitle": "Muvaffaqiyatli kirish",
+    "successDesc": "Xush kelibsiz!",
+    "errorTitle": "Kirish xatosi",
+    "errorGeneric": "Xatolik",
+    "errorMessage": "Kirish paytida xatolik yuz berdi",
+    "telegramSuccess": "Telegram orqali muvaffaqiyatli kirish",
+    "telegramError": "Telegram orqali avtorizatsiya so'rovida xatolik yuz berdi",
+    "gmailTitle": "Gmail Login",
+    "gmailDesc": "Gmail orqali kirish funksiyasi hali ishlamaydi"
+  },
+  "Register": {
+    "title": "Ro'yxatdan o'tish",
+    "subtitle": "Yangi hisob yarating",
+    "name": "Ism",
+    "phone": "Telefon",
+    "email": "Email",
+    "password": "Parol",
+    "confirmPassword": "Parolni tasdiqlang",
+    "submit": "Ro'yxatdan o'tish",
+    "hasAccount": "Hisobingiz bormi?",
+    "loginLink": "Kirish",
+    "passwordMismatch": "Parollar mos kelmadi",
+    "successTitle": "Ro'yxatdan o'tish muvaffaqiyatli",
+    "successDesc": "Siz muvaffaqiyatli ro'yxatdan o'tdingiz.",
+    "errorTitle": "Xatolik",
+    "errorMessage": "Ro'yxatdan o'tish paytida xatolik yuz berdi",
+    "telegramLinkRequired": "Telegram bilan bog'lashdan oldin ro'yxatdan o'ting.",
+    "telegramLinked": "Telegram bog'landi",
+    "telegramLinkedDesc": "Sizning hisobingiz Telegram bilan muvaffaqiyatli bog'landi!",
+    "telegramError": "Telegram bilan bog'lash paytida xatolik yuz berdi",
+    "gmailTitle": "Gmail Registration",
+    "gmailDesc": "Gmail orqali ro'yxatdan o'tish funksiyasi hali ishlamaydi"
+  },
+  "LanguageSwitcher": {
+    "label": "Til",
+    "ru": "Русский",
+    "en": "English",
+    "uz": "O'zbek",
+    "uz-cyrl": "Ўзбек"
+  }
+}
