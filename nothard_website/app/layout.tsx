@@ -1,6 +1,9 @@
 import './globals.css'
+import Script from 'next/script'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { NextIntlClientProvider } from 'next-intl'
+import ruMessages from '../messages/ru.json'
 import { Toaster } from './components/ui/toaster'
 import { ThemeProvider } from './components/theme-provider'
 
@@ -29,15 +32,18 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <NextIntlClientProvider locale="ru" messages={ruMessages}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </NextIntlClientProvider>
+        <Script src="https://stats.kama.uz/script.js" data-website-id="91960825-e17c-4235-b874-3cf3f6a23315" data-domains="nothard.uz" strategy="afterInteractive" />
       </body>
     </html>
   )
