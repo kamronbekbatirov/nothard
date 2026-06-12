@@ -1,19 +1,19 @@
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Separator } from './ui/separator'
 import { Instagram, Mail, Phone, MapPin } from 'lucide-react'
 
 export function Footer() {
+  const t = useTranslations('Footer')
   return (
     <footer className="border-t border-border bg-muted/40">
       <div className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <h3 className="mb-4 text-xl font-bold tracking-tight">Nothard</h3>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Комплексные услуги по релокации — делаем ваш переезд в Лондон лёгким и беззаботным.
-            </p>
+            <p className="mb-4 text-sm text-muted-foreground">{t('tagline')}</p>
             <div className="flex space-x-3">
               <a
                 href="#"
@@ -26,7 +26,7 @@ export function Footer() {
           </div>
           <div>
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Контакты
+              {t('contacts')}
             </h3>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
@@ -49,56 +49,54 @@ export function Footer() {
           </div>
           <div>
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Навигация
+              {t('navigation')}
             </h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/" className="transition-colors hover:text-foreground">
-                  Главная
+                  {t('home')}
                 </Link>
               </li>
               <li>
-                <Link href="/?section=packages" className="transition-colors hover:text-foreground">
-                  Пакеты
+                <Link href={'/?section=packages' as any} className="transition-colors hover:text-foreground">
+                  {t('packages')}
                 </Link>
               </li>
               <li>
-                <Link href="/?section=services" className="transition-colors hover:text-foreground">
-                  Услуги
+                <Link href={'/?section=services' as any} className="transition-colors hover:text-foreground">
+                  {t('services')}
                 </Link>
               </li>
               <li>
                 <Link href="/login" className="transition-colors hover:text-foreground">
-                  Вход
+                  {t('login')}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Рассылка
+              {t('newsletter')}
             </h3>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Новости и специальные предложения — изредка и по делу.
-            </p>
+            <p className="mb-4 text-sm text-muted-foreground">{t('newsletterText')}</p>
             <form className="flex flex-col gap-2">
-              <Input type="email" placeholder="Ваш email" />
+              <Input type="email" placeholder={t('emailPlaceholder')} />
               <Button type="submit" className="w-full">
-                Подписаться
+                {t('subscribe')}
               </Button>
             </form>
           </div>
         </div>
         <Separator className="my-10" />
         <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground sm:flex-row">
-          <p>&copy; {new Date().getFullYear()} Nothard. Все права защищены.</p>
+          <p>{t('rights', { year: new Date().getFullYear() })}</p>
           <div className="flex gap-6">
-            <Link href="/privacy" className="transition-colors hover:text-foreground">
-              Конфиденциальность
-            </Link>
-            <Link href="/terms" className="transition-colors hover:text-foreground">
-              Условия
-            </Link>
+            <a href="/privacy" className="transition-colors hover:text-foreground">
+              {t('privacy')}
+            </a>
+            <a href="/terms" className="transition-colors hover:text-foreground">
+              {t('terms')}
+            </a>
           </div>
         </div>
       </div>

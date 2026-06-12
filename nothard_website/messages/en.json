@@ -1,0 +1,224 @@
+{
+  "Navbar": {
+    "packages": "Packages",
+    "services": "Individual services",
+    "login": "Sign in",
+    "register": "Sign up",
+    "contact": "Contact us",
+    "logout": "Sign out",
+    "greeting": "Hi, {name}",
+    "cart": "Cart",
+    "menu": "Menu",
+    "dashboard": {
+      "admin": "Admin panel",
+      "agency": "Agency panel",
+      "runner": "Runner panel",
+      "profile": "Profile"
+    },
+    "language": "Language"
+  },
+  "Footer": {
+    "tagline": "End-to-end relocation services — making your move to London easy and stress-free.",
+    "contacts": "Contacts",
+    "navigation": "Navigation",
+    "newsletter": "Newsletter",
+    "newsletterText": "News and special offers — occasional and to the point.",
+    "emailPlaceholder": "Your email",
+    "subscribe": "Subscribe",
+    "home": "Home",
+    "packages": "Packages",
+    "services": "Services",
+    "login": "Sign in",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "rights": "© {year} Nothard. All rights reserved."
+  },
+  "Landing": {
+    "badge": "Relocation · London · 2026",
+    "heroTitleA": "Move to London",
+    "heroTitleB": "the easy way",
+    "heroSubtitle": "Airport pickup, housing search, paperwork, banking, NHS — we take care of everything that usually takes weeks. You just arrive and start living.",
+    "viewPackages": "View packages",
+    "individualServices": "Individual services",
+    "packagesTitle": "Packages",
+    "packagesSubtitle": "Pick the level of support that fits you — from airport pickup to full relocation.",
+    "servicesTitle": "Individual services",
+    "servicesSubtitle": "Just need one or two things? Take exactly what you need — no overpaying.",
+    "popular": "Most popular",
+    "addToCart": "Add to cart",
+    "add": "Add",
+    "loading": "Loading...",
+    "errors": {
+      "packageExists": "There's already a package in your cart. Please remove it before adding a new one.",
+      "serviceExists": "This service is already in your cart.",
+      "error": "Error",
+      "success": "Success",
+      "added": "Item added to cart.",
+      "removed": "Item removed from cart."
+    },
+    "currency": {
+      "sum": "UZS"
+    }
+  },
+  "Packages": {
+    "meet": {
+      "name": "“Meet Me” Package",
+      "tagline": "Your first step in London",
+      "includes": [
+        "✈️ Airport pickup",
+        "🚌 Public transport paid and escort to your London address or train station",
+        "📱 SIM card (tariff paid by you on activation)",
+        "🎫 Oyster card (card included, top-ups paid by you)"
+      ],
+      "note": "⚠️ Service available within London. For other cities the price is calculated individually."
+    },
+    "housing": {
+      "name": "“Housing” Package",
+      "tagline": "Help finding your home",
+      "includes": [
+        "Everything in the “Meet Me” package",
+        "🏠 Calling unlimited listings matching your criteria",
+        "🏢 Up to 3 in-person viewings arranged",
+        "🏨 Help with temporary accommodation",
+        "🚚 Moving logistics arranged"
+      ],
+      "note": "⚠️ All services within London. For other cities the price is calculated individually."
+    },
+    "premium": {
+      "name": "Premium Package",
+      "tagline": "Full turnkey relocation",
+      "includes": [
+        "Everything in the “Housing” package",
+        "📝 Local GP (NHS) registration",
+        "🕐 7-day support (9:00–17:00)",
+        "📊 Neighbourhood assessment",
+        "💡 Utilities setup",
+        "🏦 Digital bank account opening",
+        "📜 Lease translation and signing support",
+        "🎁 Gift from the company"
+      ],
+      "note": "⚠️ All offline services within London. For other cities the price is calculated individually."
+    }
+  },
+  "Services": {
+    "airportPublic": {
+      "name": "✈️ Airport pickup + public transport",
+      "description": "Pickup and escort to your London accommodation or train station. Public transport included. ⚠️ For other cities the price is calculated individually."
+    },
+    "airportTaxi": {
+      "name": "✈️ Airport pickup + private taxi transfer",
+      "description": "Pickup and escort to your London accommodation or train station. Taxi booked and paid by the company (included). ⚠️ For other cities the price is calculated individually."
+    },
+    "sim": {
+      "name": "📱 SIM card",
+      "description": "SIM card provided and activation help. Tariff paid by client. ⚠️ Service available in London. For other cities the price is calculated individually."
+    },
+    "oyster": {
+      "name": "🎫 Oyster card",
+      "description": "Oyster card purchase for public transport. Card included, top-ups paid by client. ⚠️ Service available in London. For other cities the price is calculated individually."
+    },
+    "housingSearch": {
+      "name": "🔍 Housing search & shortlist",
+      "description": "• Calling unlimited listings matching your criteria. • Final shortlist provided to client. • Each in-person viewing billed separately — £38 ($50). ⚠️ Viewings within London. For other cities the price is calculated individually."
+    },
+    "tempHousing": {
+      "name": "🏨 Temporary accommodation help",
+      "description": "Picking and booking a hotel/hostel for the first days. Accommodation paid by client."
+    },
+    "moving": {
+      "name": "🚚 Moving logistics",
+      "description": "Help choosing and booking a moving company. Moving cost paid by client. ⚠️ Service within London. For other cities the price is calculated individually."
+    },
+    "gp": {
+      "name": "📝 Local GP (NHS) registration",
+      "description": "Personal escort for local GP registration. ⚠️ Service within London. For other cities the price is calculated individually."
+    },
+    "support": {
+      "name": "🕐 7-day support (9:00–17:00)",
+      "description": "Support and consultations via Telegram and in person if needed. ⚠️ Service within London. For other cities the price is calculated individually."
+    },
+    "neighborhood": {
+      "name": "📊 Neighbourhood assessment",
+      "description": "Site visit to your chosen area, photo/video report, infrastructure overview. ⚠️ Service within London. For other cities the price is calculated individually."
+    },
+    "utilities": {
+      "name": "💡 Utilities setup",
+      "description": "Help connecting internet, gas and electricity. ⚠️ Service within London. For other cities the price is calculated individually."
+    },
+    "bank": {
+      "name": "🏦 Bank account opening (online banking)",
+      "description": "Support opening a digital account with online banking. ✅ Available online, in any city."
+    },
+    "lease": {
+      "name": "📜 Lease translation & signing help",
+      "description": "Lease translation and on-site signing support. ⚠️ Service within London. For other cities the price is calculated individually."
+    },
+    "docs": {
+      "name": "📄 Document translation",
+      "description": "Official document translation (can be done online)."
+    }
+  },
+  "Cart": {
+    "title": "Cart",
+    "itemsCount": "{count, plural, one {# item in cart} other {# items in cart}}",
+    "type": {
+      "package": "package",
+      "service": "service"
+    },
+    "total": "Total:",
+    "checkout": "Checkout",
+    "currency": "UZS",
+    "removed": "Item removed",
+    "removedDesc": "{name} was removed from your cart.",
+    "checkoutToast": "Checkout",
+    "checkoutToastDesc": "Checkout functionality isn't implemented yet."
+  },
+  "Login": {
+    "title": "Sign in",
+    "subtitle": "Sign in to your account",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "noAccount": "Don't have an account?",
+    "registerLink": "Sign up",
+    "successTitle": "Signed in",
+    "successDesc": "Welcome!",
+    "errorTitle": "Sign-in error",
+    "errorGeneric": "Error",
+    "errorMessage": "Something went wrong while signing in",
+    "telegramSuccess": "Signed in via Telegram",
+    "telegramError": "Something went wrong requesting Telegram auth",
+    "gmailTitle": "Gmail Login",
+    "gmailDesc": "Gmail sign-in isn't implemented yet"
+  },
+  "Register": {
+    "title": "Sign up",
+    "subtitle": "Create a new account",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "submit": "Sign up",
+    "hasAccount": "Already have an account?",
+    "loginLink": "Sign in",
+    "passwordMismatch": "Passwords don't match",
+    "successTitle": "Account created",
+    "successDesc": "You're successfully registered.",
+    "errorTitle": "Error",
+    "errorMessage": "Something went wrong during sign-up",
+    "telegramLinkRequired": "Please sign up before linking with Telegram.",
+    "telegramLinked": "Telegram linked",
+    "telegramLinkedDesc": "Your account is linked with Telegram!",
+    "telegramError": "Something went wrong linking with Telegram",
+    "gmailTitle": "Gmail Registration",
+    "gmailDesc": "Gmail sign-up isn't implemented yet"
+  },
+  "LanguageSwitcher": {
+    "label": "Language",
+    "ru": "Русский",
+    "en": "English",
+    "uz": "O'zbek",
+    "uz-cyrl": "Ўзбек"
+  }
+}
