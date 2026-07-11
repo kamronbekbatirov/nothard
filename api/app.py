@@ -2928,9 +2928,9 @@ def create_app() -> Flask:
         user, err = require_role("runner")
         if err:
             return err
-        # A runner's schedule = their timed field visits.
+        # Every field visit assigned to this runner (a time may not be set yet).
         tasks = SessionLocal.execute(
-            select(Task).where(Task.runner_id == user.id, Task.time != "").order_by(Task.time, Task.position)
+            select(Task).where(Task.runner_id == user.id).order_by(Task.time.desc(), Task.position)
         ).scalars().all()
         names = client_name_map()
         return jsonify(
@@ -2941,6 +2941,87 @@ def create_app() -> Flask:
                 "tasks": [runner_task_row(t, names) for t in tasks],
             }
         )
+
+    @app.get("/runner/dashboard")
+    def runner_dashboard():
+        """Everything a runner needs: assigned clients with contacts, all their
+        field visits grouped by client, and their own payout summary."""
+        user, err = require_role("runner")
+        if err:
+            return err
+
+        def _iso(dt):
+            return dt.isoformat() + "Z" if dt else None
+
+        tasks = SessionLocal.execute(
+            select(Task).where(Task.runner_id == user.id).order_by(Task.position, Task.id)
+        ).scalars().all()
+        by_client: dict = {}
+        for t in tasks:
+            by_client.setdefault(t.client_id, []).append(t)
+
+        def task_row(t: Task) -> dict:
+            return {
+                "id": t.id, "kind": t.kind, "key": t.key, "stage": t.status,
+                "time": t.time, "addr": t.addr, "completedAt": _iso(t.completed_at),
+            }
+
+        clients = []
+        # Clients currently assigned to this runner, plus any with leftover tasks.
+        assigned = SessionLocal.execute(
+            select(Client).where(Client.runner_id == user.id).order_by(Client.id)
+        ).scalars().all()
+        seen = set()
+        for c in assigned:
+            seen.add(c.id)
+            cu = SessionLocal.get(User, c.user_id) if c.user_id else None
+            pkg = next((o for o in reversed(client_orders(c.id))
+                        if o.item_type == "package" and not o.archived), None)
+            clients.append({
+                "id": c.id,
+                "name": c.name or (cu.name if cu else "") or "Клиент",
+                "photoUrl": (cu.photo_url if cu else None),
+                "phone": (cu.phone if cu else None),
+                "telegram": (cu.telegram_username if cu else None),
+                "package": pkg.item_id if pkg else None,
+                "tasks": [task_row(t) for t in by_client.get(c.id, [])],
+            })
+        for cid, ct in by_client.items():
+            if cid in seen:
+                continue
+            cc = SessionLocal.get(Client, cid)
+            cu = SessionLocal.get(User, cc.user_id) if cc and cc.user_id else None
+            clients.append({
+                "id": cid,
+                "name": (cc.name if cc else "") or (cu.name if cu else "") or "Клиент",
+                "photoUrl": (cu.photo_url if cu else None),
+                "phone": (cu.phone if cu else None),
+                "telegram": (cu.telegram_username if cu else None),
+                "package": None,
+                "tasks": [task_row(t) for t in ct],
+            })
+
+        done = [t for t in tasks if t.status == "done"]
+        active = [t for t in tasks if t.status not in ("done",)]
+        unpaid = [t for t in done if not t.runner_paid]
+        fee = runner_fee()
+        return jsonify({
+            "name": user.name,
+            "photoUrl": user.photo_url,
+            "stats": {
+                "clients": len(assigned),
+                "visitsTotal": len(tasks),
+                "visitsDone": len(done),
+                "visitsActive": len(active),
+            },
+            "payout": {
+                "visitFee": fee,
+                "visitsDone": len(done),
+                "owedGBP": len(unpaid) * fee,
+                "paidGBP": (len(done) - len(unpaid)) * fee,
+            },
+            "clients": clients,
+        })
 
     @app.post("/runner/tasks/<int:task_id>/advance")
     def runner_advance(task_id: int):

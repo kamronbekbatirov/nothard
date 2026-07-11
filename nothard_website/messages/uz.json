@@ -928,13 +928,31 @@
     "status": {
       "onWay": "Yo‘lda",
       "arrived": "Joyda",
-      "done": "Bajarildi"
+      "done": "Bajarildi",
+      "pending": "Kutilmoqda"
     },
     "clientsTitle": "Mening mijozlarim",
     "writeChat": "Yozish",
     "clientChatSubtitle": "Sizning mijozingiz",
     "chatPlaceholder": "Xabar…",
-    "chatEmpty": "Mijozga yozing — uchrashuvni shu yerda kelishing."
+    "chatEmpty": "Mijozga yozing — uchrashuvni shu yerda kelishing.",
+    "greeting": "Salom, {name}",
+    "statClients": "Mijozlar",
+    "statVisits": "Chiqishlar",
+    "statDone": "Bajarildi",
+    "statActive": "Faol",
+    "payoutTitle": "Sizning to‘lovlaringiz",
+    "owed": "Sizga to‘lanadi",
+    "paid": "To‘langan",
+    "perVisit": "har chiqish",
+    "pending": "Kutilmoqda",
+    "noClients": "Hozircha biriktirilgan mijoz yo‘q",
+    "noVisits": "Chiqishlar yo‘q",
+    "call": "Qo‘ng‘iroq",
+    "pkgLabel": "Paket",
+    "scheduledFor": "Belgilangan",
+    "notScheduled": "Vaqt hali belgilanmagan",
+    "visitsWord": "chiqish"
   },
   "Footer": {
     "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",

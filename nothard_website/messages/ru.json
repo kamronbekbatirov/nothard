@@ -928,13 +928,31 @@
     "status": {
       "onWay": "В пути",
       "arrived": "На месте",
-      "done": "Выполнено"
+      "done": "Выполнено",
+      "pending": "Ожидает"
     },
     "clientsTitle": "Мои клиенты",
     "writeChat": "Написать",
     "clientChatSubtitle": "Ваш клиент",
     "chatPlaceholder": "Сообщение…",
-    "chatEmpty": "Напишите клиенту — согласуйте встречу здесь."
+    "chatEmpty": "Напишите клиенту — согласуйте встречу здесь.",
+    "greeting": "Привет, {name}",
+    "statClients": "Клиенты",
+    "statVisits": "Выезды",
+    "statDone": "Готово",
+    "statActive": "Активные",
+    "payoutTitle": "Ваши выплаты",
+    "owed": "К выплате вам",
+    "paid": "Выплачено",
+    "perVisit": "за выезд",
+    "pending": "Ожидает",
+    "noClients": "Пока нет прикреплённых клиентов",
+    "noVisits": "Нет выездов",
+    "call": "Позвонить",
+    "pkgLabel": "Пакет",
+    "scheduledFor": "Назначено",
+    "notScheduled": "Время ещё не задано",
+    "visitsWord": "выездов"
   },
   "Footer": {
     "tagline": "Сервис релокации в Лондон «под ключ». Спокойно, по-человечески, на вашем языке.",

@@ -2,46 +2,40 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { MapPin, Camera, MessageSquare } from 'lucide-react'
+import { MapPin, MessageSquare, Phone } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
+import { Avatar } from '@/app/components/avatar'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { useRequireRole } from '@/app/lib/use-require-role'
 import { useTaskLabel } from '@/app/lib/task-label'
-import { api, clearTokens, type RunnerTask, type RunnerClient } from '@/app/lib/api'
+import { api, clearTokens, type RunnerDashboard, type RunnerClientRow, type RunnerVisitRow } from '@/app/lib/api'
+import { fmtGBP } from '@/app/lib/data'
 import { cn } from '@/app/lib/utils'
 
 export default function RunnerPage() {
   const t = useTranslations('Runner')
   const { toast } = useToast()
   const { ready, user } = useRequireRole(['runner'])
-  const [tasks, setTasks] = useState<RunnerTask[]>([])
-  const [clients, setClients] = useState<RunnerClient[]>([])
-  const [chatClient, setChatClient] = useState<RunnerClient | null>(null)
-  const [name, setName] = useState('')
+  const [data, setData] = useState<RunnerDashboard | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [chatClient, setChatClient] = useState<RunnerClientRow | null>(null)
 
+  const load = () => api.runner.dashboard().then(setData).catch(() => {}).finally(() => setLoaded(true))
   useEffect(() => {
     if (!ready) return
-    api.runner
-      .tasks()
-      .then((d) => {
-        setTasks(d.tasks)
-        setName(d.name)
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true))
-    api.runner.clients().then((d) => setClients(d.clients)).catch(() => {})
+    load()
+    const id = window.setInterval(load, 8000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready])
 
-  const done = useMemo(() => tasks.filter((x) => x.stage === 'done').length, [tasks])
-
-  async function advance(id: number) {
+  async function advance(taskId: number) {
     try {
-      const updated = await api.runner.advance(id)
-      setTasks((ts) => ts.map((x) => (x.id === id ? updated : x)))
-      if (updated.stage === 'done') toast(t('actions.complete'))
+      const r = await api.runner.advance(taskId)
+      if (r.stage === 'done') toast(t('actions.complete'))
+      load()
     } catch {}
   }
 
@@ -51,55 +45,65 @@ export default function RunnerPage() {
     <div className="min-h-screen bg-paper">
       <AppTopbar
         badge={t('badge')}
-        name={name || user?.name}
-        avatarUrl={user?.photo_url}
+        name={data?.name || user?.name}
+        avatarUrl={data?.photoUrl ?? user?.photo_url}
         onLogout={() => {
           clearTokens()
           window.location.href = '/login'
         }}
       />
 
-      <main className="mx-auto max-w-[600px] px-4 py-7 sm:px-6">
-        <h1 className="font-display text-[24px] text-ink">
-          {t('heading', { count: tasks.length, name: name || user?.name || '' })}
-        </h1>
-        <p className="mt-1 text-[13.5px] text-muted">{t('doneCount', { done, total: tasks.length })}</p>
+      <main className="mx-auto max-w-[680px] px-4 py-6 sm:px-6">
+        <p className="text-[14px] text-muted">{t('greeting', { name: data?.name || user?.name || '' })}</p>
 
-        <div className="mt-6 flex flex-col gap-3">
-          {tasks.map((task) => (
-            <RunnerCard key={task.id} task={task} onAdvance={() => advance(task.id)} />
-          ))}
-          {loaded && tasks.length === 0 && (
-            <p className="rounded-xl border border-line bg-card p-6 text-center text-[14px] text-muted">
-              —
-            </p>
-          )}
+        {/* Stats */}
+        <div className="mt-3 grid grid-cols-4 gap-2.5">
+          <Stat value={data?.stats.clients} label={t('statClients')} />
+          <Stat value={data?.stats.visitsActive} label={t('statActive')} tone="accent" />
+          <Stat value={data?.stats.visitsDone} label={t('statDone')} />
+          <Stat value={data?.stats.visitsTotal} label={t('statVisits')} />
         </div>
 
-        {/* Clients this runner is attached to — chat with each */}
-        {clients.length > 0 && (
-          <div className="mt-8">
-            <div className="eyebrow mb-3">{t('clientsTitle')}</div>
-            <div className="flex flex-col gap-2.5">
-              {clients.map((c) => (
-                <div key={c.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3.5">
-                  {c.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.photoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sub text-[15px] font-semibold text-gray">
-                      {(c.name.trim().charAt(0) || '?').toUpperCase()}
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1 truncate text-[14.5px] font-medium text-ink">{c.name}</span>
-                  <Button variant="dark" size="sm" className="gap-1.5" onClick={() => setChatClient(c)}>
-                    <MessageSquare size={14} /> {t('writeChat')}
-                  </Button>
+        {/* Payout */}
+        {data && (
+          <div className="mt-4 rounded-2xl border border-line bg-card p-5">
+            <div className="eyebrow mb-3">{t('payoutTitle')}</div>
+            <div className="flex items-end justify-between">
+              <div>
+                <div className="font-display text-[32px] leading-none text-accent">{fmtGBP(data.payout.owedGBP)}</div>
+                <div className="mt-1 text-[12.5px] text-muted">{t('owed')}</div>
+              </div>
+              <div className="text-right text-[12.5px] text-muted">
+                <div>
+                  {t('paid')}: <span className="font-medium text-ink">{fmtGBP(data.payout.paidGBP)}</span>
                 </div>
-              ))}
+                <div className="mt-0.5">
+                  {fmtGBP(data.payout.visitFee)} · {t('perVisit')}
+                </div>
+              </div>
             </div>
           </div>
         )}
+
+        {/* Clients & their visits */}
+        <div className="mt-7">
+          <div className="eyebrow mb-3">{t('clientsTitle')}</div>
+          {loaded && data && data.clients.length === 0 && (
+            <div className="rounded-xl border border-dashed border-line bg-surface p-8 text-center text-[14px] text-muted">
+              {t('noClients')}
+            </div>
+          )}
+          <div className="flex flex-col gap-4">
+            {data?.clients.map((c) => (
+              <ClientCard
+                key={c.id}
+                c={c}
+                onAdvance={advance}
+                onChat={() => setChatClient(c)}
+              />
+            ))}
+          </div>
+        </div>
       </main>
 
       {chatClient && (
@@ -120,66 +124,126 @@ export default function RunnerPage() {
   )
 }
 
-function RunnerCard({ task, onAdvance }: { task: RunnerTask; onAdvance: () => void }) {
+function Stat({ value, label, tone }: { value?: number; label: string; tone?: 'accent' }) {
+  return (
+    <div className="rounded-xl border border-line bg-card px-2 py-3 text-center">
+      <div className={cn('font-display text-[24px] leading-none', tone === 'accent' ? 'text-accent' : 'text-ink')}>
+        {value ?? '—'}
+      </div>
+      <div className="mt-1 text-[11px] leading-tight text-muted">{label}</div>
+    </div>
+  )
+}
+
+function ClientCard({
+  c,
+  onAdvance,
+  onChat,
+}: {
+  c: RunnerClientRow
+  onAdvance: (taskId: number) => void
+  onChat: () => void
+}) {
+  const t = useTranslations('Runner')
+  const tp = useTranslations('Packages')
+  const active = useMemo(() => c.tasks.filter((v) => v.stage !== 'done'), [c.tasks])
+  const done = c.tasks.length - active.length
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-line bg-card">
+      {/* Client header */}
+      <div className="flex items-center gap-3 border-b border-line p-4">
+        <Avatar url={c.photoUrl} name={c.name} size={44} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[15.5px] font-semibold text-ink">{c.name}</div>
+          <div className="text-[12.5px] text-muted">
+            {c.package ? tp(`${c.package}.name` as any) : t('pkgLabel')}
+            {c.tasks.length > 0 && ` · ${done}/${c.tasks.length} ${t('visitsWord')}`}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {c.phone && (
+            <a
+              href={`tel:${c.phone}`}
+              aria-label={t('call')}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink-2 hover:text-accent"
+            >
+              <Phone size={16} />
+            </a>
+          )}
+          <button
+            onClick={onChat}
+            aria-label={t('writeChat')}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-inverse text-inverse-fg"
+          >
+            <MessageSquare size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Visits */}
+      <div className="flex flex-col divide-y divide-line">
+        {c.tasks.length === 0 && <div className="p-4 text-[13px] text-muted">{t('noVisits')}</div>}
+        {c.tasks.map((v) => (
+          <VisitRow key={v.id} v={v} onAdvance={() => onAdvance(v.id)} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function VisitRow({ v, onAdvance }: { v: RunnerVisitRow; onAdvance: () => void }) {
   const t = useTranslations('Runner')
   const label = useTaskLabel()
-  const title = label(task.kind, task.key).title
-  const active = task.stage !== 'done'
+  const title = label(v.kind, v.key).title
+  const done = v.stage === 'done'
+  const stageBadge =
+    v.stage === 'onWay' ? t('status.onWay') : v.stage === 'arrived' ? t('status.arrived') : null
   const actionLabel =
-    task.stage === 'todo'
+    v.stage === 'todo' || v.stage === 'inProgress'
       ? t('actions.onWay')
-      : task.stage === 'onWay'
+      : v.stage === 'onWay'
         ? t('actions.arrived')
         : t('actions.complete')
 
   return (
-    <div
-      className={cn(
-        'rounded-xl border bg-card p-4',
-        task.stage === 'done'
-          ? 'border-line opacity-70'
-          : task.stage === 'todo'
-            ? 'border-line'
-            : 'border-accent/40'
-      )}
-    >
+    <div className={cn('p-4', done && 'opacity-70')}>
       <div className="flex items-start gap-3">
         <span className="mt-0.5">
-          {task.stage === 'done' ? (
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[12px] text-white">
-              ✓
-            </span>
-          ) : task.stage === 'todo' ? (
-            <span className="block h-6 w-6 rounded-full border-2 border-line bg-surface" />
+          {done ? (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] text-white">✓</span>
+          ) : v.stage === 'todo' ? (
+            <span className="block h-5 w-5 rounded-full border-2 border-line bg-surface" />
           ) : (
-            <span className="nd-pulse block h-6 w-6 rounded-full border-2 border-accent bg-card" />
+            <span className="nd-pulse block h-5 w-5 rounded-full border-2 border-accent bg-card" />
           )}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-ink">{task.time}</span>
-            {task.stage !== 'done' && task.stage !== 'todo' && (
+            <span className="text-[14.5px] font-medium text-ink">{title}</span>
+            {stageBadge && (
               <span className="rounded-full bg-accent-bg px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-accent">
-                {task.stage === 'onWay' ? t('status.onWay') : t('status.arrived')}
+                {stageBadge}
               </span>
             )}
           </div>
-          <div className="mt-0.5 text-[15px] font-medium text-ink">{title}</div>
-          <div className="text-[13px] text-muted">
-            {task.client} · {task.addr}
+          <div className="mt-0.5 text-[12.5px] text-muted">
+            {v.time ? `${t('scheduledFor')}: ${v.time.replace('T', ' ')}` : t('notScheduled')}
+            {v.addr ? ` · ${v.addr}` : ''}
           </div>
 
-          {active && (
+          {!done && (
             <div className="mt-3 flex flex-wrap gap-2">
               <Button variant="solid" size="sm" onClick={onAdvance}>
                 {actionLabel}
               </Button>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <MapPin size={14} /> {t('actions.route')}
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <Camera size={14} /> {t('actions.photo')}
-              </Button>
+              {v.addr && (
+                <Button asChild variant="outline" size="sm" className="gap-1.5">
+                  <a href={`https://maps.google.com/?q=${encodeURIComponent(v.addr)}`} target="_blank" rel="noreferrer">
+                    <MapPin size={14} /> {t('actions.route')}
+                  </a>
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -190,8 +254,6 @@ function RunnerCard({ task, onAdvance }: { task: RunnerTask; onAdvance: () => vo
 
 export function PanelLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-paper text-[15px] text-muted">
-      …
-    </div>
+    <div className="flex min-h-screen items-center justify-center bg-paper text-[15px] text-muted">…</div>
   )
 }

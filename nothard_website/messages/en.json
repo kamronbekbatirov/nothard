@@ -928,13 +928,31 @@
     "status": {
       "onWay": "On the way",
       "arrived": "Arrived",
-      "done": "Done"
+      "done": "Done",
+      "pending": "Pending"
     },
     "clientsTitle": "My clients",
     "writeChat": "Message",
     "clientChatSubtitle": "Your client",
     "chatPlaceholder": "Message…",
-    "chatEmpty": "Write to your client — coordinate the meeting here."
+    "chatEmpty": "Write to your client — coordinate the meeting here.",
+    "greeting": "Hi, {name}",
+    "statClients": "Clients",
+    "statVisits": "Visits",
+    "statDone": "Done",
+    "statActive": "Active",
+    "payoutTitle": "Your payout",
+    "owed": "Owed to you",
+    "paid": "Paid",
+    "perVisit": "per visit",
+    "pending": "Pending",
+    "noClients": "No clients assigned yet",
+    "noVisits": "No visits",
+    "call": "Call",
+    "pkgLabel": "Package",
+    "scheduledFor": "Scheduled",
+    "notScheduled": "Time not set yet",
+    "visitsWord": "visits"
   },
   "Footer": {
     "tagline": "End-to-end relocation to London. Calm, human, in your language.",

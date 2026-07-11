@@ -392,6 +392,7 @@ export const api = {
   },
   runner: {
     tasks: () => req<RunnerData>('/runner/tasks'),
+    dashboard: () => req<RunnerDashboard>('/runner/dashboard'),
     advance: (taskId: number) =>
       req<RunnerTask>(`/runner/tasks/${taskId}/advance`, { method: 'POST' }),
     clients: () => req<{ clients: RunnerClient[] }>('/runner/clients'),
@@ -741,5 +742,31 @@ export type RunnerTask = {
 
 export type RunnerClient = { id: number; name: string; photoUrl: string | null }
 export type RunnerData = { name: string; total: number; done: number; tasks: RunnerTask[] }
+
+export type RunnerVisitRow = {
+  id: number
+  kind: 'step' | 'service'
+  key: string
+  stage: string
+  time: string
+  addr: string
+  completedAt: string | null
+}
+export type RunnerClientRow = {
+  id: number
+  name: string
+  photoUrl: string | null
+  phone: string | null
+  telegram: string | null
+  package: string | null
+  tasks: RunnerVisitRow[]
+}
+export type RunnerDashboard = {
+  name: string
+  photoUrl: string | null
+  stats: { clients: number; visitsTotal: number; visitsDone: number; visitsActive: number }
+  payout: { visitFee: number; visitsDone: number; owedGBP: number; paidGBP: number }
+  clients: RunnerClientRow[]
+}
 
 export { req as apiRequest }
