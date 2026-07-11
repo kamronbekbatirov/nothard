@@ -126,19 +126,12 @@
   select {
     font-family: inherit;
   }
-  /* Our DateTimeInput (.nh-dt): keep the native control fully interactive but fix
-     the WebKit quirks — vertically centre the value (iOS top-aligns it) and hide
-     the native "mm/dd/yyyy" hint while empty so our own placeholder shows. */
-  .nh-dt {
-    display: flex;
-    align-items: center;
-  }
-  .nh-dt::-webkit-date-and-time-value {
+  /* DateTimeInput reveals a native control on focus; keep its value left-aligned
+     and un-margined while it's briefly visible. */
+  input[type='date']::-webkit-date-and-time-value,
+  input[type='time']::-webkit-date-and-time-value {
     margin: 0;
     text-align: left;
-  }
-  .nh-dt[data-empty='true']::-webkit-datetime-edit {
-    color: transparent;
   }
   input:focus,
   textarea:focus {

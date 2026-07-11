@@ -74,14 +74,23 @@ export function Field({
 }
 
 /**
- * Native date / time input, sized to match our other fields.
+ * Native date / time input sized to match our other fields.
  *
- * We keep the real native control (so it stays fully interactive everywhere —
- * the desktop calendar/clock and the iOS wheel picker both work). CSS (`.nh-dt`
- * in globals) fixes the two WebKit quirks: it vertically-centres the value (iOS
- * top-aligns it) and hides the native "mm/dd/yyyy" hint while empty so our own
- * placeholder shows through. Height is fixed so it lines up with sibling fields.
+ * WebKit (iOS / Telegram webview) can't reliably centre or size a native
+ * date/time control — its value top-aligns and the box grows taller than
+ * siblings. So when the field is IDLE we show our own flex-centred label
+ * (placeholder, or the value formatted as DD.MM.YYYY) in a fixed-height box. On
+ * focus we reveal the real native control over it (opacity 0→1) so the desktop
+ * calendar/clock and the iOS wheel picker both work; `showPicker()` opens it on
+ * click too. On blur we go back to the clean centred display.
  */
+function fmtDateTime(type: 'date' | 'time', v: string): string {
+  if (!v) return ''
+  if (type === 'time') return v
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v)
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : v
+}
+
 export function DateTimeInput({
   type,
   value,
@@ -95,29 +104,43 @@ export function DateTimeInput({
   placeholder: string
   compact?: boolean
 }) {
-  const box = compact ? 'h-9 px-2 text-[12.5px]' : 'h-11 px-3 text-[15px]'
+  const [focused, setFocused] = React.useState(false)
+  const box = compact ? 'h-9 text-[12.5px]' : 'h-11 text-[15px]'
+  const pad = compact ? 'px-2' : 'px-3'
+  const display = fmtDateTime(type, value)
   return (
-    <div className="relative">
+    <div
+      className={cn(
+        'relative box-border flex w-full min-w-0 items-center rounded-md border bg-card',
+        focused ? 'border-accent' : 'border-line',
+        box,
+        pad
+      )}
+    >
+      {!focused && (
+        <span className={cn('pointer-events-none truncate', value ? 'text-ink' : 'text-gray-lt')}>
+          {display || placeholder}
+        </span>
+      )}
       <input
         type={type}
         value={value}
-        data-empty={value ? undefined : 'true'}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={(e) => {
+          setFocused(true)
+          const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void }
+          try {
+            el.showPicker?.()
+          } catch {}
+        }}
+        onBlur={() => setFocused(false)}
+        aria-label={placeholder}
         className={cn(
-          'nh-dt box-border block w-full min-w-0 rounded-md border border-line bg-card text-ink',
-          box
+          'absolute inset-0 h-full w-full cursor-pointer bg-transparent text-ink outline-none',
+          pad,
+          focused ? 'opacity-100' : 'opacity-0'
         )}
       />
-      {!value && (
-        <span
-          className={cn(
-            'pointer-events-none absolute inset-y-0 flex items-center text-gray-lt',
-            compact ? 'left-2 text-[12.5px]' : 'left-3 text-[15px]'
-          )}
-        >
-          {placeholder}
-        </span>
-      )}
     </div>
   )
 }
