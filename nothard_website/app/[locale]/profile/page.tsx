@@ -944,39 +944,60 @@ function ServiceStatusBadge({ status }: { status: string }) {
 }
 
 /* ---------- Airport greeter: "how to find the person meeting you" ---------- */
-// Our greeter holding a sign at chest height. The sign shows the real Nothard
-// wordmark (not = ink, hard. = green) so the client recognises it one-to-one.
-// Figure adapts to the theme; the sign stays white with fixed brand colours.
+// A friendly character — smiling face, tilted head, holding a sign at chest
+// height that shows the real Nothard wordmark (not = ink, hard. = green) one-to-one.
+// Self-contained fixed palette (it's an illustration/sticker) so it reads clearly
+// in both light and dark themes.
 function GreeterSign({ size = 128 }: { size?: number }) {
   return (
     <svg
-      viewBox="0 0 132 118"
+      viewBox="0 0 140 118"
       role="img"
-      aria-label="Nothard greeter holding a sign"
+      aria-label="Nothard greeter smiling and holding a sign"
       style={{ width: size }}
       className="h-auto shrink-0"
     >
-      {/* head */}
-      <circle cx="66" cy="27" r="14" fill="rgb(var(--ink))" />
-      {/* shoulders / torso (green "shirt") */}
-      <path d="M33 118C33 80 45 66 66 66s33 14 33 52Z" fill="rgb(var(--accent))" />
-      {/* the sign, held at chest height */}
-      <rect x="15" y="71" width="102" height="37" rx="8" fill="#fbfaf6" stroke="#e5e0d5" strokeWidth="1.5" />
-      <text
-        x="66"
-        y="95.5"
-        textAnchor="middle"
-        fontFamily="var(--font-onest), sans-serif"
-        fontSize="18.5"
-        fontWeight="700"
-        letterSpacing="-0.02em"
-      >
-        <tspan fill="#1b1a17">not</tspan>
-        <tspan fill="#2f5d45">hard.</tspan>
-      </text>
-      {/* hands gripping the top corners */}
-      <rect x="19" y="66" width="13" height="11" rx="4.5" fill="rgb(var(--accent))" />
-      <rect x="100" y="66" width="13" height="11" rx="4.5" fill="rgb(var(--accent))" />
+      {/* soft backdrop panel */}
+      <rect x="0" y="0" width="140" height="118" rx="16" fill="#f1eee6" />
+      {/* shoulders / torso — green shirt */}
+      <path d="M30 118C30 84 45 70 70 70s40 14 40 48Z" fill="#2f5d45" />
+      <path d="M64 64h12v10a6 6 0 0 1-12 0Z" fill="#f0c8a6" />
+      {/* head — tilted for a livelier pose */}
+      <g transform="rotate(-7 70 36)">
+        <circle cx="70" cy="34" r="20.5" fill="#2b2724" />
+        {/* ears */}
+        <circle cx="52.5" cy="40" r="4" fill="#f0c8a6" />
+        <circle cx="87.5" cy="40" r="4" fill="#f0c8a6" />
+        {/* face */}
+        <circle cx="70" cy="39" r="16.5" fill="#f0c8a6" />
+        {/* cheeks */}
+        <circle cx="59" cy="45" r="3.6" fill="#e79a80" opacity="0.55" />
+        <circle cx="81" cy="45" r="3.6" fill="#e79a80" opacity="0.55" />
+        {/* eyes */}
+        <circle cx="63.5" cy="38" r="2.2" fill="#2b2724" />
+        <circle cx="76.5" cy="38" r="2.2" fill="#2b2724" />
+        {/* smile */}
+        <path d="M62 44 Q70 52.5 78 44" fill="none" stroke="#2b2724" strokeWidth="2.6" strokeLinecap="round" />
+      </g>
+      {/* the sign — held at chest height, jaunty tilt */}
+      <g transform="rotate(3 70 97)">
+        <rect x="23" y="80" width="94" height="34" rx="8" fill="#ffffff" stroke="#e5e0d5" strokeWidth="1.5" />
+        <text
+          x="70"
+          y="102"
+          textAnchor="middle"
+          fontFamily="var(--font-onest), sans-serif"
+          fontSize="17"
+          fontWeight="700"
+          letterSpacing="-0.02em"
+        >
+          <tspan fill="#1b1a17">not</tspan>
+          <tspan fill="#2f5d45">hard.</tspan>
+        </text>
+        {/* hands gripping the top corners */}
+        <rect x="26" y="76" width="12" height="10" rx="4" fill="#f0c8a6" />
+        <rect x="102" y="76" width="12" height="10" rx="4" fill="#f0c8a6" />
+      </g>
     </svg>
   )
 }
@@ -985,9 +1006,7 @@ function MeetingSignNote() {
   const t = useTranslations('Profile')
   return (
     <div className="mt-3 flex items-center gap-4 rounded-xl border border-line bg-surface p-4">
-      <div className="flex h-[92px] w-[112px] shrink-0 items-end justify-center overflow-hidden rounded-lg bg-accent-bg">
-        <GreeterSign size={104} />
-      </div>
+      <GreeterSign size={116} />
       <div className="min-w-0">
         <div className="text-[13.5px] font-semibold text-ink">{t('meetSign.title')}</div>
         <p className="mt-1 text-[12.5px] leading-relaxed text-muted">{t('meetSign.body')}</p>
