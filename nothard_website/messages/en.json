@@ -845,7 +845,11 @@
       "tasksTitle": "Visits & tasks",
       "payoutTitle": "Payout",
       "scheduled": "Scheduled",
-      "doneAt": "Done"
+      "doneAt": "Done",
+      "feeLabel": "Fee per visit",
+      "feeSaved": "Fee updated",
+      "edit": "Edit",
+      "save": "Save"
     }
   },
   "Agency": {

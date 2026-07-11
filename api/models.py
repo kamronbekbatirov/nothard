@@ -240,3 +240,12 @@ class Listing(Base):
     available_from: Mapped[str] = mapped_column(String(32), default="")
     deposit_gbp: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Setting(Base):
+    """Simple operator-editable key/value settings (e.g. the runner visit fee)."""
+
+    __tablename__ = "settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(String(255), default="")

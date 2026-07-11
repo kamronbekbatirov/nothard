@@ -267,6 +267,9 @@ export const api = {
       req<{ ok: boolean }>(`/admin/clients/${clientId}`, { method: 'DELETE' }),
     accounts: () => req<{ accounts: AdminAccount[] }>('/admin/accounts'),
     runnerDetail: (id: number) => req<RunnerDetail>(`/admin/runners/${id}`),
+    getRunnerFee: () => req<{ fee: number }>('/admin/settings/runner-fee'),
+    setRunnerFee: (fee: number) =>
+      req<{ fee: number }>('/admin/settings/runner-fee', { method: 'POST', body: JSON.stringify({ fee }) }),
     setRunnerPaid: (taskId: number, paid: boolean) =>
       req<{ ok: boolean; id: number; runnerPaid: boolean }>(`/admin/tasks/${taskId}/runner-paid`, {
         method: 'POST',

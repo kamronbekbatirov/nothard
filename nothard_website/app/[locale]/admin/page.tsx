@@ -487,10 +487,30 @@ function RunnersView({
   onChanged: () => void
 }) {
   const t = useTranslations('Admin')
+  const { toast } = useToast()
   const [editing, setEditing] = useState<AdminAccount | 'new' | null>(null)
   const [openId, setOpenId] = useState<number | null>(null)
+  const [fee, setFee] = useState<number | null>(null)
+  const [feeDraft, setFeeDraft] = useState('')
+  const [feeEditing, setFeeEditing] = useState(false)
   const runners = (accounts ?? []).filter((a) => a.role === 'runner')
   const totalOwed = runners.reduce((s, r) => s + (r.owedGBP ?? 0), 0)
+
+  useEffect(() => {
+    api.admin.getRunnerFee().then((r) => setFee(r.fee)).catch(() => {})
+  }, [])
+
+  async function saveFee() {
+    const n = Number(feeDraft)
+    if (!Number.isFinite(n) || n < 0) return
+    try {
+      const r = await api.admin.setRunnerFee(Math.round(n))
+      setFee(r.fee)
+      setFeeEditing(false)
+      toast(t('runner.feeSaved'))
+      onChanged()
+    } catch {}
+  }
 
   return (
     <div>
@@ -501,14 +521,48 @@ function RunnersView({
         </Button>
       </div>
 
-      {/* Payout summary across all runners */}
+      {/* Payout summary + editable per-visit fee */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi value={fmtGBP(totalOwed)} label={t('runner.totalOwed')} tone={totalOwed > 0 ? 'terracotta' : 'accent'} />
-        <Kpi value={String(runners.length)} label={t('menu.runners')} />
         <Kpi
           value={String(runners.reduce((s, r) => s + (r.visitsDone ?? 0), 0))}
           label={t('runner.visits')}
         />
+        {/* Fee — operator-editable */}
+        <div className="rounded-xl border border-line bg-card p-4">
+          <div className="text-[11px] uppercase tracking-wide text-gray">{t('runner.feeLabel')}</div>
+          {feeEditing ? (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="text-[18px] text-muted">£</span>
+              <input
+                type="number"
+                min={0}
+                autoFocus
+                value={feeDraft}
+                onChange={(e) => setFeeDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveFee()}
+                className="h-9 w-16 rounded-md border border-line bg-surface px-2 text-[15px] text-ink"
+              />
+              <button onClick={saveFee} className="rounded-md bg-accent px-2.5 py-1.5 text-[12px] font-medium text-white">
+                {t('runner.save')}
+              </button>
+            </div>
+          ) : (
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="font-display text-[26px] text-ink">{fee != null ? fmtGBP(fee) : '—'}</span>
+              <button
+                onClick={() => {
+                  setFeeDraft(String(fee ?? ''))
+                  setFeeEditing(true)
+                }}
+                className="text-[12.5px] font-medium text-accent hover:underline"
+              >
+                {t('runner.edit')}
+              </button>
+            </div>
+          )}
+          <div className="mt-0.5 text-[11.5px] text-gray">{t('runner.perVisit')}</div>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

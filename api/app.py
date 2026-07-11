@@ -17,7 +17,7 @@ from config import settings
 from db import SessionLocal, init_db
 from models import (
     User, Client, Order, Task, Listing, Message, Review,
-    HousingItem, HousingMedia, Attachment, Session,
+    HousingItem, HousingMedia, Attachment, Session, Setting,
 )
 from catalog import (
     SERVICE_PRICE,
@@ -207,6 +207,26 @@ def create_app() -> Flask:
             u = SessionLocal.get(User, client.user_id)
             if u:
                 notify.send(u, event, **params)
+
+    # ---- Operator-editable settings (key/value) ---------------------------
+    def get_setting(key: str, default: str = "") -> str:
+        row = SessionLocal.get(Setting, key)
+        return row.value if row else default
+
+    def set_setting(key: str, value: str) -> None:
+        row = SessionLocal.get(Setting, key)
+        if row:
+            row.value = value
+        else:
+            SessionLocal.add(Setting(key=key, value=value))
+
+    def runner_fee() -> int:
+        """Current £ per completed runner visit — operator-editable, defaults to
+        the catalog constant."""
+        try:
+            return int(get_setting("runner_visit_fee", str(RUNNER_VISIT_FEE)))
+        except (TypeError, ValueError):
+            return RUNNER_VISIT_FEE
 
     def notify_task_done(client, task):
         """A task just completed. If it finishes a reviewable order (a service, or
@@ -1985,10 +2005,11 @@ def create_app() -> Flask:
             row["taskTotal"] = len(rtasks)
             row["taskDone"] = len(done)
             # Payout: fee per completed visit; owed = completed-but-unpaid.
-            row["visitFee"] = RUNNER_VISIT_FEE
+            fee = runner_fee()
+            row["visitFee"] = fee
             row["visitsDone"] = len(done)
             row["visitsUnpaid"] = len(unpaid)
-            row["owedGBP"] = len(unpaid) * RUNNER_VISIT_FEE
+            row["owedGBP"] = len(unpaid) * fee
             row["clientCount"] = SessionLocal.execute(
                 select(func.count()).select_from(Client).where(Client.runner_id == u.id)
             ).scalar_one()
@@ -2014,6 +2035,28 @@ def create_app() -> Flask:
             return err
         users = SessionLocal.execute(select(User).order_by(User.role, User.id)).scalars().all()
         return jsonify({"accounts": [account_row(u) for u in users]})
+
+    # ---- Runner visit fee (operator-editable) -----------------------------
+    @app.get("/admin/settings/runner-fee")
+    def admin_get_runner_fee():
+        user, err = require_role("operator")
+        if err:
+            return err
+        return jsonify({"fee": runner_fee()})
+
+    @app.post("/admin/settings/runner-fee")
+    def admin_set_runner_fee():
+        user, err = require_role("operator")
+        if err:
+            return err
+        d = request.get_json(silent=True) or {}
+        try:
+            fee = max(0, int(d.get("fee")))
+        except (TypeError, ValueError):
+            return jsonify({"error": "bad fee"}), 400
+        set_setting("runner_visit_fee", str(fee))
+        SessionLocal.commit()
+        return jsonify({"fee": fee})
 
     # ---- Runner detail + payouts (operator) -------------------------------
     @app.get("/admin/runners/<int:runner_id>")
@@ -2065,15 +2108,16 @@ def create_app() -> Flask:
 
         done = [t for t in tasks if t.status == "done"]
         unpaid = [t for t in done if not t.runner_paid]
+        fee = runner_fee()
         return jsonify({
             "runner": account_row(u),
             "clients": clients,
             "payout": {
-                "visitFee": RUNNER_VISIT_FEE,
+                "visitFee": fee,
                 "visitsDone": len(done),
                 "visitsUnpaid": len(unpaid),
-                "owedGBP": len(unpaid) * RUNNER_VISIT_FEE,
-                "paidGBP": (len(done) - len(unpaid)) * RUNNER_VISIT_FEE,
+                "owedGBP": len(unpaid) * fee,
+                "paidGBP": (len(done) - len(unpaid)) * fee,
             },
         })
 

@@ -53,7 +53,7 @@ export function AppTopbar({
         </div>
 
         {menu && menu.length > 0 && (
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {menu.map((m) => (
               <button
                 key={m.label}
@@ -118,14 +118,18 @@ export function AppTopbar({
       </div>
 
       {menu && menu.length > 0 && (
-        <div className="nd-hscroll flex gap-1 border-t border-line px-4 py-2 md:hidden">
+        <div className="nd-hscroll flex gap-1.5 border-t border-line px-4 py-2 lg:hidden">
           {menu.map((m) => (
             <button
               key={m.label}
               onClick={m.onClick}
+              ref={(el) => {
+                // Keep the active tab scrolled into view on mobile.
+                if (el && m.active) el.scrollIntoView({ block: 'nearest', inline: 'center' })
+              }}
               className={cn(
-                'shrink-0 rounded-md px-3 py-1.5 text-[13px] font-medium',
-                m.active ? 'bg-accent-bg text-accent' : 'text-muted'
+                'shrink-0 whitespace-nowrap rounded-lg px-3.5 py-2 text-[13.5px] font-medium transition-colors',
+                m.active ? 'bg-accent-bg text-accent' : 'text-muted hover:text-ink'
               )}
             >
               {m.label}

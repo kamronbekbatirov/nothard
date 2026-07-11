@@ -845,7 +845,11 @@
       "tasksTitle": "Chiqishlar va vazifalar",
       "payoutTitle": "To‘lovlar",
       "scheduled": "Belgilangan",
-      "doneAt": "Bajarildi"
+      "doneAt": "Bajarildi",
+      "feeLabel": "Chiqish uchun stavka",
+      "feeSaved": "Stavka yangilandi",
+      "edit": "Tahrirlash",
+      "save": "Saqlash"
     }
   },
   "Agency": {
