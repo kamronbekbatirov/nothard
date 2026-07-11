@@ -944,40 +944,39 @@ function ServiceStatusBadge({ status }: { status: string }) {
 }
 
 /* ---------- Airport greeter: "how to find the person meeting you" ---------- */
-// A little illustration of our greeter holding a meeting board (black frame,
-// white sheet, the "nothard" wordmark) so the client knows what to look for.
-function GreeterSign() {
+// Our greeter holding a sign at chest height. The sign shows the real Nothard
+// wordmark (not = ink, hard. = green) so the client recognises it one-to-one.
+// Figure adapts to the theme; the sign stays white with fixed brand colours.
+function GreeterSign({ size = 128 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 150 120" role="img" aria-hidden className="h-auto w-[132px] shrink-0">
-      {/* board — held up above the head */}
-      <g>
-        <rect x="26" y="6" width="98" height="52" rx="6" fill="#141210" />
-        <rect x="31" y="11" width="88" height="42" rx="3" fill="#f6f4ee" />
-        {/* wordmark */}
-        <circle cx="49" cy="32" r="6.5" fill="rgb(var(--accent))" />
-        <text
-          x="61"
-          y="37"
-          fontFamily="var(--font-onest), sans-serif"
-          fontSize="15"
-          fontWeight="700"
-          fill="#141210"
-        >
-          nothard
-        </text>
-      </g>
-      {/* person */}
-      <g fill="rgb(var(--ink))">
-        {/* head */}
-        <circle cx="75" cy="74" r="12" />
-        {/* shoulders / torso */}
-        <path d="M53 118c0-13 10-22 22-22s22 9 22 22z" />
-      </g>
-      {/* raised arms holding the board */}
-      <g stroke="rgb(var(--ink))" strokeWidth="6" strokeLinecap="round" fill="none">
-        <path d="M60 100 L40 58" />
-        <path d="M90 100 L110 58" />
-      </g>
+    <svg
+      viewBox="0 0 132 118"
+      role="img"
+      aria-label="Nothard greeter holding a sign"
+      style={{ width: size }}
+      className="h-auto shrink-0"
+    >
+      {/* head */}
+      <circle cx="66" cy="27" r="14" fill="rgb(var(--ink))" />
+      {/* shoulders / torso (green "shirt") */}
+      <path d="M33 118C33 80 45 66 66 66s33 14 33 52Z" fill="rgb(var(--accent))" />
+      {/* the sign, held at chest height */}
+      <rect x="15" y="71" width="102" height="37" rx="8" fill="#fbfaf6" stroke="#e5e0d5" strokeWidth="1.5" />
+      <text
+        x="66"
+        y="95.5"
+        textAnchor="middle"
+        fontFamily="var(--font-onest), sans-serif"
+        fontSize="18.5"
+        fontWeight="700"
+        letterSpacing="-0.02em"
+      >
+        <tspan fill="#1b1a17">not</tspan>
+        <tspan fill="#2f5d45">hard.</tspan>
+      </text>
+      {/* hands gripping the top corners */}
+      <rect x="19" y="66" width="13" height="11" rx="4.5" fill="rgb(var(--accent))" />
+      <rect x="100" y="66" width="13" height="11" rx="4.5" fill="rgb(var(--accent))" />
     </svg>
   )
 }
@@ -985,11 +984,13 @@ function GreeterSign() {
 function MeetingSignNote() {
   const t = useTranslations('Profile')
   return (
-    <div className="mt-3 flex items-center gap-3 rounded-xl bg-surface p-3.5">
-      <GreeterSign />
+    <div className="mt-3 flex items-center gap-4 rounded-xl border border-line bg-surface p-4">
+      <div className="flex h-[92px] w-[112px] shrink-0 items-end justify-center overflow-hidden rounded-lg bg-accent-bg">
+        <GreeterSign size={104} />
+      </div>
       <div className="min-w-0">
-        <div className="text-[13px] font-semibold text-ink">{t('meetSign.title')}</div>
-        <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{t('meetSign.body')}</p>
+        <div className="text-[13.5px] font-semibold text-ink">{t('meetSign.title')}</div>
+        <p className="mt-1 text-[12.5px] leading-relaxed text-muted">{t('meetSign.body')}</p>
       </div>
     </div>
   )
