@@ -1,225 +1,837 @@
 {
-  "Navbar": {
+  "Common": {
+    "loading": "Yuklanmoqda…",
+    "error": "Nimadir xato ketdi",
+    "retry": "Qayta urinish",
+    "close": "Yopish",
+    "back": "Orqaga",
+    "cancel": "Bekor qilish",
+    "save": "Saqlash",
+    "send": "Yuborish",
+    "continue": "Davom etish",
+    "done": "Tayyor",
+    "add": "Qo‘shish",
+    "added": "Ro‘yxatda ✓",
+    "remove": "Olib tashlash",
+    "all": "Barchasi",
+    "of": "dan",
+    "now": "hozir",
+    "online": "Onlayn mavjud",
+    "currencyNote": "To‘lov Payme orqali · chek Telegramda",
+    "toCabinet": "Kabinetga qaytish"
+  },
+  "Nav": {
+    "howItWorks": "Qanday ishlaydi",
     "packages": "Paketlar",
-    "services": "Alohida xizmatlar",
+    "services": "Xizmatlar",
+    "contacts": "Aloqa",
     "login": "Kirish",
-    "register": "Ro'yxatdan o'tish",
-    "contact": "Biz bilan bog'lanish",
     "logout": "Chiqish",
+    "register": "Ro‘yxatdan o‘tish",
+    "profile": "Shaxsiy kabinet",
     "greeting": "Salom, {name}",
-    "cart": "Savat",
-    "menu": "Menyu",
-    "dashboard": {
-      "admin": "Admin paneli",
-      "agency": "Agentlik paneli",
-      "runner": "Ranner paneli",
-      "profile": "Profil"
+    "housing": "Uy-joy"
+  },
+  "Lang": {
+    "label": "Til",
+    "ru": "RU",
+    "en": "EN",
+    "uz": "UZ",
+    "uz-cyrl": "ЎЗ",
+    "switched": "Til o‘zgartirildi"
+  },
+  "Landing": {
+    "heroTitle": "Londonga ortiqcha tashvishsiz ko‘chib o‘ting",
+    "heroSubtitle": "Sizni aeroportda kutib olamiz, uy topamiz, hujjatlar, bank va NHS bilan yordam beramiz. Siz shunchaki kelasiz — qolganini o‘z zimmamizga olamiz.",
+    "choosePackage": "Paketni tanlash",
+    "howItWorksCta": "Qanday ishlaydi",
+    "heroBullets": {
+      "0": "Aeroportda kutib olamiz",
+      "1": "Uy topamiz va ko‘riklar tashkil qilamiz",
+      "2": "Bank, NHS va hujjatlarda yordam beramiz"
     },
-    "language": "Til"
+    "pathCardTitle": "Sizning yo‘lingiz",
+    "pathCardActive": "Uy qidirish",
+    "howTitle": "Besh qadam — va uydasiz",
+    "how": {
+      "meet": {
+        "title": "Kutib olish",
+        "desc": "Aeroportda kutib olib, joyingizga yetkazamiz."
+      },
+      "housing": {
+        "title": "Uy-joy",
+        "desc": "Variantlar tanlaymiz va ko‘riklar tashkil qilamiz."
+      },
+      "documents": {
+        "title": "Hujjatlar",
+        "desc": "Tarjima va ijara shartnomasi bilan hamrohlik."
+      },
+      "bank": {
+        "title": "Bank · NHS",
+        "desc": "Hisob ochamiz va shifokorga ro‘yxatdan o‘tkazamiz."
+      },
+      "moveIn": {
+        "title": "Joylashish",
+        "desc": "Kommunal xizmatlar — va yashay boshlaysiz."
+      }
+    },
+    "packagesTitle": "Xizmat paketlari",
+    "packagesSubtitle": "Ko‘chishingiz uchun qancha g‘amxo‘rlik kerakligini tanlang",
+    "popular": "Ommabop tanlov",
+    "choose": "Tanlash",
+    "servicesTeaserTitle": "Yoki faqat kerakli narsani",
+    "allServices": "Barcha xizmatlar",
+    "ctaTitle": "Siz keling — qolganini biz hal qilamiz",
+    "ctaSubtitle": "Ariza qoldiring, menejer o‘sha kuni siz bilan bog‘lanadi.",
+    "ctaButton": "Ko‘chishni boshlash",
+    "servicesTeaserHint": "Xizmatni bosing — katalog ochiladi, u yerda o‘z to‘plamingizni yarating.",
+    "catalogTitle": "Uy-joy katalogi",
+    "catalogSubtitle": "Kvartirani oldindan tanlang — yoki ko‘chish paytida mezoningizga mos topamiz.",
+    "catalogCta": "Katalogni ochish"
+  },
+  "Packages": {
+    "meet": {
+      "name": "Meni kutib ol",
+      "tagline": "Birinchi kun uchun yumshoq boshlanish",
+      "features": {
+        "0": "Aeroportda kutib olish",
+        "1": "Turar joyga transfer",
+        "2": "SIM-karta va Oyster",
+        "3": "Birinchi kun qo‘llab-quvvatlashi"
+      }
+    },
+    "housing": {
+      "name": "Uy-joy",
+      "tagline": "Joylashish uchun hammasi",
+      "features": {
+        "0": "«Meni kutib ol» paketidagi hammasi",
+        "1": "Uy qidirish va tanlash",
+        "2": "Ko‘riklarni tashkil qilish",
+        "3": "Ijara shartnomasida yordam",
+        "4": "Boshida vaqtinchalik uy"
+      }
+    },
+    "premium": {
+      "name": "Premium",
+      "tagline": "Kalit ustidan ko‘chish",
+      "features": {
+        "0": "«Uy-joy» paketidagi hammasi",
+        "1": "Bank hisobini ochish",
+        "2": "NHS ro‘yxatdan o‘tkazish",
+        "3": "Kommunal xizmatlarni ulash",
+        "4": "Yuklarni tashish",
+        "5": "7 kunlik qo‘llab-quvvatlash"
+      }
+    }
+  },
+  "Services": {
+    "title": "Faqat kerakli narsa",
+    "subtitle": "Bitta xizmat sotib oling yoki o‘z to‘plamingizni yarating — hatto bitta xizmat ham kabinetingizda to‘liq buyurtmaga aylanadi.",
+    "tabPackages": "Paketlar",
+    "tabServices": "Alohida xizmatlar",
+    "stages": {
+      "arrival": "Kelish",
+      "housing": "Uy-joy",
+      "setup": "Joylashuv",
+      "documents": "Hujjatlar"
+    },
+    "items": {
+      "airportTransport": {
+        "name": "Kutib olish + transport",
+        "desc": "Aeroportda kutib olib, turar joyingizga olib boramiz"
+      },
+      "airportTaxi": {
+        "name": "Kutib olish + taksi",
+        "desc": "Shaxsiy kutib olish va taksi transferi"
+      },
+      "sim": {
+        "name": "SIM-karta",
+        "desc": "Birinchi kundan mahalliy raqam va mobil internet"
+      },
+      "oyster": {
+        "name": "Oyster-karta",
+        "desc": "London metrosi va avtobuslari uchun chipta"
+      },
+      "housingSearch": {
+        "name": "Uy qidirish va tanlash",
+        "desc": "Byudjet va hududingizga mos variantlar tanlaymiz"
+      },
+      "tempHousing": {
+        "name": "Vaqtinchalik uy",
+        "desc": "Qidiruv davomida yashash uchun joy"
+      },
+      "moving": {
+        "name": "Yuklarni tashish",
+        "desc": "Yuklaringizni yangi uyga yetkazish"
+      },
+      "nhs": {
+        "name": "NHS ro‘yxatdan o‘tkazish",
+        "desc": "Klinikaga biriktirish va GP olish"
+      },
+      "support7": {
+        "name": "7 kunlik qo‘llab-quvvatlash",
+        "desc": "Butun birinchi hafta menejer aloqada"
+      },
+      "neighborhood": {
+        "name": "Hududni baholash",
+        "desc": "Hududlar tahlili: transport, xavfsizlik, narxlar"
+      },
+      "utilities": {
+        "name": "Kommunal xizmatlar",
+        "desc": "Elektr, suv va internetni ulaymiz"
+      },
+      "bankOnline": {
+        "name": "Onlayn hisob ochish",
+        "desc": "Monzo, Revolut yoki Starlingda hisob ochishga yordam"
+      },
+      "lease": {
+        "name": "Ijara shartnomasi",
+        "desc": "Uy egasi bilan shartnomani tekshiramiz va rasmiylashtiramiz"
+      },
+      "docTranslate": {
+        "name": "Hujjatlarni tarjima qilish",
+        "desc": "Hujjatlarni ingliz tiliga rasmiy tarjima qilish"
+      }
+    }
+  },
+  "Cart": {
+    "title": "Sizning to‘plamingiz",
+    "items": "{count, plural, =0 {xizmat yo‘q} other {# xizmat}}",
+    "empty": "Xizmatlar qo‘shing — ular shu yerda ko‘rinadi",
+    "total": "Jami",
+    "checkout": "Rasmiylashtirish",
+    "removed": "Xizmat to‘plamdan olib tashlandi",
+    "addedToast": "To‘plamga qo‘shildi"
+  },
+  "Checkout": {
+    "step": "Qadam {n} / 3",
+    "steps": {
+      "service": "Xizmat",
+      "details": "Tafsilotlar",
+      "payment": "To‘lov"
+    },
+    "includedTitle": "Nimalar kiradi",
+    "form": {
+      "name": "Ismingiz",
+      "arrival": "Kelish sanasi",
+      "bank": "Bank",
+      "telegram": "Telegram",
+      "toPayment": "To‘lovga"
+    },
+    "banks": {
+      "monzo": "Monzo",
+      "revolut": "Revolut",
+      "starling": "Starling"
+    },
+    "payTitle": "To‘lov",
+    "payButton": "Payme orqali to‘lash",
+    "paid": "To‘landi ✓",
+    "payNote": "To‘lovdan so‘ng xizmat kabinetingizda vazifa sifatida paydo bo‘ladi.",
+    "outcome": "Bitta xizmat — operator navbatidagi buyurtma va kabinetingizda «Jarayonda → Bajarildi» holatidagi vazifa.",
+    "paidToast": "To‘lov muvaffaqiyatli",
+    "detailsSubtitle": "Xizmat ma'lumotlarini to‘ldiring",
+    "noFieldsNote": "Tanlangan xizmatlar uchun qo‘shimcha ma'lumot kerak emas.",
+    "fields": {
+      "arrivalDate": "Kelish sanasi",
+      "flight": "Reys raqami",
+      "bank": "Bank",
+      "budget": "Byudjet, £/oy",
+      "area": "Hudud",
+      "address": "Manzil",
+      "nights": "Necha kecha"
+    }
+  },
+  "Search": {
+    "title": "Uy-joy katalogi",
+    "filters": {
+      "rooms": "Xonalar",
+      "price": "Narx",
+      "area": "Hudud",
+      "roomsOpts": {
+        "any": "Har qanday",
+        "studio": "Studiya",
+        "one": "1",
+        "two": "2",
+        "three": "3+"
+      },
+      "priceOpts": {
+        "any": "Har qanday",
+        "lt1500": "£1500 gacha",
+        "1500to2000": "£1500–2000",
+        "gt2000": "£2000+"
+      },
+      "areaOpts": {
+        "any": "Barchasi",
+        "whitechapel": "Whitechapel",
+        "stratford": "Stratford",
+        "canadaWater": "Canada Water",
+        "woolwich": "Woolwich"
+      }
+    },
+    "found": "{count} ta variant topildi",
+    "perMonth": "/oy",
+    "shortlist": "To‘plamga",
+    "shortlisted": "To‘plamda ✓",
+    "favToast": "Sevimlilarga qo‘shildi",
+    "unfavToast": "Sevimlilardan olib tashlandi",
+    "meta": {
+      "bed": "{count} xona",
+      "bath": "{count} h/x",
+      "furnished": "mebelli"
+    },
+    "noMatchTitle": "Mosini topmadingizmi?",
+    "noMatchText": "Rightmove, Zoopla, SpareRoom, OpenRent yoki Google Drivedan kvartira havolalarini yuboring — har birini alohida qatorda. Biz qo‘ng‘iroq qilib, dolzarbligini tekshiramiz.",
+    "linksPlaceholder": "https://www.rightmove.co.uk/...\nhttps://www.zoopla.co.uk/...",
+    "pricingNote": "Qidiruv va tanlash — £38 · har bir ko‘rik — £38",
+    "submitLinks": "Qo‘ng‘iroqqa yuborish",
+    "howItWorks": "Qanday ishlaydi",
+    "howSteps": {
+      "0": "Siz yoqqan kvartira havolalarini yuborasiz",
+      "1": "Biz qo‘ng‘iroq qilib, dolzarbligini tekshiramiz",
+      "2": "Dolzarb variantlar bo‘yicha ko‘riklar tashkil qilamiz"
+    },
+    "statuses": {
+      "reached": "Bog‘landik, dolzarb ✓",
+      "busy": "Band — qayta qo‘ng‘iroq qilamiz",
+      "priceChanged": "Narx o‘zgardi"
+    },
+    "submittedToast": "Havolalar qo‘ng‘iroqqa yuborildi",
+    "savedToCabinet": "Kabinetga qo‘shildi — holatlar o‘sha yerda",
+    "shortlistCount": "Ro‘yxatda: {count}",
+    "shortlistSubmit": "Ro‘yxatni rasmiylashtirish",
+    "shortlistLogin": "Kirish",
+    "shortlistSubmitted": "Ro‘yxat yuborildi — holatlar kabinetda",
+    "linkInvalid": "To'g'ri havola kiriting",
+    "linkExists": "Allaqachon qo'shilgan",
+    "linkPlaceholder": "https://www.rightmove.co.uk/…",
+    "addLink": "Qo'shish",
+    "yourLinks": "Havolalaringiz · {count}",
+    "selectionCount": "Tanlangan: {count}",
+    "submitSelection": "Rasmiylashtirish"
+  },
+  "Auth": {
+    "loginTitle": "Qaytganingizdan xursandmiz",
+    "loginSubtitle": "Ko‘chishni davom ettirish uchun kiring",
+    "registerTitle": "Hisob yaratish",
+    "registerSubtitle": "Bir necha daqiqa — va yo‘lingiz boshlanadi",
+    "email": "Email",
+    "password": "Parol",
+    "confirmPassword": "Parolni takrorlang",
+    "name": "Ism",
+    "phone": "Telefon",
+    "loginSubmit": "Kirish",
+    "registerSubmit": "Ro‘yxatdan o‘tish",
+    "orDivider": "yoki",
+    "telegram": "Telegram bilan davom etish",
+    "noAccount": "Hisobingiz yo‘qmi?",
+    "haveAccount": "Hisobingiz bormi?",
+    "goRegister": "Ro‘yxatdan o‘tish",
+    "goLogin": "Kirish",
+    "forgot": "Parolni unutdingizmi?",
+    "passwordMismatch": "Parollar mos kelmaydi",
+    "loginSuccess": "Siz kirdingiz",
+    "registerSuccess": "Hisob yaratildi",
+    "telegramError": "Telegram orqali kirib bo‘lmadi",
+    "invalidCredentials": "Email yoki parol noto‘g‘ri",
+    "emailTaken": "Bu email allaqachon ro‘yxatdan o‘tgan",
+    "verifyLater": "Emailni tasdiqlash keyinroq qo‘shiladi",
+    "tgCallbackLoading": "Telegram orqali kirish yakunlanmoqda…",
+    "tgCallbackError": "Kirish havolasi yaroqsiz yoki muddati o‘tgan",
+    "loginByCode": "Pochta kodi bilan kirish",
+    "loginByPassword": "Parol bilan kirish",
+    "sendCode": "Kod yuborish",
+    "code": "Xatdagi kod",
+    "codeSent": "Kod pochtangizga yuborildi",
+    "invalidCode": "Noto‘g‘ri yoki muddati o‘tgan kod",
+    "registerByEmail": "Email orqali ro'yxatdan o'tish",
+    "openCabinet": "Kabinetni ochish"
+  },
+  "Profile": {
+    "greeting": "Salom, {name}",
+    "heading": "Sizning ko‘chish yo‘lingiz",
+    "progressLabel": "{total} qadamdan {done} tasi",
+    "packageCard": "Sizning paketingiz",
+    "amount": "Summa",
+    "managerTitle": "Sizning menejeringiz",
+    "managerHours": "Aloqada 9:00–17:00",
+    "writeChat": "Chatga yozish",
+    "documentsTitle": "Hujjatlar",
+    "docReady": "tayyor",
+    "docPending": "kutilmoqda",
+    "stepBadgeNow": "hozir",
+    "steps": {
+      "airportMeet": {
+        "title": "Aeroportda kutib olish",
+        "desc": "Sizni chiqishda kutib olamiz va yuklaringizga yordam beramiz"
+      },
+      "transfer": {
+        "title": "Turar joyga transfer",
+        "desc": "Vaqtinchalik turar joyingizga olib boramiz"
+      },
+      "tempStay": {
+        "title": "Vaqtinchalik uy",
+        "desc": "Kvartira qidirayotganingizda qulay joy"
+      },
+      "housingSearch": {
+        "title": "Uy qidirish",
+        "desc": "Byudjet va hududingizga mos variantlarni tanlaymiz va ro‘yxatni kelishamiz"
+      },
+      "viewings": {
+        "title": "Kvartira ko‘riklari",
+        "desc": "Ko‘riklarni tashkil qilamiz va hamrohlik qilamiz"
+      },
+      "lease": {
+        "title": "Ijara shartnomasi",
+        "desc": "Shartlarni tekshiramiz va shartnomani rasmiylashtiramiz"
+      },
+      "bank": {
+        "title": "Hisob ochish",
+        "desc": "Bank hisobini ochishga yordam beramiz"
+      },
+      "nhs": {
+        "title": "NHS ro‘yxatdan o‘tkazish",
+        "desc": "Klinikaga biriktiramiz va GP rasmiylashtiramiz"
+      },
+      "moveIn": {
+        "title": "Joylashish",
+        "desc": "O‘z uyingizga kirasiz — ko‘chish yakunlandi"
+      }
+    },
+    "stepActions": {
+      "chat": "Menejer bilan muhokama",
+      "details": "Batafsil"
+    },
+    "documents": {
+      "passport": "Pasport",
+      "visa": "Viza",
+      "lease": "Ijara shartnomasi",
+      "bank": "Bank hisobi",
+      "nhs": "NHS"
+    },
+    "linkTgTitle": "Telegram kabineti",
+    "linkTgText": "Shaxsiy kabinetni @notharduzbot botida ochish uchun Telegramni ulang.",
+    "linkTgButton": "Telegramni ulash",
+    "linkTgLinked": "Telegram ulangan",
+    "unlinkTg": "Uzish",
+    "tgLinkedToast": "Telegram muvaffaqiyatli ulandi",
+    "tgUnlinkedToast": "Telegram uzildi",
+    "emptyTitle": "Ko‘chishingizni boshlang",
+    "emptyText": "Paket yoki alohida xizmatlarni tanlang — yo‘lingiz shu yerda paydo bo‘ladi.",
+    "emptyChoosePackage": "Paketni tanlash",
+    "emptyBrowseServices": "Alohida xizmatlar",
+    "ordersTitle": "Sizning xizmatlaringiz",
+    "addServices": "Xizmat qo‘shish",
+    "paidBadge": "to‘langan",
+    "unpaidBadge": "to‘lov kutilmoqda",
+    "purchasedToast": "Buyurtma rasmiylashtirildi ✓",
+    "settings": {
+      "title": "Sozlamalar",
+      "account": "Hisob",
+      "telegram": "Telegram",
+      "tgManage": "Telegram ulanishini boshqarish",
+      "changePassword": "Parolni o‘zgartirish",
+      "setPassword": "Parol o‘rnatish",
+      "oldPassword": "Joriy parol",
+      "newPassword": "Yangi parol",
+      "save": "Saqlash",
+      "passwordChanged": "Parol o‘zgartirildi",
+      "wrongPassword": "Joriy parol noto‘g‘ri",
+      "passwordTooShort": "Kamida 6 ta belgi",
+      "name": "Ism",
+      "nameSaved": "Ism yangilandi",
+      "dangerZone": "Akkauntni o‘chirish",
+      "deleteAccount": "Akkauntni o‘chirish",
+      "deleteConfirm": "Akkauntni butunlay o‘chirasizmi?",
+      "deleteWarn": "Barcha buyurtma va ma'lumotlaringiz o‘chiriladi. Buni qaytarib bo‘lmaydi.",
+      "deleteCta": "Ha, o‘chirish",
+      "emailTitle": "E-mail biriktirish",
+      "emailHint": "Kod orqali kirish va faqat Telegramga bog‘liq bo‘lmaslik uchun e-mail biriktiring.",
+      "emailSend": "Kod yuborish",
+      "emailCodeSent": "{email} ga kod yuborildi",
+      "emailDevNote": "Pochta hali sozlanmagan — kod server loglarida",
+      "emailVerify": "Tasdiqlash",
+      "emailLinked": "E-mail biriktirildi",
+      "emailInvalid": "Noto‘g‘ri e-mail",
+      "emailTaken": "Bu e-mail band",
+      "emailExpired": "Kod muddati tugadi",
+      "emailBadCode": "Noto‘g‘ri kod",
+      "unlinkNeedEmail": "Telegramni uzish uchun avval e-mail biriktiring",
+      "emailPasswordPlaceholder": "Parol o'ylab toping",
+      "sessionsTitle": "Faol seanslar",
+      "sessionsHint": "Hozirda hisobingizga kirilgan qurilmalar.",
+      "thisDevice": "Bu qurilma",
+      "revokeSession": "Chiqish",
+      "sessionsRevokeOthers": "Boshqa barcha qurilmalardan chiqish",
+      "sessionsEmpty": "Faol seanslar yo'q",
+      "sessionsSignedOutOthers": "Boshqa qurilmalardan chiqildi"
+    },
+    "managerPending": "Menejer tez orada tayinlanadi",
+    "serviceInProgress": "Jarayonda",
+    "serviceDone": "Bajarildi",
+    "servicesMainTitle": "Sizning xizmatlaringiz",
+    "servicesMainSubtitle": "Buyurtmalaringiz holatini kuzating",
+    "chat": {
+      "title": "Menejer bilan chat",
+      "placeholder": "Xabar yozing…",
+      "send": "Yuborish",
+      "empty": "Hozircha xabarlar yo‘q. Menejerdan so‘rang.",
+      "you": "Siz",
+      "noManagerYet": "Menejer tayinlangач javob beradi.",
+      "open": "Chatga yozish"
+    },
+    "review": {
+      "eyebrow": "Sharh",
+      "title": "«{pkg}» paketi yakunlandi!",
+      "subtitle": "Xizmatimizni baholang — bu bizga yordam beradi.",
+      "placeholder": "Sharhingiz (ixtiyoriy)",
+      "submit": "Sharh yuborish",
+      "skip": "O‘tkazib yuborish",
+      "thanks": "Sharh uchun rahmat!"
+    },
+    "completedTitle": "Hammasi tayyor!",
+    "completedText": "Ko‘chishingiz yakunlandi. Bizni tanlaganingiz uchun rahmat — kerak bo‘lsa, yangi paket yoki xizmat tanlang.",
+    "completedServicesTitle": "Bajarilgan xizmatlar",
+    "completedNext": "Yangi ko‘chish",
+    "buyPackageTitle": "Paket sotib olish",
+    "buyServiceTitle": "Xizmat sotib olish",
+    "buyServiceHint": "Faqat kerakligini — alohida xizmat tanlang.",
+    "popularHint": "Ommabop",
+    "housing": {
+      "title": "Uy qidirish",
+      "subtitle": "Katalogimizdan kvartira tanlang yoki havola yuboring — biz bog‘lanib, holatni yangilab boramiz.",
+      "linkPlaceholder": "E'lon havolasi (Rightmove, Zoopla…)",
+      "add": "Qo‘shish",
+      "added": "Ro‘yxatga qo‘shildi",
+      "browse": "Uy-joy katalogi",
+      "status": {
+        "new": "Yangi",
+        "viewing": "Ko‘rik belgilandi",
+        "reached": "Bog‘lanildi",
+        "busy": "Band",
+        "secured": "Band qilindi",
+        "declined": "Rad etildi",
+        "viewed": "Ko‘rildi",
+        "completed": "Rasmiylashtirildi"
+      },
+      "browseHint": "Biz va agentliklardan kvartiralar",
+      "empty": "Hozircha bo‘sh. Katalogni oching yoki havola qo‘shing.",
+      "viewingAt": "Ko‘rik: {when}",
+      "mediaTitle": "Ko‘rikdan foto va video",
+      "pendingAdded": "Qidiruvga qo'shildi: {count}"
+    },
+    "runnerTitle": "Hamrohingiz",
+    "runnerRole": "Kutib oladi va joyida yordam beradi",
+    "runnerPending": "Hamroh hali tayinlanmagan",
+    "intake": {
+      "title": "Kelish tafsilotlari",
+      "subtitle": "«{pkg}» paketi aeroportda kutib olishni o‘z ichiga oladi — qachon kelishingizni yozing.",
+      "date": "Kelish sanasi",
+      "time": "Vaqt",
+      "airport": "Aeroport",
+      "flight": "Reys raqami",
+      "flightPlaceholder": "masalan HY201",
+      "flightHint": "Bilsangiz, reys raqamini yozing — sizni kutib olish osonroq bo‘ladi.",
+      "confirm": "Sotib olish",
+      "airports": {
+        "heathrow": "Xitrou",
+        "gatwick": "Gatvik",
+        "stansted": "Stansted",
+        "luton": "Luton",
+        "city": "London City"
+      },
+      "airportPick": "Aeroportni tanlang"
+    },
+    "arrival": {
+      "title": "Uchib kelish ma'lumotlari",
+      "edit": "Tahrirlash",
+      "none": "Hali ko'rsatilmagan",
+      "inDays": "{days} kun {hours} soat {minutes} daqiqadan so'ng",
+      "inHours": "{hours} soat {minutes} daqiqadan so'ng",
+      "saved": "Uchib kelish ma'lumotlari saqlandi",
+      "editTitle": "Uchib kelish ma'lumotlarini tahrirlash"
+    },
+    "upgrade": {
+      "cta": "Paketni yaxshilash",
+      "title": "Paketni yaxshilash",
+      "subtitle": "Yuqoriroq tarifni tanlang — kiritgan ma'lumotlaringiz saqlanib qoladi."
+    }
+  },
+  "Admin": {
+    "badge": "Operator",
+    "menu": {
+      "orders": "Buyurtmalar",
+      "clients": "Mijozlar",
+      "runners": "Ranerlar",
+      "payments": "To‘lovlar",
+      "team": "Jamoa",
+      "reviews": "Sharhlar",
+      "listings": "E'lonlar"
+    },
+    "kpi": {
+      "activeClients": "Faol mijozlar",
+      "tasksToday": "Bugungi vazifalar",
+      "awaitingPayment": "To‘lov kutilmoqda",
+      "newWeek": "Haftada yangi"
+    },
+    "tableTitle": "Faol ko‘chishlar",
+    "cols": {
+      "client": "Mijoz",
+      "package": "Paket",
+      "step": "Joriy qadam",
+      "runner": "Raner",
+      "payment": "To‘lov",
+      "status": "Holat"
+    },
+    "noRunner": "biriktirilmagan",
+    "paid": "to‘langan",
+    "unpaid": "kutilmoqda",
+    "attentionTitle": "Diqqat talab qiladi",
+    "attention": {
+      "noRunner": "Raner biriktirilmagan",
+      "awaitingPayment": "To‘lov kutilmoqda",
+      "newReview": "Yangi sharh",
+      "noManager": "Menejer tayinlanmagan"
+    },
+    "assign": "Biriktirish",
+    "remind": "Eslatish",
+    "resolved": "Tayyor ✓",
+    "drawer": {
+      "stage": "Bosqich {n}/9",
+      "writeClient": "Mijozga yozish",
+      "assignRunner": "Raner biriktirish",
+      "package": "Paket",
+      "payment": "To‘lov",
+      "runner": "Raner",
+      "timeline": "Mijoz yo‘li"
+    },
+    "manager": "Menejer",
+    "assignManager": "Menejer tayinlash",
+    "managerNone": "tayinlanmagan",
+    "markDone": "Bajarildi",
+    "reopen": "Qaytarish",
+    "tasksTitle": "Vazifalar va xizmatlar",
+    "chat": {
+      "title": "Mijoz bilan chat",
+      "placeholder": "Mijozga javob…",
+      "send": "Yuborish",
+      "open": "Chat",
+      "empty": "Hozircha xabarlar yo‘q."
+    },
+    "saved": "Saqlandi",
+    "searchClients": "Mijozni qidirish…",
+    "roles": {
+      "client": "Mijoz",
+      "operator": "Operator",
+      "agency": "Agentlik",
+      "runner": "Runner",
+      "admin": "Admin"
+    },
+    "accounts": {
+      "add": "Akkaunt qo‘shish",
+      "addRunner": "Runner qo‘shish",
+      "name": "Ism",
+      "email": "E-mail (ixtiyoriy)",
+      "password": "Parol",
+      "newPassword": "Yangi parol",
+      "passwordHint": "O‘zgartirmaslik uchun bo‘sh qoldiring",
+      "role": "Rol",
+      "contact": "Kontakt",
+      "status": "Holat",
+      "active": "Faol",
+      "inactive": "O‘chirilgan",
+      "activeLabel": "Akkaunt faol",
+      "workload": "{total} tadan {done} vazifa",
+      "newTitle": "Yangi akkaunt",
+      "editTitle": "Akkauntni tahrirlash",
+      "create": "Yaratish",
+      "save": "Saqlash",
+      "emailTaken": "Bu e-mail band",
+      "deleted": "Akkaunt o‘chirildi",
+      "uploadPhoto": "Rasm yuklash",
+      "delete": "Akkauntni o‘chirish",
+      "deleteConfirm": "Bu akkaunt o‘chirilsinmi? Bekor qilib bo‘lmaydi.",
+      "deleteCta": "O‘chirish",
+      "phone": "Telefon",
+      "telegramUser": "Telegram"
+    },
+    "payments": {
+      "item": "Xizmat",
+      "amount": "Summa",
+      "totalPaid": "To‘langan",
+      "totalUnpaid": "Kutilmoqda",
+      "count": "Buyurtmalar",
+      "markPaid": "To‘langan deb belgilash",
+      "markUnpaid": "To‘lanmagan deb belgilash",
+      "refund": "Qaytarish",
+      "refunded": "To'lov qaytarildi",
+      "refundedBadge": "Qaytarilgan",
+      "totalRefunded": "Qaytarilgan"
+    },
+    "activeTitle": "Faol ko‘chishlar",
+    "noActive": "Faol ko‘chishlar yo‘q",
+    "openCard": "Kartani ochish",
+    "attentionEmpty": "Hammasi nazoratda",
+    "relocationDone": "Yakunlangan",
+    "reviewsEmpty": "Hozircha sharhlar yo‘q",
+    "deleteClient": "Mijozni o‘chirish",
+    "deleteClientConfirm": "Bu mijoz va uning barcha ma'lumotlari o‘chirilsinmi? Bekor qilib bo‘lmaydi.",
+    "segments": {
+      "all": "Barchasi",
+      "relocation": "Ko‘chishlar",
+      "services": "Xizmatlar",
+      "completed": "Yakunlangan"
+    },
+    "filesTitle": "Xizmat fayllari",
+    "housingTitle": "Uy qidirish",
+    "uploadFile": "Yuklash",
+    "housingStatus": {
+      "new": "Yangi",
+      "viewing": "Ko‘rik belgilandi",
+      "reached": "Bog‘lanildi",
+      "busy": "Band",
+      "secured": "Band qilindi",
+      "declined": "Rad etildi",
+      "viewed": "Ko‘rildi",
+      "completed": "Rasmiylashtirildi"
+    },
+    "listingStatus": {
+      "published": "Chop etilgan",
+      "moderation": "Moderatsiyada",
+      "rejected": "Rad etilgan"
+    },
+    "listings": {
+      "approve": "Tasdiqlash",
+      "reject": "Rad etish",
+      "unpublish": "Chop etishni bekor qilish",
+      "edit": "Tahrirlash",
+      "editTitle": "E'lonni tahrirlash",
+      "photo": "Rasm",
+      "price": "£ / oy",
+      "addr": "Manzil",
+      "area": "Hudud",
+      "rooms": "Xonalar",
+      "baths": "Hammom",
+      "furnished": "Mebelli"
+    },
+    "housingViewingSave": "Vaqtni saqlash",
+    "arrivalInfo": "Kelish ma'lumoti",
+    "flightNo": "Reys",
+    "docFilesTitle": "Hujjatlar (fayllar)",
+    "manage": {
+      "title": "Boshqaruv",
+      "package": "Paket",
+      "noPackage": "Paketsiz",
+      "remove": "Olib tashlash",
+      "addService": "Xizmat qo'shish",
+      "pickService": "Xizmatni tanlang",
+      "edit": "Tahrirlash",
+      "airport": "Aeroport",
+      "cancel": "Bekor qilish"
+    },
+    "history": {
+      "title": "Xaridlar tarixi",
+      "package": "Paket",
+      "service": "Xizmat",
+      "bought": "sotib olindi",
+      "completed": "Yakunlandi",
+      "done": "Yakunlandi",
+      "inProgress": "Jarayonda"
+    }
+  },
+  "Agency": {
+    "badge": "Agentlik",
+    "menu": {
+      "listings": "Variantlar",
+      "matches": "Mosliklar",
+      "views": "Ko‘rishlar"
+    },
+    "addVariant": "Variant qo‘shish",
+    "kpi": {
+      "published": "E’lon qilingan",
+      "moderation": "Moderatsiyada",
+      "matches": "Mosliklar",
+      "views": "Ko‘rishlar"
+    },
+    "tabs": {
+      "all": "Barchasi",
+      "published": "E’lon qilingan",
+      "moderation": "Moderatsiyada"
+    },
+    "status": {
+      "published": "E’lon qilingan",
+      "moderation": "Moderatsiyada"
+    },
+    "matchesClients": "{count} ta mijozga mos",
+    "perMonth": "/oy"
+  },
+  "Runner": {
+    "badge": "Raner",
+    "heading": "{count} ta vazifa · {name}",
+    "doneCount": "{total} tadan {done} tasi bajarildi",
+    "actions": {
+      "onWay": "Yo‘ldaman",
+      "arrived": "Yetib keldim",
+      "complete": "Ko‘rik yakunlandi ✓",
+      "route": "Marshrut",
+      "photo": "Foto"
+    },
+    "status": {
+      "onWay": "Yo‘lda",
+      "arrived": "Joyda",
+      "done": "Bajarildi"
+    }
   },
   "Footer": {
-    "tagline": "Ko'chib o'tish bo'yicha kompleks xizmatlar — Londonga ko'chishingizni oson va xavotirsiz qilamiz.",
-    "contacts": "Kontaktlar",
+    "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",
+    "contacts": "Aloqa",
+    "address": "221B Example Street, London EC1A 1BB",
+    "phone": "+44 20 7946 0000",
+    "email": "info@nothard.uz",
     "navigation": "Navigatsiya",
-    "newsletter": "Xabarnoma",
-    "newsletterText": "Yangiliklar va maxsus takliflar — vaqti-vaqti bilan va ish bo'yicha.",
-    "emailPlaceholder": "Email manzilingiz",
-    "subscribe": "Obuna bo'lish",
     "home": "Bosh sahifa",
     "packages": "Paketlar",
     "services": "Xizmatlar",
+    "search": "Uy-joy",
     "login": "Kirish",
     "privacy": "Maxfiylik",
     "terms": "Shartlar",
     "rights": "© {year} Nothard. Barcha huquqlar himoyalangan."
   },
-  "Landing": {
-    "badge": "Ko'chib o'tish · London · 2026",
-    "heroTitleA": "Londonga ko'chish",
-    "heroTitleB": "ortiqcha tashvishsiz",
-    "heroSubtitle": "Aeroportda kutib olish, uy-joy izlash, hujjatlar, bank, NHS — odatda haftalab vaqt oladigan ishlarni biz o'z zimmamizga olamiz. Siz shunchaki kelib, yashashni boshlaysiz.",
-    "viewPackages": "Paketlarni ko'rish",
-    "individualServices": "Alohida xizmatlar",
-    "packagesTitle": "Paketlar",
-    "packagesSubtitle": "O'zingizga mos qo'llab-quvvatlash hajmini tanlang — aeroportda kutib olishdan to'liq kuzatib borishgacha.",
-    "servicesTitle": "Alohida xizmatlar",
-    "servicesSubtitle": "Faqat bir-ikki narsa kerakmi? Faqat kerakligini oling — ortiqcha to'lovsiz.",
-    "popular": "Mashhur tanlov",
-    "addToCart": "Savatga qo'shish",
-    "add": "Qo'shish",
-    "loading": "Yuklanmoqda...",
-    "errors": {
-      "packageExists": "Savatda allaqachon paket bor. Yangisini qo'shishdan oldin uni olib tashlang.",
-      "serviceExists": "Bu xizmat allaqachon savatda.",
-      "error": "Xatolik",
-      "success": "Muvaffaqiyatli",
-      "added": "Element savatga qo'shildi.",
-      "removed": "Element savatdan olib tashlandi."
-    },
-    "currency": {
-      "sum": "so'm"
+  "Legal": {
+    "privacyTitle": "Maxfiylik siyosati",
+    "termsTitle": "Foydalanish shartlari",
+    "updated": "Yangilangan: {date}",
+    "placeholderNote": "Bu hujjatning dastlabki versiyasi. Yakuniy matn keyinroq e’lon qilinadi.",
+    "backHome": "Bosh sahifaga",
+    "sections": {
+      "0": {
+        "h": "1. Umumiy qoidalar",
+        "p": "Nothard Londonga ko‘chish xizmatlarini taqdim etadi. Saytdan foydalanib, siz ushbu shartlarga rozilik bildirasiz."
+      },
+      "1": {
+        "h": "2. Biz qanday ma’lumot yig‘amiz",
+        "p": "Ism, aloqa ma’lumotlari, buyurtma ma’lumotlari va ulanganda Telegram identifikatori — faqat xizmat ko‘rsatish uchun."
+      },
+      "2": {
+        "h": "3. Ma’lumotdan qanday foydalanamiz",
+        "p": "Buyurtmalarni qayta ishlash, siz bilan bog‘lanish va xizmatni yaxshilash uchun. Biz ma’lumotlaringizni uchinchi shaxslarga sotmaymiz."
+      },
+      "3": {
+        "h": "4. To‘lovlar",
+        "p": "To‘lovlar Payme orqali amalga oshiriladi. Biz to‘lov ma’lumotlarini serverlarimizda saqlamaymiz."
+      },
+      "4": {
+        "h": "5. Aloqa",
+        "p": "Savollar bo‘yicha — info@nothard.uz."
+      }
     }
   },
-  "Packages": {
-    "meet": {
-      "name": "«Kutib ol» paketi",
-      "tagline": "Londondagi birinchi qadam",
-      "includes": [
-        "✈️ Aeroportda kutib olish",
-        "🚌 Jamoat transporti to'lovi va Londondagi yashash joyingizgacha yoki vokzalgacha kuzatib borish",
-        "📱 SIM-karta (tarif aktivatsiya paytida mijoz tomonidan to'lanadi)",
-        "🎫 Oyster-karta (karta o'z ichida, to'ldirish mijoz hisobidan)"
-      ],
-      "note": "⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "housing": {
-      "name": "«Uy-joy» paketi",
-      "tagline": "Uy topishda yordam",
-      "featured": true,
-      "includes": [
-        "«Kutib ol» paketidagi barchasi",
-        "🏠 Sizning mezonlaringizga mos cheksiz variantlarni qo'ng'iroq qilib tanlash",
-        "🏢 3 tagacha kvartirani ko'rishni tashkil qilish",
-        "🏨 Vaqtinchalik uy-joyda yordam",
-        "🚚 Yuk tashish tashkil qilinishi"
-      ],
-      "note": "⚠️ Barcha xizmatlar London hududida. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "premium": {
-      "name": "Premium paket",
-      "tagline": "«Kalit topshirish» to'liq ko'chish",
-      "includes": [
-        "«Uy-joy» paketidagi barchasi",
-        "📝 Local GP (NHS)da ro'yxatdan o'tish",
-        "🕐 7 kunlik qo'llab-quvvatlash (9:00–17:00)",
-        "📊 Yashash joyini baholash",
-        "💡 Kommunal xizmatlarni ulash",
-        "🏦 Raqamli hisob ochish",
-        "📜 Ijara shartnomasini tarjima qilish va kuzatib borish",
-        "🎁 Kompaniyadan sovg'a"
-      ],
-      "note": "⚠️ Barcha oflayn xizmatlar London hududida. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    }
-  },
-  "Services": {
-    "airportPublic": {
-      "name": "✈️ Aeroportda kutib olish + transport (jamoat)",
-      "description": "Londondagi yashash joyingizgacha yoki vokzalgacha kutib olish va kuzatib borish. Jamoat transporti narxga kiradi. ⚠️ Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "airportTaxi": {
-      "name": "✈️ Aeroportda kutib olish + xususiy transfer (taksi)",
-      "description": "Londondagi yashash joyingizgacha yoki vokzalgacha kutib olish va kuzatib borish. Taksi kompaniya tomonidan bron qilinadi va to'lanadi (narxga kiradi). ⚠️ Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "sim": {
-      "name": "📱 SIM-karta",
-      "description": "SIM-karta berish va aktivatsiyada yordam. Tarif mijoz tomonidan to'lanadi. ⚠️ Xizmat Londonda ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "oyster": {
-      "name": "🎫 Oyster-karta",
-      "description": "Jamoat transporti uchun Oyster-karta xaridi. Karta narxga kiradi, to'ldirish mijoz hisobidan. ⚠️ Xizmat Londonda ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "housingSearch": {
-      "name": "🔍 Uy-joy izlash va tanlash",
-      "description": "• Mezonlaringizga mos cheksiz variantlarni qo'ng'iroq qilib tanlash. • Yakuniy ro'yxat mijozga taqdim etiladi. • Har bir borib ko'rish (viewing) alohida to'lanadi — £38 ($50). ⚠️ Ko'rishlar London hududida tashkil qilinadi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "tempHousing": {
-      "name": "🏨 Vaqtinchalik uy-joyda yordam",
-      "description": "Birinchi kunlar uchun mehmonxona/xostel tanlash va bron qilish. Yashash mijoz hisobidan."
-    },
-    "moving": {
-      "name": "🚚 Yuk tashish",
-      "description": "Yuk tashish kompaniyasini tanlash va buyurtma berishda yordam. Yuk tashish narxi mijoz tomonidan to'lanadi. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "gp": {
-      "name": "📝 Local GP (NHS)da ro'yxatdan o'tish",
-      "description": "Mahalliy shifokorda ro'yxatdan o'tishda shaxsiy hamrohlik. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "support": {
-      "name": "🕐 Dastlabki 7 kun qo'llab-quvvatlash (9:00–17:00)",
-      "description": "Telegram orqali va kerak bo'lganda shaxsan qo'llab-quvvatlash va maslahat. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "neighborhood": {
-      "name": "📊 Yashash hududini baholash",
-      "description": "Tanlangan hududga borish, foto/video hisobot, infratuzilma sharhi. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "utilities": {
-      "name": "💡 Kommunal xizmatlarni ulash",
-      "description": "Internet, gaz va elektrni ulashda yordam. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "bank": {
-      "name": "🏦 Hisob ochishda yordam (onlayn-banking)",
-      "description": "Internet-banking imkoniyatli raqamli hisob ochishda qo'llab-quvvatlash. ✅ Onlayn, har qanday shaharda mavjud."
-    },
-    "lease": {
-      "name": "📜 Ijara shartnomasini tarjima qilish va yordam",
-      "description": "Ijara shartnomasini tarjima qilish va imzolashda kuzatib borish. ⚠️ Xizmat London hududida ko'rsatiladi. Boshqa shaharlar uchun narx alohida hisoblanadi."
-    },
-    "docs": {
-      "name": "📄 Hujjatlarni tarjima qilish",
-      "description": "Rasmiy hujjatlarni tarjima qilish (onlayn ham mumkin)."
-    }
-  },
-  "Cart": {
-    "title": "Savat",
-    "itemsCount": "{count, plural, one {# element savatda} other {# element savatda}}",
-    "type": {
-      "package": "paket",
-      "service": "xizmat"
-    },
-    "total": "Jami:",
-    "checkout": "Buyurtma berish",
-    "currency": "so'm",
-    "removed": "Element olib tashlandi",
-    "removedDesc": "{name} savatdan olib tashlandi.",
-    "checkoutToast": "Buyurtma berish",
-    "checkoutToastDesc": "Buyurtma berish funksiyasi hali ishlamaydi."
-  },
-  "Login": {
-    "title": "Kirish",
-    "subtitle": "Hisobingizga kiring",
-    "email": "Email",
-    "password": "Parol",
-    "submit": "Kirish",
-    "noAccount": "Hisobingiz yo'qmi?",
-    "registerLink": "Ro'yxatdan o'tish",
-    "successTitle": "Muvaffaqiyatli kirish",
-    "successDesc": "Xush kelibsiz!",
-    "errorTitle": "Kirish xatosi",
-    "errorGeneric": "Xatolik",
-    "errorMessage": "Kirish paytida xatolik yuz berdi",
-    "telegramSuccess": "Telegram orqali muvaffaqiyatli kirish",
-    "telegramError": "Telegram orqali avtorizatsiya so'rovida xatolik yuz berdi",
-    "gmailTitle": "Gmail Login",
-    "gmailDesc": "Gmail orqali kirish funksiyasi hali ishlamaydi"
-  },
-  "Register": {
-    "title": "Ro'yxatdan o'tish",
-    "subtitle": "Yangi hisob yarating",
-    "name": "Ism",
-    "phone": "Telefon",
-    "email": "Email",
-    "password": "Parol",
-    "confirmPassword": "Parolni tasdiqlang",
-    "submit": "Ro'yxatdan o'tish",
-    "hasAccount": "Hisobingiz bormi?",
-    "loginLink": "Kirish",
-    "passwordMismatch": "Parollar mos kelmadi",
-    "successTitle": "Ro'yxatdan o'tish muvaffaqiyatli",
-    "successDesc": "Siz muvaffaqiyatli ro'yxatdan o'tdingiz.",
-    "errorTitle": "Xatolik",
-    "errorMessage": "Ro'yxatdan o'tish paytida xatolik yuz berdi",
-    "telegramLinkRequired": "Telegram bilan bog'lashdan oldin ro'yxatdan o'ting.",
-    "telegramLinked": "Telegram bog'landi",
-    "telegramLinkedDesc": "Sizning hisobingiz Telegram bilan muvaffaqiyatli bog'landi!",
-    "telegramError": "Telegram bilan bog'lash paytida xatolik yuz berdi",
-    "gmailTitle": "Gmail Registration",
-    "gmailDesc": "Gmail orqali ro'yxatdan o'tish funksiyasi hali ishlamaydi"
-  },
-  "LanguageSwitcher": {
-    "label": "Til",
-    "ru": "Русский",
-    "en": "English",
-    "uz": "O'zbek",
-    "uz-cyrl": "Ўзбек"
+  "Consent": {
+    "title": "Xush kelibsiz",
+    "text": "Davom etish uchun Maxfiylik siyosati va Foydalanish shartlarini qabul qiling.",
+    "privacy": "Maxfiylik siyosati",
+    "terms": "Foydalanish shartlari",
+    "accept": "Qabul qilaman",
+    "decline": "Chiqish"
   }
 }

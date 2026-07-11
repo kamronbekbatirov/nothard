@@ -1,0 +1,23 @@
+# /etc/systemd/system/nothard-bot.service
+[Unit]
+Description=NotHard Telegram bot (notharduzbot) — Mini App + account linking
+After=network.target postgresql.service nothard-api2.service
+
+[Service]
+Type=simple
+User=nothard
+Group=nothard
+WorkingDirectory=/var/www/nothard/api
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/var/www/nothard/api/venv/bin/python bot.py
+Restart=on-failure
+RestartSec=10
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/www/nothard
+
+[Install]
+WantedBy=multi-user.target

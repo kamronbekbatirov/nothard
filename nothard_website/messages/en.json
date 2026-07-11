@@ -1,224 +1,837 @@
 {
-  "Navbar": {
+  "Common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "close": "Close",
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "send": "Send",
+    "continue": "Continue",
+    "done": "Done",
+    "add": "Add",
+    "added": "In list ✓",
+    "remove": "Remove",
+    "all": "All",
+    "of": "of",
+    "now": "now",
+    "online": "Available online",
+    "currencyNote": "Payment via Payme · receipt in Telegram",
+    "toCabinet": "Back to cabinet"
+  },
+  "Nav": {
+    "howItWorks": "How it works",
     "packages": "Packages",
-    "services": "Individual services",
+    "services": "Services",
+    "contacts": "Contacts",
     "login": "Sign in",
-    "register": "Sign up",
-    "contact": "Contact us",
     "logout": "Sign out",
+    "register": "Sign up",
+    "profile": "Dashboard",
     "greeting": "Hi, {name}",
-    "cart": "Cart",
-    "menu": "Menu",
-    "dashboard": {
-      "admin": "Admin panel",
-      "agency": "Agency panel",
-      "runner": "Runner panel",
-      "profile": "Profile"
+    "housing": "Housing"
+  },
+  "Lang": {
+    "label": "Language",
+    "ru": "RU",
+    "en": "EN",
+    "uz": "UZ",
+    "uz-cyrl": "ЎЗ",
+    "switched": "Language switched"
+  },
+  "Landing": {
+    "heroTitle": "Move to London without the hassle",
+    "heroSubtitle": "We meet you at the airport, find your home, and handle paperwork, banking and NHS. You just arrive — we take care of the rest.",
+    "choosePackage": "Choose a package",
+    "howItWorksCta": "How it works",
+    "heroBullets": {
+      "0": "Airport pickup",
+      "1": "Home search and viewings",
+      "2": "Help with banking, NHS and paperwork"
     },
-    "language": "Language"
+    "pathCardTitle": "Your path",
+    "pathCardActive": "Home search",
+    "howTitle": "Five steps and you're home",
+    "how": {
+      "meet": {
+        "title": "Meet you",
+        "desc": "We meet you at the airport and drive you to your stay."
+      },
+      "housing": {
+        "title": "Housing",
+        "desc": "We find options and arrange viewings."
+      },
+      "documents": {
+        "title": "Paperwork",
+        "desc": "Translation and tenancy-agreement support."
+      },
+      "bank": {
+        "title": "Bank · NHS",
+        "desc": "We open an account and register you with a GP."
+      },
+      "moveIn": {
+        "title": "Move-in",
+        "desc": "Utilities set up — and you start living."
+      }
+    },
+    "packagesTitle": "Service packages",
+    "packagesSubtitle": "Choose how much care your move needs",
+    "popular": "Most popular",
+    "choose": "Choose",
+    "servicesTeaserTitle": "Or just what you need",
+    "allServices": "All services",
+    "ctaTitle": "Just arrive — we handle the rest",
+    "ctaSubtitle": "Leave a request and a manager will get back to you the same day.",
+    "ctaButton": "Start my move",
+    "servicesTeaserHint": "Tap a service — the catalogue opens where you can build your own set.",
+    "catalogTitle": "Housing catalog",
+    "catalogSubtitle": "Browse flats in advance — or we'll find one to your criteria during the move.",
+    "catalogCta": "Open catalog"
+  },
+  "Packages": {
+    "meet": {
+      "name": "Meet me",
+      "tagline": "A soft landing on day one",
+      "features": {
+        "0": "Airport pickup",
+        "1": "Transfer to your stay",
+        "2": "SIM card and Oyster",
+        "3": "First-day support"
+      }
+    },
+    "housing": {
+      "name": "Housing",
+      "tagline": "Everything to move in",
+      "features": {
+        "0": "Everything in “Meet me”",
+        "1": "Home search and shortlisting",
+        "2": "Viewings arranged",
+        "3": "Help with the tenancy agreement",
+        "4": "Temporary stay to start with"
+      }
+    },
+    "premium": {
+      "name": "Premium",
+      "tagline": "A turnkey move",
+      "features": {
+        "0": "Everything in “Housing”",
+        "1": "Opening a bank account",
+        "2": "NHS registration",
+        "3": "Setting up utilities",
+        "4": "Moving your belongings",
+        "5": "7 days of support"
+      }
+    }
+  },
+  "Services": {
+    "title": "Just what you need",
+    "subtitle": "Buy a single service or build your own set — even one service becomes a full order in your dashboard.",
+    "tabPackages": "Packages",
+    "tabServices": "Individual services",
+    "stages": {
+      "arrival": "Arrival",
+      "housing": "Housing",
+      "setup": "Setup",
+      "documents": "Documents"
+    },
+    "items": {
+      "airportTransport": {
+        "name": "Pickup + transport",
+        "desc": "We meet you at the airport and drive you to your stay"
+      },
+      "airportTaxi": {
+        "name": "Pickup + taxi",
+        "desc": "Personal meet and taxi transfer"
+      },
+      "sim": {
+        "name": "SIM card",
+        "desc": "A local number and mobile data from day one"
+      },
+      "oyster": {
+        "name": "Oyster card",
+        "desc": "Travel pass for the London tube and buses"
+      },
+      "housingSearch": {
+        "name": "Home search & shortlisting",
+        "desc": "We find options for your budget and area"
+      },
+      "tempHousing": {
+        "name": "Temporary stay",
+        "desc": "A place to live while you search"
+      },
+      "moving": {
+        "name": "Moving belongings",
+        "desc": "Delivery of your belongings to the new home"
+      },
+      "nhs": {
+        "name": "NHS registration",
+        "desc": "Register with a clinic and get a GP"
+      },
+      "support7": {
+        "name": "7 days of support",
+        "desc": "A manager on hand throughout your first week"
+      },
+      "neighborhood": {
+        "name": "Area review",
+        "desc": "A breakdown of areas: transport, safety, prices"
+      },
+      "utilities": {
+        "name": "Utilities",
+        "desc": "We set up electricity, water and internet"
+      },
+      "bankOnline": {
+        "name": "Open account online",
+        "desc": "We help you open a Monzo, Revolut or Starling account"
+      },
+      "lease": {
+        "name": "Tenancy agreement",
+        "desc": "We review and finalise the agreement with the landlord"
+      },
+      "docTranslate": {
+        "name": "Document translation",
+        "desc": "Official translation of your documents into English"
+      }
+    }
+  },
+  "Cart": {
+    "title": "Your list",
+    "items": "{count, plural, =0 {no services} one {# service} other {# services}}",
+    "empty": "Add services — they'll show up here",
+    "total": "Total",
+    "checkout": "Check out",
+    "removed": "Service removed from the list",
+    "addedToast": "Added to the list"
+  },
+  "Checkout": {
+    "step": "Step {n} of 3",
+    "steps": {
+      "service": "Service",
+      "details": "Details",
+      "payment": "Payment"
+    },
+    "includedTitle": "What's included",
+    "form": {
+      "name": "Your name",
+      "arrival": "Arrival date",
+      "bank": "Bank",
+      "telegram": "Telegram",
+      "toPayment": "To payment"
+    },
+    "banks": {
+      "monzo": "Monzo",
+      "revolut": "Revolut",
+      "starling": "Starling"
+    },
+    "payTitle": "Payment",
+    "payButton": "Pay via Payme",
+    "paid": "Paid ✓",
+    "payNote": "After payment the service becomes a task in your dashboard.",
+    "outcome": "One service is an order in the operator's queue and a task in your dashboard with status “In progress → Done”.",
+    "paidToast": "Payment successful",
+    "detailsSubtitle": "Fill in the service details",
+    "noFieldsNote": "No extra details are needed for the selected services.",
+    "fields": {
+      "arrivalDate": "Arrival date",
+      "flight": "Flight number",
+      "bank": "Bank",
+      "budget": "Budget, £/mo",
+      "area": "Area",
+      "address": "Address",
+      "nights": "Number of nights"
+    }
+  },
+  "Search": {
+    "title": "Housing catalogue",
+    "filters": {
+      "rooms": "Rooms",
+      "price": "Price",
+      "area": "Area",
+      "roomsOpts": {
+        "any": "Any",
+        "studio": "Studio",
+        "one": "1",
+        "two": "2",
+        "three": "3+"
+      },
+      "priceOpts": {
+        "any": "Any",
+        "lt1500": "up to £1500",
+        "1500to2000": "£1500–2000",
+        "gt2000": "£2000+"
+      },
+      "areaOpts": {
+        "any": "All",
+        "whitechapel": "Whitechapel",
+        "stratford": "Stratford",
+        "canadaWater": "Canada Water",
+        "woolwich": "Woolwich"
+      }
+    },
+    "found": "{count} {count, plural, one {option} other {options}} found",
+    "perMonth": "/mo",
+    "shortlist": "Shortlist",
+    "shortlisted": "Shortlisted ✓",
+    "favToast": "Added to favourites",
+    "unfavToast": "Removed from favourites",
+    "meta": {
+      "bed": "{count} bed",
+      "bath": "{count} bath",
+      "furnished": "furnished"
+    },
+    "noMatchTitle": "Nothing fit?",
+    "noMatchText": "Send links to flats from Rightmove, Zoopla, SpareRoom, OpenRent or Google Drive — one per line. We'll call around and check availability.",
+    "linksPlaceholder": "https://www.rightmove.co.uk/...\nhttps://www.zoopla.co.uk/...",
+    "pricingNote": "Search & shortlisting — £38 · each viewing — £38",
+    "submitLinks": "Send for calling",
+    "howItWorks": "How it works",
+    "howSteps": {
+      "0": "You send links to flats you like",
+      "1": "We call around and check availability",
+      "2": "We arrange viewings for the available options"
+    },
+    "statuses": {
+      "reached": "Reached, available ✓",
+      "busy": "Busy — we'll call back",
+      "priceChanged": "Price changed"
+    },
+    "submittedToast": "Links sent for calling",
+    "savedToCabinet": "Added to your cabinet — track statuses there",
+    "shortlistCount": "In shortlist: {count}",
+    "shortlistSubmit": "Submit shortlist",
+    "shortlistLogin": "Sign in to submit",
+    "shortlistSubmitted": "Shortlist submitted — statuses in your cabinet",
+    "linkInvalid": "Enter a valid link",
+    "linkExists": "Already added",
+    "linkPlaceholder": "https://www.rightmove.co.uk/…",
+    "addLink": "Add",
+    "yourLinks": "Your links · {count}",
+    "selectionCount": "{count} selected",
+    "submitSelection": "Submit request"
+  },
+  "Auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to continue your move",
+    "registerTitle": "Create an account",
+    "registerSubtitle": "A couple of minutes and your path begins",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "name": "Name",
+    "phone": "Phone",
+    "loginSubmit": "Sign in",
+    "registerSubmit": "Sign up",
+    "orDivider": "or",
+    "telegram": "Continue with Telegram",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "goRegister": "Sign up",
+    "goLogin": "Sign in",
+    "forgot": "Forgot password?",
+    "passwordMismatch": "Passwords don't match",
+    "loginSuccess": "You're signed in",
+    "registerSuccess": "Account created",
+    "telegramError": "Couldn't sign in with Telegram",
+    "invalidCredentials": "Wrong email or password",
+    "emailTaken": "This email is already registered",
+    "verifyLater": "Email verification coming soon",
+    "tgCallbackLoading": "Finishing Telegram sign-in…",
+    "tgCallbackError": "The sign-in link is invalid or expired",
+    "loginByCode": "Sign in with an email code",
+    "loginByPassword": "Sign in with a password",
+    "sendCode": "Send code",
+    "code": "Code from email",
+    "codeSent": "Code sent to your email",
+    "invalidCode": "Wrong or expired code",
+    "registerByEmail": "Sign up with email",
+    "openCabinet": "Open cabinet"
+  },
+  "Profile": {
+    "greeting": "Hi, {name}",
+    "heading": "Your relocation path",
+    "progressLabel": "{done} of {total} steps",
+    "packageCard": "Your package",
+    "amount": "Amount",
+    "managerTitle": "Your manager",
+    "managerHours": "Available 9:00–17:00",
+    "writeChat": "Message in chat",
+    "documentsTitle": "Documents",
+    "docReady": "ready",
+    "docPending": "pending",
+    "stepBadgeNow": "now",
+    "steps": {
+      "airportMeet": {
+        "title": "Airport pickup",
+        "desc": "We'll meet you at arrivals and help with your bags"
+      },
+      "transfer": {
+        "title": "Transfer to your stay",
+        "desc": "We'll take you to your temporary accommodation"
+      },
+      "tempStay": {
+        "title": "Temporary stay",
+        "desc": "A comfortable place while you look for a flat"
+      },
+      "housingSearch": {
+        "title": "Home search",
+        "desc": "We shortlist options for your budget and area and agree the list"
+      },
+      "viewings": {
+        "title": "Viewings",
+        "desc": "We arrange and accompany your viewings"
+      },
+      "lease": {
+        "title": "Tenancy agreement",
+        "desc": "We check the terms and finalise the agreement"
+      },
+      "bank": {
+        "title": "Bank account",
+        "desc": "We help you open a bank account"
+      },
+      "nhs": {
+        "title": "NHS registration",
+        "desc": "We register you with a clinic and a GP"
+      },
+      "moveIn": {
+        "title": "Move-in",
+        "desc": "You move into your home — the relocation is complete"
+      }
+    },
+    "stepActions": {
+      "chat": "Discuss with manager",
+      "details": "Details"
+    },
+    "documents": {
+      "passport": "Passport",
+      "visa": "Visa",
+      "lease": "Tenancy agreement",
+      "bank": "Bank account",
+      "nhs": "NHS"
+    },
+    "linkTgTitle": "Telegram dashboard",
+    "linkTgText": "Link Telegram to open your dashboard right inside the @notharduzbot bot.",
+    "linkTgButton": "Link Telegram",
+    "linkTgLinked": "Telegram linked",
+    "unlinkTg": "Unlink",
+    "tgLinkedToast": "Telegram linked successfully",
+    "tgUnlinkedToast": "Telegram unlinked",
+    "emptyTitle": "Start your move",
+    "emptyText": "Choose a package or individual services — your path will appear here.",
+    "emptyChoosePackage": "Choose a package",
+    "emptyBrowseServices": "Individual services",
+    "ordersTitle": "Your services",
+    "addServices": "Add services",
+    "paidBadge": "paid",
+    "unpaidBadge": "awaiting payment",
+    "purchasedToast": "Order placed ✓",
+    "settings": {
+      "title": "Settings",
+      "account": "Account",
+      "telegram": "Telegram",
+      "tgManage": "Manage Telegram link",
+      "changePassword": "Change password",
+      "setPassword": "Set password",
+      "oldPassword": "Current password",
+      "newPassword": "New password",
+      "save": "Save",
+      "passwordChanged": "Password changed",
+      "wrongPassword": "Wrong current password",
+      "passwordTooShort": "At least 6 characters",
+      "name": "Name",
+      "nameSaved": "Name updated",
+      "dangerZone": "Delete account",
+      "deleteAccount": "Delete account",
+      "deleteConfirm": "Delete your account permanently?",
+      "deleteWarn": "All your orders and data will be removed. This can't be undone.",
+      "deleteCta": "Yes, delete",
+      "emailTitle": "Link an email",
+      "emailHint": "Link an email so you can sign in with a code and not rely only on Telegram.",
+      "emailSend": "Send code",
+      "emailCodeSent": "Code sent to {email}",
+      "emailDevNote": "Email isn't configured yet — the code is in the server logs",
+      "emailVerify": "Confirm",
+      "emailLinked": "Email linked",
+      "emailInvalid": "Invalid email",
+      "emailTaken": "That email is already taken",
+      "emailExpired": "Code expired",
+      "emailBadCode": "Wrong code",
+      "unlinkNeedEmail": "To unlink Telegram, link an email first",
+      "emailPasswordPlaceholder": "Create a password",
+      "sessionsTitle": "Active sessions",
+      "sessionsHint": "Devices currently signed in to your account.",
+      "thisDevice": "This device",
+      "revokeSession": "Sign out",
+      "sessionsRevokeOthers": "Sign out all other devices",
+      "sessionsEmpty": "No active sessions",
+      "sessionsSignedOutOthers": "Signed out of other devices"
+    },
+    "managerPending": "A manager will be assigned soon",
+    "serviceInProgress": "In progress",
+    "serviceDone": "Done",
+    "servicesMainTitle": "Your services",
+    "servicesMainSubtitle": "Track the status of your orders",
+    "chat": {
+      "title": "Chat with your manager",
+      "placeholder": "Write a message…",
+      "send": "Send",
+      "empty": "No messages yet. Ask your manager anything.",
+      "you": "You",
+      "noManagerYet": "A manager will reply as soon as one is assigned.",
+      "open": "Message in chat"
+    },
+    "review": {
+      "eyebrow": "Review",
+      "title": "The {pkg} package is complete!",
+      "subtitle": "Rate our service — it helps us improve.",
+      "placeholder": "Your review (optional)",
+      "submit": "Submit review",
+      "skip": "Skip",
+      "thanks": "Thanks for your review!"
+    },
+    "completedTitle": "All done!",
+    "completedText": "Your relocation is complete. Thank you for choosing us — pick a new package or service whenever you need more.",
+    "completedServicesTitle": "Completed services",
+    "completedNext": "Start a new relocation",
+    "buyPackageTitle": "Buy a package",
+    "buyServiceTitle": "Buy a service",
+    "buyServiceHint": "Only what you need — pick a single service.",
+    "popularHint": "Popular",
+    "housing": {
+      "title": "Housing search",
+      "subtitle": "Pick a flat from our catalog or send a link — we'll reach out and keep the status updated.",
+      "linkPlaceholder": "Link to a listing (Rightmove, Zoopla…)",
+      "add": "Add",
+      "added": "Added to shortlist",
+      "browse": "Browse the housing catalog",
+      "status": {
+        "new": "New",
+        "viewing": "Viewing set",
+        "reached": "Contacted",
+        "busy": "Taken",
+        "secured": "Secured",
+        "declined": "Declined",
+        "viewed": "Viewed",
+        "completed": "Finalised"
+      },
+      "browseHint": "Flats from us and agencies",
+      "empty": "Nothing yet. Open the catalog or paste a listing link.",
+      "viewingAt": "Viewing: {when}",
+      "mediaTitle": "Photos & videos from the viewing",
+      "pendingAdded": "{count} added to your search"
+    },
+    "runnerTitle": "Your host",
+    "runnerRole": "Meets and helps you on the ground",
+    "runnerPending": "A host hasn't been assigned yet",
+    "intake": {
+      "title": "Arrival details",
+      "subtitle": "The {pkg} package includes an airport pickup — tell us when you arrive.",
+      "date": "Arrival date",
+      "time": "Time",
+      "airport": "Airport",
+      "flight": "Flight number",
+      "flightPlaceholder": "e.g. HY201",
+      "flightHint": "If you know it, add your flight number so we can meet you.",
+      "confirm": "Buy & continue",
+      "airports": {
+        "heathrow": "Heathrow",
+        "gatwick": "Gatwick",
+        "stansted": "Stansted",
+        "luton": "Luton",
+        "city": "London City"
+      },
+      "airportPick": "Select an airport"
+    },
+    "arrival": {
+      "title": "Arrival details",
+      "edit": "Edit",
+      "none": "Not specified yet",
+      "inDays": "in {days}d {hours}h {minutes}m",
+      "inHours": "in {hours}h {minutes}m",
+      "saved": "Arrival details saved",
+      "editTitle": "Edit arrival details"
+    },
+    "upgrade": {
+      "cta": "Upgrade package",
+      "title": "Upgrade your package",
+      "subtitle": "Choose a higher tier — everything you've already entered carries over."
+    }
+  },
+  "Admin": {
+    "badge": "Operator",
+    "menu": {
+      "orders": "Orders",
+      "clients": "Clients",
+      "runners": "Runners",
+      "payments": "Payments",
+      "team": "Team",
+      "reviews": "Reviews",
+      "listings": "Listings"
+    },
+    "kpi": {
+      "activeClients": "Active clients",
+      "tasksToday": "Tasks today",
+      "awaitingPayment": "Awaiting payment",
+      "newWeek": "New this week"
+    },
+    "tableTitle": "Active moves",
+    "cols": {
+      "client": "Client",
+      "package": "Package",
+      "step": "Current step",
+      "runner": "Runner",
+      "payment": "Payment",
+      "status": "Status"
+    },
+    "noRunner": "unassigned",
+    "paid": "paid",
+    "unpaid": "pending",
+    "attentionTitle": "Needs attention",
+    "attention": {
+      "noRunner": "Runner not assigned",
+      "awaitingPayment": "Awaiting payment",
+      "newReview": "New review",
+      "noManager": "No manager assigned"
+    },
+    "assign": "Assign",
+    "remind": "Remind",
+    "resolved": "Done ✓",
+    "drawer": {
+      "stage": "Stage {n}/9",
+      "writeClient": "Message client",
+      "assignRunner": "Assign runner",
+      "package": "Package",
+      "payment": "Payment",
+      "runner": "Runner",
+      "timeline": "Client path"
+    },
+    "manager": "Manager",
+    "assignManager": "Assign manager",
+    "managerNone": "unassigned",
+    "markDone": "Done",
+    "reopen": "Reopen",
+    "tasksTitle": "Tasks & services",
+    "chat": {
+      "title": "Chat with client",
+      "placeholder": "Reply to the client…",
+      "send": "Send",
+      "open": "Chat",
+      "empty": "No messages yet."
+    },
+    "saved": "Saved",
+    "searchClients": "Search clients…",
+    "roles": {
+      "client": "Client",
+      "operator": "Operator",
+      "agency": "Agency",
+      "runner": "Runner",
+      "admin": "Admin"
+    },
+    "accounts": {
+      "add": "Add account",
+      "addRunner": "Add runner",
+      "name": "Name",
+      "email": "Email (optional)",
+      "password": "Password",
+      "newPassword": "New password",
+      "passwordHint": "Leave empty to keep unchanged",
+      "role": "Role",
+      "contact": "Contact",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Disabled",
+      "activeLabel": "Account active",
+      "workload": "{done} of {total} tasks",
+      "newTitle": "New account",
+      "editTitle": "Edit account",
+      "create": "Create",
+      "save": "Save",
+      "emailTaken": "That email is already taken",
+      "deleted": "Account deleted",
+      "uploadPhoto": "Upload photo",
+      "delete": "Delete account",
+      "deleteConfirm": "Delete this account? This can't be undone.",
+      "deleteCta": "Delete",
+      "phone": "Phone",
+      "telegramUser": "Telegram"
+    },
+    "payments": {
+      "item": "Item",
+      "amount": "Amount",
+      "totalPaid": "Paid",
+      "totalUnpaid": "Awaiting",
+      "count": "Orders",
+      "markPaid": "Mark paid",
+      "markUnpaid": "Mark unpaid",
+      "refund": "Refund",
+      "refunded": "Payment refunded",
+      "refundedBadge": "Refunded",
+      "totalRefunded": "Refunded"
+    },
+    "activeTitle": "Active relocations",
+    "noActive": "No active relocations",
+    "openCard": "Open card",
+    "attentionEmpty": "All under control",
+    "relocationDone": "Completed",
+    "reviewsEmpty": "No reviews yet",
+    "deleteClient": "Delete client",
+    "deleteClientConfirm": "Delete this client and all their data? This can't be undone.",
+    "segments": {
+      "all": "All",
+      "relocation": "Relocations",
+      "services": "Services",
+      "completed": "Completed"
+    },
+    "filesTitle": "Service files",
+    "housingTitle": "Housing search",
+    "uploadFile": "Upload",
+    "housingStatus": {
+      "new": "New",
+      "viewing": "Viewing set",
+      "reached": "Contacted",
+      "busy": "Taken",
+      "secured": "Secured",
+      "declined": "Declined",
+      "viewed": "Viewed",
+      "completed": "Finalised"
+    },
+    "listingStatus": {
+      "published": "Published",
+      "moderation": "In moderation",
+      "rejected": "Rejected"
+    },
+    "listings": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "unpublish": "Unpublish",
+      "edit": "Edit",
+      "editTitle": "Edit listing",
+      "photo": "Photo",
+      "price": "£ / mo",
+      "addr": "Address",
+      "area": "Area",
+      "rooms": "Rooms",
+      "baths": "Baths",
+      "furnished": "Furnished"
+    },
+    "housingViewingSave": "Save time",
+    "arrivalInfo": "Arrival info",
+    "flightNo": "Flight",
+    "docFilesTitle": "Documents (files)",
+    "manage": {
+      "title": "Manage",
+      "package": "Package",
+      "noPackage": "No package",
+      "remove": "Remove",
+      "addService": "Add service",
+      "pickService": "Select a service",
+      "edit": "Edit",
+      "airport": "Airport",
+      "cancel": "Cancel"
+    },
+    "history": {
+      "title": "Purchase history",
+      "package": "Package",
+      "service": "Service",
+      "bought": "bought",
+      "completed": "Completed",
+      "done": "Completed",
+      "inProgress": "In progress"
+    }
+  },
+  "Agency": {
+    "badge": "Agency",
+    "menu": {
+      "listings": "Listings",
+      "matches": "Matches",
+      "views": "Views"
+    },
+    "addVariant": "Add listing",
+    "kpi": {
+      "published": "Published",
+      "moderation": "In moderation",
+      "matches": "Matches",
+      "views": "Views"
+    },
+    "tabs": {
+      "all": "All",
+      "published": "Published",
+      "moderation": "In moderation"
+    },
+    "status": {
+      "published": "Published",
+      "moderation": "In moderation"
+    },
+    "matchesClients": "Fits {count} {count, plural, one {client} other {clients}}",
+    "perMonth": "/mo"
+  },
+  "Runner": {
+    "badge": "Runner",
+    "heading": "{count} {count, plural, one {task} other {tasks}} · {name}",
+    "doneCount": "Done {done} of {total}",
+    "actions": {
+      "onWay": "On my way",
+      "arrived": "I've arrived",
+      "complete": "Viewing done ✓",
+      "route": "Route",
+      "photo": "Photo"
+    },
+    "status": {
+      "onWay": "On the way",
+      "arrived": "Arrived",
+      "done": "Done"
+    }
   },
   "Footer": {
-    "tagline": "End-to-end relocation services — making your move to London easy and stress-free.",
+    "tagline": "End-to-end relocation to London. Calm, human, in your language.",
     "contacts": "Contacts",
+    "address": "221B Example Street, London EC1A 1BB",
+    "phone": "+44 20 7946 0000",
+    "email": "info@nothard.uz",
     "navigation": "Navigation",
-    "newsletter": "Newsletter",
-    "newsletterText": "News and special offers — occasional and to the point.",
-    "emailPlaceholder": "Your email",
-    "subscribe": "Subscribe",
     "home": "Home",
     "packages": "Packages",
     "services": "Services",
+    "search": "Housing",
     "login": "Sign in",
     "privacy": "Privacy",
     "terms": "Terms",
     "rights": "© {year} Nothard. All rights reserved."
   },
-  "Landing": {
-    "badge": "Relocation · London · 2026",
-    "heroTitleA": "Move to London",
-    "heroTitleB": "the easy way",
-    "heroSubtitle": "Airport pickup, housing search, paperwork, banking, NHS — we take care of everything that usually takes weeks. You just arrive and start living.",
-    "viewPackages": "View packages",
-    "individualServices": "Individual services",
-    "packagesTitle": "Packages",
-    "packagesSubtitle": "Pick the level of support that fits you — from airport pickup to full relocation.",
-    "servicesTitle": "Individual services",
-    "servicesSubtitle": "Just need one or two things? Take exactly what you need — no overpaying.",
-    "popular": "Most popular",
-    "addToCart": "Add to cart",
-    "add": "Add",
-    "loading": "Loading...",
-    "errors": {
-      "packageExists": "There's already a package in your cart. Please remove it before adding a new one.",
-      "serviceExists": "This service is already in your cart.",
-      "error": "Error",
-      "success": "Success",
-      "added": "Item added to cart.",
-      "removed": "Item removed from cart."
-    },
-    "currency": {
-      "sum": "UZS"
+  "Legal": {
+    "privacyTitle": "Privacy Policy",
+    "termsTitle": "Terms of Use",
+    "updated": "Updated: {date}",
+    "placeholderNote": "This is a preliminary version of the document. The final text will be published later.",
+    "backHome": "Back home",
+    "sections": {
+      "0": {
+        "h": "1. General",
+        "p": "Nothard provides relocation services to London. By using the site you agree to these terms."
+      },
+      "1": {
+        "h": "2. Data we collect",
+        "p": "Name, contact details, order data and, when linked, your Telegram identifier — only to deliver the service."
+      },
+      "2": {
+        "h": "3. How we use data",
+        "p": "To process orders, contact you and improve the service. We do not sell your data to third parties."
+      },
+      "3": {
+        "h": "4. Payments",
+        "p": "Payments are processed via Payme. We do not store payment details on our servers."
+      },
+      "4": {
+        "h": "5. Contact",
+        "p": "Questions — info@nothard.uz."
+      }
     }
   },
-  "Packages": {
-    "meet": {
-      "name": "“Meet Me” Package",
-      "tagline": "Your first step in London",
-      "includes": [
-        "✈️ Airport pickup",
-        "🚌 Public transport paid and escort to your London address or train station",
-        "📱 SIM card (tariff paid by you on activation)",
-        "🎫 Oyster card (card included, top-ups paid by you)"
-      ],
-      "note": "⚠️ Service available within London. For other cities the price is calculated individually."
-    },
-    "housing": {
-      "name": "“Housing” Package",
-      "tagline": "Help finding your home",
-      "includes": [
-        "Everything in the “Meet Me” package",
-        "🏠 Calling unlimited listings matching your criteria",
-        "🏢 Up to 3 in-person viewings arranged",
-        "🏨 Help with temporary accommodation",
-        "🚚 Moving logistics arranged"
-      ],
-      "note": "⚠️ All services within London. For other cities the price is calculated individually."
-    },
-    "premium": {
-      "name": "Premium Package",
-      "tagline": "Full turnkey relocation",
-      "includes": [
-        "Everything in the “Housing” package",
-        "📝 Local GP (NHS) registration",
-        "🕐 7-day support (9:00–17:00)",
-        "📊 Neighbourhood assessment",
-        "💡 Utilities setup",
-        "🏦 Digital bank account opening",
-        "📜 Lease translation and signing support",
-        "🎁 Gift from the company"
-      ],
-      "note": "⚠️ All offline services within London. For other cities the price is calculated individually."
-    }
-  },
-  "Services": {
-    "airportPublic": {
-      "name": "✈️ Airport pickup + public transport",
-      "description": "Pickup and escort to your London accommodation or train station. Public transport included. ⚠️ For other cities the price is calculated individually."
-    },
-    "airportTaxi": {
-      "name": "✈️ Airport pickup + private taxi transfer",
-      "description": "Pickup and escort to your London accommodation or train station. Taxi booked and paid by the company (included). ⚠️ For other cities the price is calculated individually."
-    },
-    "sim": {
-      "name": "📱 SIM card",
-      "description": "SIM card provided and activation help. Tariff paid by client. ⚠️ Service available in London. For other cities the price is calculated individually."
-    },
-    "oyster": {
-      "name": "🎫 Oyster card",
-      "description": "Oyster card purchase for public transport. Card included, top-ups paid by client. ⚠️ Service available in London. For other cities the price is calculated individually."
-    },
-    "housingSearch": {
-      "name": "🔍 Housing search & shortlist",
-      "description": "• Calling unlimited listings matching your criteria. • Final shortlist provided to client. • Each in-person viewing billed separately — £38 ($50). ⚠️ Viewings within London. For other cities the price is calculated individually."
-    },
-    "tempHousing": {
-      "name": "🏨 Temporary accommodation help",
-      "description": "Picking and booking a hotel/hostel for the first days. Accommodation paid by client."
-    },
-    "moving": {
-      "name": "🚚 Moving logistics",
-      "description": "Help choosing and booking a moving company. Moving cost paid by client. ⚠️ Service within London. For other cities the price is calculated individually."
-    },
-    "gp": {
-      "name": "📝 Local GP (NHS) registration",
-      "description": "Personal escort for local GP registration. ⚠️ Service within London. For other cities the price is calculated individually."
-    },
-    "support": {
-      "name": "🕐 7-day support (9:00–17:00)",
-      "description": "Support and consultations via Telegram and in person if needed. ⚠️ Service within London. For other cities the price is calculated individually."
-    },
-    "neighborhood": {
-      "name": "📊 Neighbourhood assessment",
-      "description": "Site visit to your chosen area, photo/video report, infrastructure overview. ⚠️ Service within London. For other cities the price is calculated individually."
-    },
-    "utilities": {
-      "name": "💡 Utilities setup",
-      "description": "Help connecting internet, gas and electricity. ⚠️ Service within London. For other cities the price is calculated individually."
-    },
-    "bank": {
-      "name": "🏦 Bank account opening (online banking)",
-      "description": "Support opening a digital account with online banking. ✅ Available online, in any city."
-    },
-    "lease": {
-      "name": "📜 Lease translation & signing help",
-      "description": "Lease translation and on-site signing support. ⚠️ Service within London. For other cities the price is calculated individually."
-    },
-    "docs": {
-      "name": "📄 Document translation",
-      "description": "Official document translation (can be done online)."
-    }
-  },
-  "Cart": {
-    "title": "Cart",
-    "itemsCount": "{count, plural, one {# item in cart} other {# items in cart}}",
-    "type": {
-      "package": "package",
-      "service": "service"
-    },
-    "total": "Total:",
-    "checkout": "Checkout",
-    "currency": "UZS",
-    "removed": "Item removed",
-    "removedDesc": "{name} was removed from your cart.",
-    "checkoutToast": "Checkout",
-    "checkoutToastDesc": "Checkout functionality isn't implemented yet."
-  },
-  "Login": {
-    "title": "Sign in",
-    "subtitle": "Sign in to your account",
-    "email": "Email",
-    "password": "Password",
-    "submit": "Sign in",
-    "noAccount": "Don't have an account?",
-    "registerLink": "Sign up",
-    "successTitle": "Signed in",
-    "successDesc": "Welcome!",
-    "errorTitle": "Sign-in error",
-    "errorGeneric": "Error",
-    "errorMessage": "Something went wrong while signing in",
-    "telegramSuccess": "Signed in via Telegram",
-    "telegramError": "Something went wrong requesting Telegram auth",
-    "gmailTitle": "Gmail Login",
-    "gmailDesc": "Gmail sign-in isn't implemented yet"
-  },
-  "Register": {
-    "title": "Sign up",
-    "subtitle": "Create a new account",
-    "name": "Name",
-    "phone": "Phone",
-    "email": "Email",
-    "password": "Password",
-    "confirmPassword": "Confirm password",
-    "submit": "Sign up",
-    "hasAccount": "Already have an account?",
-    "loginLink": "Sign in",
-    "passwordMismatch": "Passwords don't match",
-    "successTitle": "Account created",
-    "successDesc": "You're successfully registered.",
-    "errorTitle": "Error",
-    "errorMessage": "Something went wrong during sign-up",
-    "telegramLinkRequired": "Please sign up before linking with Telegram.",
-    "telegramLinked": "Telegram linked",
-    "telegramLinkedDesc": "Your account is linked with Telegram!",
-    "telegramError": "Something went wrong linking with Telegram",
-    "gmailTitle": "Gmail Registration",
-    "gmailDesc": "Gmail sign-up isn't implemented yet"
-  },
-  "LanguageSwitcher": {
-    "label": "Language",
-    "ru": "Русский",
-    "en": "English",
-    "uz": "O'zbek",
-    "uz-cyrl": "Ўзбек"
+  "Consent": {
+    "title": "Welcome",
+    "text": "To continue, please accept our Privacy Policy and Terms of Service.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "accept": "Accept & continue",
+    "decline": "Log out"
   }
 }

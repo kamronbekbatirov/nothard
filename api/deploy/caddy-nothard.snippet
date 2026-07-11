@@ -1,0 +1,15 @@
+# nothard.uz block — /api routed to the new PostgreSQL API (port 5010).
+nothard.uz, www.nothard.uz {
+	import security_headers
+	import block_sensitive
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy localhost:5010
+	}
+	handle /payme/* {
+		reverse_proxy localhost:5001
+	}
+	handle {
+		reverse_proxy localhost:3005
+	}
+}

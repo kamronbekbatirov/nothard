@@ -1,0 +1,22 @@
+# /etc/systemd/system/nothard-api2.service
+[Unit]
+Description=NotHard API v2 (PostgreSQL) — auth, telegram, profile
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=nothard
+Group=nothard
+WorkingDirectory=/var/www/nothard/api
+ExecStart=/var/www/nothard/api/venv/bin/gunicorn -w 1 --threads 8 -b 127.0.0.1:5010 app:app
+Restart=on-failure
+RestartSec=10
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/www/nothard
+
+[Install]
+WantedBy=multi-user.target

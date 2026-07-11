@@ -2,75 +2,245 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+/* ============================================================
+   Nothard — design system. Warm paper (light) / warm charcoal (dark).
+   Colors are RGB triplets so Tailwind can apply opacity modifiers and the
+   whole palette can flip on [data-theme="dark"]. Onest for type.
+   ============================================================ */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+:root {
+  color-scheme: light;
+  --paper: 233 229 221;
+  --surface: 244 241 234;
+  --card: 251 250 246;
+  --sub: 239 236 228;
+  --ink: 27 26 23;
+  --ink-2: 63 59 52;
+  --ink-hero: 82 78 70;
+  --muted: 110 106 97;
+  --gray: 139 133 120;
+  --gray-lt: 168 162 148;
+  --gray-lt2: 184 178 164;
+  --line: 208 201 187;
+  --track: 226 221 210;
+  --capsule: 231 227 218;
+  --accent: 47 93 69;
+  --accent-bg: 231 237 231;
+  --accent-dark: 111 158 132;
+  --terracotta: 181 86 58;
+  --terracotta-bg: 243 228 220;
+  --success: 31 157 92;
+  --inverse: 27 26 23;
+  --inverse-fg: 244 241 234;
+  --panel-dark: 27 26 23;
+}
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+.dark {
+  color-scheme: dark;
+  --paper: 24 22 19;
+  --surface: 30 28 24;
+  --card: 37 34 30;
+  --sub: 45 41 36;
+  --ink: 240 237 230;
+  --ink-2: 214 209 199;
+  --ink-hero: 190 184 172;
+  --muted: 162 155 142;
+  --gray: 145 138 126;
+  --gray-lt: 122 115 104;
+  --gray-lt2: 106 100 90;
+  --line: 62 57 50;
+  --track: 52 47 41;
+  --capsule: 47 43 37;
+  --accent: 92 171 131;
+  --accent-bg: 34 49 42;
+  --accent-dark: 124 178 151;
+  --terracotta: 214 124 94;
+  --terracotta-bg: 58 38 32;
+  --success: 52 192 122;
+  --inverse: 240 237 230;
+  --inverse-fg: 24 22 19;
+  --panel-dark: 20 18 15;
+}
 
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-
-    --destructive: 0 0% 25%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 0% 75%;
-    --destructive-foreground: 0 0% 9%;
-
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+/* Fallback for JS-off: follow the OS when no explicit theme class is set. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) {
+    color-scheme: dark;
+    --paper: 24 22 19;
+    --surface: 30 28 24;
+    --card: 37 34 30;
+    --sub: 45 41 36;
+    --ink: 240 237 230;
+    --ink-2: 214 209 199;
+    --ink-hero: 190 184 172;
+    --muted: 162 155 142;
+    --gray: 145 138 126;
+    --gray-lt: 122 115 104;
+    --gray-lt2: 106 100 90;
+    --line: 62 57 50;
+    --track: 52 47 41;
+    --capsule: 47 43 37;
+    --accent: 92 171 131;
+    --accent-bg: 34 49 42;
+    --accent-dark: 124 178 151;
+    --terracotta: 214 124 94;
+    --terracotta-bg: 58 38 32;
+    --success: 52 192 122;
+    --inverse: 240 237 230;
+    --inverse-fg: 24 22 19;
+    --panel-dark: 20 18 15;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    box-sizing: border-box;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    margin: 0;
+    background: rgb(var(--paper));
+    color: rgb(var(--ink));
+    font-family: var(--font-onest), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-onest), system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  button {
+    font-family: inherit;
+  }
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+  input:focus,
+  textarea:focus {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 1px;
+    border-color: rgb(var(--accent));
+  }
+  ::selection {
+    background: rgb(var(--accent) / 0.18);
+  }
+}
+
+@layer components {
+  /* Display helper — Onest, semibold, tight tracking */
+  .font-display {
+    font-family: var(--font-onest), system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  /* Uppercase eyebrow label */
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--accent));
+  }
+
+  /* Interactive button micro-motion */
+  .btn-motion {
+    transition: transform 0.12s ease, box-shadow 0.22s ease,
+      filter 0.18s ease, background 0.2s ease, color 0.2s ease;
+  }
+  .btn-motion:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+  }
+  .btn-motion:active {
+    transform: translateY(0) scale(0.99);
+  }
+  .btn-motion:focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+  }
+
+  /* Card hover-lift */
+  .nd-lift {
+    transition: transform 0.16s ease, box-shadow 0.22s ease,
+      border-color 0.2s ease;
+  }
+  .nd-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 34px -20px rgba(0, 0, 0, 0.45);
+    border-color: rgb(var(--accent) / 0.4);
+  }
+
+  /* Table rows */
+  .nd-row {
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .nd-row:hover {
+    background: rgb(var(--accent) / 0.06);
+  }
+
+  /* Nav links */
+  .nd-nav {
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  .nd-nav:hover {
+    color: rgb(var(--accent));
+  }
+
+  /* Selectable chip */
+  .nd-chip {
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  /* Striped photo placeholder */
+  .photo-stripe {
+    background: repeating-linear-gradient(
+      45deg,
+      rgb(var(--track)),
+      rgb(var(--track)) 9px,
+      rgb(var(--capsule)) 9px,
+      rgb(var(--capsule)) 18px
+    );
+  }
+
+  /* Hidden-scrollbar horizontal strip (mobile filter rails) */
+  .nd-hscroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nd-hscroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Pulse for active timeline / task step */
+@keyframes ndPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(var(--accent) / 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgb(var(--accent) / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--accent) / 0);
+  }
+}
+.nd-pulse {
+  animation: ndPulse 2s infinite;
 }

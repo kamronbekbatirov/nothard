@@ -76,3 +76,6 @@ Thumbs.db
 
 # --- Coverage / test ---
 /coverage
+
+# --- Stray archives ---
+*.zip

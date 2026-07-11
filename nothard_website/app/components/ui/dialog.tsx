@@ -35,7 +35,7 @@ export function DialogContent({ className, children, ...props }: DialogContentPr
   return (
     <div 
       className={cn(
-        "relative bg-white rounded-lg shadow-xl p-6 mx-4 max-w-lg w-full max-h-[90vh] overflow-y-auto",
+        "relative bg-card rounded-lg shadow-xl p-6 mx-4 max-w-lg w-full max-h-[90vh] overflow-y-auto",
         className
       )}
       {...props}

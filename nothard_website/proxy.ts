@@ -4,5 +4,6 @@ import { routing } from './i18n/routing'
 export default createMiddleware(routing)
 
 export const config = {
-  matcher: ['/((?!api|admin|agency|profile|runner|search|_next|_vercel|.*\\..*).*)'],
+  // Localize everything except API, Next internals and static files.
+  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
 }
