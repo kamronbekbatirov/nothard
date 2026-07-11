@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { CheckCircle2, ExternalLink, Home, Paperclip, Plus, Star, Trash2, X } from 'lucide-react'
+import { useTranslations, useLocale } from 'next-intl'
+import { CheckCircle2, ExternalLink, Home, Paperclip, Plus, Share2, Star, Trash2, X } from 'lucide-react'
 import { Link, useRouter } from '@/i18n/navigation'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
@@ -434,22 +434,22 @@ function PackageIntakeModal({
           </p>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block">
+            <label className="block min-w-0">
               <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
               <input
                 type="date"
                 value={arrivalDate}
                 onChange={(e) => setArrivalDate(e.target.value)}
-                className="box-border w-full min-w-0 rounded-md border border-line bg-card px-3 py-2.5 text-[15px] text-ink"
+                className="box-border w-full min-w-0 appearance-none rounded-md border border-line bg-card px-3 py-2.5 text-[15px] text-ink"
               />
             </label>
-            <label className="block">
+            <label className="block min-w-0">
               <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
               <input
                 type="time"
                 value={arrivalTime}
                 onChange={(e) => setArrivalTime(e.target.value)}
-                className="box-border w-full min-w-0 rounded-md border border-line bg-card px-3 py-2.5 text-[15px] text-ink"
+                className="box-border w-full min-w-0 appearance-none rounded-md border border-line bg-card px-3 py-2.5 text-[15px] text-ink"
               />
             </label>
           </div>
@@ -1057,7 +1057,7 @@ function PopulatedCabinet({
   const label = useTaskLabel()
   const { toast } = useToast()
   const [arrivalOpen, setArrivalOpen] = useState(false)
-  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   const steps = data.path.filter((p) => p.kind === 'step')
   const total = steps.length
@@ -1129,14 +1129,6 @@ function PopulatedCabinet({
               </div>
             )}
 
-            {data.package.id !== 'premium' && (
-              <button
-                onClick={() => setUpgradeOpen(true)}
-                className="mt-3 w-full rounded-lg bg-card py-2 text-[13px] font-semibold text-accent transition hover:bg-white/90"
-              >
-                {t('upgrade.cta')}
-              </button>
-            )}
           </div>
         ) : (
           /* No active package → buy a new one right here (no redirect) */
@@ -1262,6 +1254,13 @@ function PopulatedCabinet({
             <Link href="/services">{t('addServices')}</Link>
           </Button>
         )}
+
+        {/* Share the relocation with family (read-only public page) */}
+        {data.hasOrders && (
+          <Button variant="ghost" size="block" className="gap-2" onClick={() => setShareOpen(true)}>
+            <Share2 size={15} /> {t('share.cta')}
+          </Button>
+        )}
       </aside>
 
       {/* Main */}
@@ -1296,14 +1295,20 @@ function PopulatedCabinet({
                     step.status === 'onWay' ||
                     step.status === 'arrived'
                   const { title, desc } = label('step', step.key)
-                  // For the airport-meet step, show a live countdown to arrival.
-                  const countdown =
-                    step.key === 'airportMeet' && data.package?.hasAirportMeet && !done
-                      ? arrivalCountdown(data.package.details?.arrivalDate, data.package.details?.arrivalTime)
-                      : null
-                  // Expand a card for every in-progress step (several can run at
-                  // once), plus the arrival step so its countdown is always visible.
-                  const expanded = active || !!countdown
+                  // The airport-meet step, once an arrival time is set, always stays
+                  // expanded and "live": a countdown while the flight is in the future,
+                  // then "сейчас" (now) once the meeting time has arrived — it must NOT
+                  // collapse when the clock hits 0. It only leaves this state when the
+                  // operator marks it done.
+                  const isArrivalStep =
+                    step.key === 'airportMeet' && !!data.package?.hasAirportMeet && !done
+                  const hasArrivalTime = isArrivalStep && !!data.package?.details?.arrivalDate
+                  const countdown = isArrivalStep
+                    ? arrivalCountdown(data.package?.details?.arrivalDate, data.package?.details?.arrivalTime)
+                    : null
+                  // Expand a card for every in-progress step (several can run at once)
+                  // and for the arrival step once a time is set (countdown → "now").
+                  const expanded = active || hasArrivalTime
                   return (
                     <div key={`${step.key}-${i}`} className="relative">
                       <span className="absolute -left-8 top-0.5">
@@ -1446,16 +1451,82 @@ function PopulatedCabinet({
         />
       )}
 
-      {upgradeOpen && data.package && (
-        <UpgradeModal
-          current={data.package.id}
-          onClose={() => setUpgradeOpen(false)}
-          onPick={(id) => {
-            setUpgradeOpen(false)
-            onBuy(id)
-          }}
-        />
-      )}
+      {shareOpen && <ShareModal onClose={() => setShareOpen(false)} />}
+    </div>
+  )
+}
+
+/* ---------- Share with family (public read-only link) ---------- */
+function ShareModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations('Profile')
+  const locale = useLocale()
+  const { toast } = useToast()
+  const [url, setUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.me
+      .shareLink()
+      .then(({ token }) => setUrl(`${window.location.origin}/${locale}/share/${token}`))
+      .catch(() => {})
+  }, [locale])
+
+  async function copy() {
+    if (!url) return
+    try {
+      await navigator.clipboard.writeText(url)
+      toast(t('share.copied'))
+    } catch {}
+  }
+  async function nativeShare() {
+    if (!url) return
+    try {
+      await navigator.share({ url, title: 'Nothard', text: t('share.title') })
+    } catch {}
+  }
+  const canNativeShare = typeof navigator !== 'undefined' && !!(navigator as any).share
+
+  return (
+    <div
+      className="fixed inset-0 z-[99999] flex items-end justify-center bg-black/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[420px] overflow-hidden rounded-t-2xl bg-surface sm:rounded-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+          <h2 className="font-display text-[18px] text-ink">{t('share.title')}</h2>
+          <button onClick={onClose} className="text-gray hover:text-ink" aria-label="close">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-4 p-6">
+          <p className="-mt-1 text-[13.5px] leading-relaxed text-muted">{t('share.subtitle')}</p>
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-2.5">
+            <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2">{url || '…'}</span>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="solid" size="block" disabled={!url} onClick={copy}>
+              {t('share.copy')}
+            </Button>
+            {canNativeShare && (
+              <Button variant="outline" size="block" disabled={!url} onClick={nativeShare}>
+                {t('share.shareNative')}
+              </Button>
+            )}
+          </div>
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-center text-[13px] font-medium text-accent hover:underline"
+            >
+              {t('share.open')} →
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -1557,47 +1628,3 @@ function ArrivalEditModal({
   )
 }
 
-/* ---------- Upgrade package ---------- */
-function UpgradeModal({
-  current,
-  onClose,
-  onPick,
-}: {
-  current: string
-  onClose: () => void
-  onPick: (id: string) => void
-}) {
-  const t = useTranslations('Profile')
-  const tp = useTranslations('Packages')
-  const order = ['meet', 'housing', 'premium']
-  const higher = PACKAGES.filter((p) => order.indexOf(p.id) > order.indexOf(current))
-
-  return (
-    <div className="fixed inset-0 z-[99999] flex items-end justify-center bg-black/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-6">
-      <div className="w-full max-w-[420px] overflow-hidden rounded-t-2xl bg-surface sm:rounded-2xl">
-        <div className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 className="font-display text-[18px] text-ink">{t('upgrade.title')}</h2>
-          <button onClick={onClose} className="text-gray hover:text-ink" aria-label="close">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="flex flex-col gap-3 p-6">
-          <p className="-mt-1 text-[13px] text-muted">{t('upgrade.subtitle')}</p>
-          {higher.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => onPick(p.id)}
-              className="nd-chip flex items-center justify-between rounded-lg border border-line bg-card px-4 py-3 text-left hover:border-accent"
-            >
-              <span>
-                <span className="block text-[14.5px] font-semibold text-ink">{tp(`${p.id}.name`)}</span>
-                <span className="block text-[12px] text-muted">{tp(`${p.id}.tagline` as any)}</span>
-              </span>
-              <span className="font-display text-[18px] text-accent">{fmtGBP(p.gbp)}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}

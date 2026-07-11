@@ -980,6 +980,67 @@ def create_app() -> Flask:
             return err
         return jsonify(dashboard_payload(user))
 
+    # ---- Public "share your relocation with family" link -------------------
+    def _first_name(name: str) -> str:
+        return (name or "").strip().split(" ")[0] if name else ""
+
+    @app.post("/me/share")
+    def my_share_link():
+        """Create (or return) a stable public token for a read-only relocation page
+        the client can send to family. Idempotent."""
+        user, err = require_user()
+        if err:
+            return err
+        c = get_or_create_client(user)
+        if not c.share_token:
+            c.share_token = secrets.token_urlsafe(12)[:24]
+            SessionLocal.commit()
+        return jsonify({"token": c.share_token})
+
+    @app.get("/share/<token>")
+    def public_share(token: str):
+        """Public, unauthenticated read-only snapshot of a client's relocation:
+        package, progress, path statuses, and manager/companion names + photos.
+        Deliberately excludes all contacts, chat, documents and addresses."""
+        c = SessionLocal.execute(
+            select(Client).where(Client.share_token == token)
+        ).scalar_one_or_none()
+        if not c or not token:
+            return jsonify({"error": "not found"}), 404
+        orders = client_orders(c.id)
+        tasks = client_tasks(c.id)
+        pkg_order = next(
+            (o for o in reversed(orders) if o.item_type == "package" and not o.archived), None
+        )
+        pkg_steps = [
+            t for t in tasks if t.kind == "step" and pkg_order and t.order_id == pkg_order.id
+        ]
+        done = sum(1 for t in pkg_steps if t.status == "done")
+        total = len(pkg_steps)
+
+        def person(uid):
+            if not uid:
+                return None
+            u = SessionLocal.get(User, uid)
+            return {"name": u.name, "photoUrl": u.photo_url} if u else None
+
+        svc_task_by_order = {t.order_id: t for t in tasks if t.kind == "service" and t.order_id}
+        services = [
+            {"id": o.item_id,
+             "done": bool(svc_task_by_order.get(o.id) and svc_task_by_order[o.id].status == "done")}
+            for o in orders if o.item_type == "service" and not o.archived
+        ]
+        return jsonify({
+            "clientName": _first_name(c.name),
+            "package": ({"id": pkg_order.item_id} if pkg_order else None),
+            "packageComplete": bool(pkg_steps) and done == total and total > 0,
+            "progress": {"done": done, "total": total},
+            "path": [{"key": t.key, "status": t.status} for t in pkg_steps],
+            "services": services,
+            "manager": person(c.manager_id),
+            "runner": person(c.runner_id),
+        })
+
     @app.post("/me/checkout")
     def my_checkout():
         """Create (and mark paid) orders for a package and/or services, then
@@ -1020,6 +1081,8 @@ def create_app() -> Flask:
                 SessionLocal.add(order)
                 SessionLocal.flush()
                 make_package_tasks(client, order, iid)
+                if new_details.get("arrivalDate"):
+                    mark_airport_meet_active(client, order)
             elif itype == "service" and iid in SERVICE_PRICE:
                 if iid in existing_services:
                     continue  # don't buy the same service twice
@@ -1271,6 +1334,15 @@ def create_app() -> Flask:
     # ---- Edit arrival details (client) ------------------------------------
     ARRIVAL_FIELDS = ("arrivalDate", "arrivalTime", "airport", "flight")
 
+    def mark_airport_meet_active(client, order):
+        """Once arrival details exist, move the airport-meet step from 'todo' to
+        'inProgress' so the operator board and the client cabinet both show it as
+        in progress (the cabinet also shows a live countdown / "now")."""
+        for t in client_tasks(client.id):
+            if (t.kind == "step" and t.key == "airportMeet"
+                    and (not order or t.order_id == order.id) and t.status == "todo"):
+                t.status = "inProgress"
+
     @app.post("/me/arrival")
     def my_arrival():
         user, err = require_user()
@@ -1289,6 +1361,8 @@ def create_app() -> Flask:
             if k in data:
                 details[k] = (str(data.get(k) or "")).strip()[:120]
         pkg.details = details
+        if details.get("arrivalDate"):
+            mark_airport_meet_active(c, pkg)
         SessionLocal.commit()
         return jsonify(dashboard_payload(user))
 
@@ -1862,6 +1936,8 @@ def create_app() -> Flask:
             if k in d:
                 details[k] = (str(d.get(k) or "")).strip()[:120]
         pkg.details = details
+        if details.get("arrivalDate"):
+            mark_airport_meet_active(c, pkg)
         SessionLocal.commit()
         return _row(c)
 
@@ -2680,7 +2756,9 @@ def create_app() -> Flask:
         return jsonify(fetch_og_meta(url))
 
     # ---- Runner ------------------------------------------------------------
-    _NEXT_STAGE = {"todo": "onWay", "onWay": "arrived", "arrived": "done"}
+    # inProgress (set when arrival details are entered) advances into the field-visit
+    # stages just like todo, so a runner can still progress an airport-meet.
+    _NEXT_STAGE = {"todo": "onWay", "inProgress": "onWay", "onWay": "arrived", "arrived": "done"}
 
     def client_name_map() -> dict:
         return {c.id: c.name for c in SessionLocal.execute(select(Client)).scalars().all()}

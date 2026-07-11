@@ -134,6 +134,8 @@ export const api = {
   logout: () => req<{ ok: boolean }>('/auth/logout', { method: 'POST' }).catch(() => null),
   listings: () => req<{ listings: CatalogListing[] }>('/listings'),
   listingDetail: (id: number) => req<ListingDetail>(`/listings/${id}`),
+  // Public read-only relocation snapshot (shared with family). No auth.
+  sharedRelocation: (token: string) => req<SharedRelocation>(`/share/${token}`),
   // Public OpenGraph preview for a pasted listing URL (photo/title/price).
   ogPreview: (url: string) =>
     req<{ photo?: string; title?: string; description?: string; price?: number }>(
@@ -221,6 +223,8 @@ export const api = {
     // Request (and pay £30 for) an accompanied viewing of a shortlisted property.
     requestViewing: (id: number) =>
       req<HousingItem>(`/me/housing/${id}/viewing`, { method: 'POST' }),
+    // Create/return the stable public share token for the family view.
+    shareLink: () => req<{ token: string }>('/me/share', { method: 'POST' }),
     sessions: () =>
       req<{ sessions: DeviceSession[]; currentId: number | null }>('/me/sessions'),
     revokeSession: (id: number) =>
@@ -351,14 +355,7 @@ export const api = {
       }),
     updateListing: (
       id: number,
-      body: {
-        priceGBP?: number
-        addr?: string
-        area?: string
-        rooms?: number
-        baths?: number
-        furnished?: boolean
-      }
+      body: Partial<ListingInput> & { photos?: string[] }
     ) => req<AdminListing>(`/admin/listings/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     uploadListingPhoto: (id: number, file: File) => {
       const fd = new FormData()
@@ -464,6 +461,17 @@ export type PendingReview = {
   itemId: string
   amountGBP: number
 }
+export type SharedRelocation = {
+  clientName: string
+  package: { id: string } | null
+  packageComplete: boolean
+  progress: { done: number; total: number }
+  path: { key: string; status: string }[]
+  services: { id: string; done: boolean }[]
+  manager: { name: string; photoUrl: string | null } | null
+  runner: { name: string; photoUrl: string | null } | null
+}
+
 export type DashboardData = {
   user: User
   telegram: { linked: boolean; username: string | null }
@@ -638,6 +646,12 @@ export type AdminListing = {
   furnished: boolean
   status: ListingStatus
   photoUrl: string | null
+  photos?: string[]
+  propertyType?: string
+  description?: string
+  amenities?: string[]
+  availableFrom?: string
+  depositGBP?: number
   agency: string
   createdAt: string | null
 }

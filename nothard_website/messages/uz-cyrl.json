@@ -619,6 +619,15 @@
       "bought": "Сотиб олинди",
       "completed": "Якунланди",
       "viewing": "Уй кўриги"
+    },
+    "share": {
+      "cta": "Оила билан улашиш",
+      "title": "Кўчишни улашиш",
+      "subtitle": "Бу ҳаволани ота-онангизга юборинг — улар пакетингиз, менежер, ҳамроҳ ва жараённи кўради. Кириш шарт эмас.",
+      "copy": "Ҳаволани нусхалаш",
+      "copied": "Ҳавола нусхаланди",
+      "shareNative": "Улашиш",
+      "open": "Саҳифани очиш"
     }
   },
   "Admin": {
@@ -722,7 +731,8 @@
       "deleteConfirm": "Бу аккаунт ўчирилсинми? Бекор қилиб бўлмайди.",
       "deleteCta": "Ўчириш",
       "phone": "Телефон",
-      "telegramUser": "Telegram"
+      "telegramUser": "Telegram",
+      "search": "Исм, email, телефон бўйича қидирув…"
     },
     "payments": {
       "item": "Хизмат",
@@ -944,5 +954,22 @@
     "terms": "Фойдаланиш шартлари",
     "accept": "Қабул қиламан",
     "decline": "Чиқиш"
+  },
+  "SharePage": {
+    "heading": "{name}нинг Лондонга кўчиши",
+    "headingNoName": "Лондонга кўчиш",
+    "progress": "{total} тадан {done} та босқич бажарилди",
+    "packageLabel": "Пакет",
+    "managerLabel": "Менежер",
+    "companionLabel": "Ҳамроҳ",
+    "pathLabel": "Кўчиш йўли",
+    "servicesLabel": "Қўшимча хизматлар",
+    "completed": "Кўчиш якунланди 🎉",
+    "notFound": "Бу ҳавола энди мавжуд эмас.",
+    "tagline": "Nothard — Лондонга кўчиш",
+    "done": "Бажарилди",
+    "inProgress": "Жараёнда",
+    "pending": "Кутилмоқда",
+    "cta": "Nothard ҳақида"
   }
 }

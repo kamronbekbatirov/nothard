@@ -88,6 +88,8 @@ class Client(Base):
     manager_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     runner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     documents: Mapped[dict] = mapped_column(JSON, default=dict)
+    # Opaque token for a public, read-only "share your relocation with family" page.
+    share_token: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

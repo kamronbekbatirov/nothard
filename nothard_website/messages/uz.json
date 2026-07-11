@@ -619,6 +619,15 @@
       "bought": "Sotib olindi",
       "completed": "Yakunlandi",
       "viewing": "Uy ko‘rigi"
+    },
+    "share": {
+      "cta": "Oila bilan ulashish",
+      "title": "Ko‘chishni ulashish",
+      "subtitle": "Bu havolani ota-onangizga yuboring — ular paketingiz, menejer, hamroh va jarayonni ko‘radi. Kirish shart emas.",
+      "copy": "Havolani nusxalash",
+      "copied": "Havola nusxalandi",
+      "shareNative": "Ulashish",
+      "open": "Sahifani ochish"
     }
   },
   "Admin": {
@@ -722,7 +731,8 @@
       "deleteConfirm": "Bu akkaunt o‘chirilsinmi? Bekor qilib bo‘lmaydi.",
       "deleteCta": "O‘chirish",
       "phone": "Telefon",
-      "telegramUser": "Telegram"
+      "telegramUser": "Telegram",
+      "search": "Ism, email, telefon bo‘yicha qidiruv…"
     },
     "payments": {
       "item": "Xizmat",
@@ -944,5 +954,22 @@
     "terms": "Foydalanish shartlari",
     "accept": "Qabul qilaman",
     "decline": "Chiqish"
+  },
+  "SharePage": {
+    "heading": "{name}ning Londonga ko‘chishi",
+    "headingNoName": "Londonga ko‘chish",
+    "progress": "{total} tadan {done} ta bosqich bajarildi",
+    "packageLabel": "Paket",
+    "managerLabel": "Menejer",
+    "companionLabel": "Hamroh",
+    "pathLabel": "Ko‘chish yo‘li",
+    "servicesLabel": "Qo‘shimcha xizmatlar",
+    "completed": "Ko‘chish yakunlandi 🎉",
+    "notFound": "Bu havola endi mavjud emas.",
+    "tagline": "Nothard — Londonga ko‘chish",
+    "done": "Bajarildi",
+    "inProgress": "Jarayonda",
+    "pending": "Kutilmoqda",
+    "cta": "Nothard haqida"
   }
 }

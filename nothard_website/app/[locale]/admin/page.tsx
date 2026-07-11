@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Camera, Paperclip, Pencil, Plus, Star, Trash2, X } from 'lucide-react'
+import { Camera, Paperclip, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Field, Input } from '@/app/components/field'
@@ -681,7 +681,34 @@ function TeamView({
 }) {
   const t = useTranslations('Admin')
   const [editing, setEditing] = useState<AdminAccount | 'new' | null>(null)
-  const list = accounts ?? []
+  const [query, setQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'all' | Role>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const all = accounts ?? []
+
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return all.filter((a) => {
+      if (roleFilter !== 'all' && a.role !== roleFilter) return false
+      if (statusFilter === 'active' && !a.active) return false
+      if (statusFilter === 'inactive' && a.active) return false
+      if (q) {
+        const hay = `${a.name} ${a.email || ''} ${a.telegram || ''} ${a.phone || ''}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+  }, [all, query, roleFilter, statusFilter])
+
+  // Role chips carry a live count so the operator can see the team breakdown.
+  const roleChips: { key: 'all' | Role; label: string; count: number }[] = [
+    { key: 'all', label: t('segments.all'), count: all.length },
+    ...TEAM_ROLES.map((r) => ({
+      key: r,
+      label: t(`roles.${r}`),
+      count: all.filter((a) => a.role === r).length,
+    })),
+  ]
 
   return (
     <div>
@@ -690,6 +717,47 @@ function TeamView({
         <Button variant="dark" size="sm" className="gap-1.5" onClick={() => setEditing('new')}>
           <Plus size={15} /> {t('accounts.add')}
         </Button>
+      </div>
+
+      {/* Search + filters — so the team stays findable as it grows */}
+      <div className="mb-4 flex flex-col gap-3">
+        <div className="relative">
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-lt" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('accounts.search')}
+            className="pl-9"
+          />
+        </div>
+        <div className="nd-hscroll flex gap-1.5">
+          {roleChips.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setRoleFilter(c.key)}
+              className={cn(
+                'shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
+                roleFilter === c.key ? 'bg-accent text-white' : 'bg-card text-muted hover:text-ink'
+              )}
+            >
+              {c.label} <span className="opacity-60">{c.count}</span>
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1.5">
+          {(['all', 'active', 'inactive'] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                'rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors',
+                statusFilter === s ? 'bg-inverse text-inverse-fg' : 'bg-card text-muted hover:text-ink'
+              )}
+            >
+              {s === 'all' ? t('segments.all') : s === 'active' ? t('accounts.active') : t('accounts.inactive')}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-line bg-card">
@@ -1044,23 +1112,27 @@ function PkgName({ pkg }: { pkg: string | null }) {
 }
 
 function Avatar({ url, name, size = 40 }: { url?: string | null; name: string; size?: number }) {
-  if (url)
+  const [broken, setBroken] = useState(false)
+  if (url && !broken)
     // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
         src={url}
         alt={name}
+        onError={() => setBroken(true)}
         style={{ width: size, height: size }}
         className="shrink-0 rounded-full object-cover"
         referrerPolicy="no-referrer"
       />
     )
+  // No photo (or it failed to load, e.g. a Telegram photo that 404s) → a green
+  // circle with the first letter of the name.
   return (
     <span
       style={{ width: size, height: size, fontSize: size * 0.4 }}
       className="flex shrink-0 items-center justify-center rounded-full bg-accent font-semibold text-white"
     >
-      {(name || '?').charAt(0).toUpperCase()}
+      {(name || '?').trim().charAt(0).toUpperCase() || '?'}
     </span>
   )
 }
@@ -1189,10 +1261,12 @@ function ListingsView({
     { key: 'rejected', label: t('listingStatus.rejected') },
     { key: 'all', label: t('segments.all') },
   ]
+  // Solid white pill (not translucent) so the status stays legible over bright
+  // photos; only the text is colour-coded.
   const tone: Record<string, string> = {
-    published: 'bg-accent/15 text-accent',
-    moderation: 'bg-amber-500/15 text-amber-700',
-    rejected: 'bg-terracotta-bg text-terracotta',
+    published: 'bg-white text-accent',
+    moderation: 'bg-white text-amber-600',
+    rejected: 'bg-white text-terracotta',
   }
 
   return (
@@ -1227,7 +1301,7 @@ function ListingsView({
               )}
               <span
                 className={cn(
-                  'absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                  'absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold shadow-sm',
                   tone[l.status]
                 )}
               >
@@ -1303,6 +1377,7 @@ function ListingsView({
 }
 
 const LISTING_AREAS = ['whitechapel', 'stratford', 'canadaWater', 'woolwich'] as const
+const LISTING_TYPES = ['flat', 'studio', 'house', 'room'] as const
 
 function ListingModal({
   listing,
@@ -1315,15 +1390,25 @@ function ListingModal({
 }) {
   const t = useTranslations('Admin')
   const ts = useTranslations('Search')
+  const ta = useTranslations('Agency')
   const tc = useTranslations('Common')
   const { toast } = useToast()
-  const [price, setPrice] = useState(String(listing.priceGBP))
-  const [addr, setAddr] = useState(listing.addr)
-  const [area, setArea] = useState(listing.area)
-  const [rooms, setRooms] = useState(String(listing.rooms))
-  const [baths, setBaths] = useState(String(listing.baths))
-  const [furnished, setFurnished] = useState(listing.furnished)
-  const [photo, setPhoto] = useState<string | null>(listing.photoUrl)
+  const [form, setForm] = useState({
+    price: String(listing.priceGBP),
+    addr: listing.addr,
+    area: listing.area,
+    rooms: String(listing.rooms),
+    baths: String(listing.baths),
+    furnished: listing.furnished,
+    propertyType: listing.propertyType || 'flat',
+    description: listing.description ?? '',
+    amenities: (listing.amenities ?? []).join(', '),
+    availableFrom: listing.availableFrom ?? '',
+    depositGBP: listing.depositGBP ? String(listing.depositGBP) : '',
+  })
+  const [photos, setPhotos] = useState<string[]>(
+    listing.photos && listing.photos.length ? listing.photos : listing.photoUrl ? [listing.photoUrl] : []
+  )
   const [busy, setBusy] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -1331,12 +1416,17 @@ function ListingModal({
     setBusy(true)
     try {
       await api.admin.updateListing(listing.id, {
-        priceGBP: Number(price) || 0,
-        addr: addr.trim(),
-        area,
-        rooms: Number(rooms) || 0,
-        baths: Number(baths) || 1,
-        furnished,
+        priceGBP: Number(form.price) || 0,
+        addr: form.addr.trim(),
+        area: form.area,
+        rooms: Number(form.rooms) || 0,
+        baths: Number(form.baths) || 1,
+        furnished: form.furnished,
+        propertyType: form.propertyType,
+        description: form.description,
+        amenities: form.amenities.split(',').map((s) => s.trim()).filter(Boolean),
+        availableFrom: form.availableFrom,
+        depositGBP: Number(form.depositGBP) || 0,
       })
       onSaved()
     } catch {
@@ -1345,11 +1435,12 @@ function ListingModal({
   }
   async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
+    e.target.value = ''
     if (!f) return
     setBusy(true)
     try {
       const updated = await api.admin.uploadListingPhoto(listing.id, f)
-      setPhoto(updated.photoUrl)
+      setPhotos(updated.photos && updated.photos.length ? updated.photos : updated.photoUrl ? [updated.photoUrl] : [])
       toast(t('saved'))
     } catch {
     } finally {
@@ -1364,7 +1455,7 @@ function ListingModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92vh] w-full max-w-[440px] overflow-y-auto rounded-t-2xl bg-surface sm:rounded-2xl"
+        className="max-h-[92vh] w-full max-w-[480px] overflow-y-auto rounded-t-2xl bg-surface sm:rounded-2xl"
       >
         <div className="flex items-center justify-between border-b border-line px-6 py-4">
           <h2 className="font-display text-[18px] text-ink">{t('listings.editTitle')}</h2>
@@ -1374,74 +1465,101 @@ function ListingModal({
         </div>
 
         <div className="flex flex-col gap-4 p-6">
-          <div className="relative h-[150px] overflow-hidden rounded-lg">
-            {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photo} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="photo-stripe h-full w-full" />
-            )}
+          {/* Photos */}
+          <div>
+            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{ta('photos')}</span>
+            <div className="flex flex-wrap gap-2">
+              {photos.map((p, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={p + i} src={p} alt="" className="h-16 w-16 rounded-lg object-cover" referrerPolicy="no-referrer" />
+              ))}
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+                className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-line text-gray hover:text-accent"
+              >
+                <Camera size={17} />
+              </button>
+            </div>
             <input ref={fileRef} type="file" accept="image/*" onChange={onPhoto} className="hidden" />
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={busy}
-              className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-full bg-black/80 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-black"
-            >
-              <Camera size={13} /> {t('listings.photo')}
-            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t('listings.price')}>
-              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
+            <Field label={ta('form.price')}>
+              <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
             </Field>
+            <Field label={ta('form.deposit')}>
+              <Input type="number" value={form.depositGBP} onChange={(e) => setForm({ ...form, depositGBP: e.target.value })} />
+            </Field>
+          </div>
+
+          <Field label={ta('form.addr')}>
+            <Input value={form.addr} onChange={(e) => setForm({ ...form, addr: e.target.value })} />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('listings.area')}</span>
+              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{ta('form.area')}</span>
               <select
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
+                value={form.area}
+                onChange={(e) => setForm({ ...form, area: e.target.value })}
                 className="w-full rounded-md border border-line bg-card px-2.5 py-3 text-[14px] text-ink"
               >
                 {LISTING_AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {ts(`filters.areaOpts.${a}` as any)}
-                  </option>
+                  <option key={a} value={a}>{ts(`filters.areaOpts.${a}` as any)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{ta('form.type')}</span>
+              <select
+                value={form.propertyType}
+                onChange={(e) => setForm({ ...form, propertyType: e.target.value })}
+                className="w-full rounded-md border border-line bg-card px-2.5 py-3 text-[14px] text-ink"
+              >
+                {LISTING_TYPES.map((tp) => (
+                  <option key={tp} value={tp}>{ta(`types.${tp}` as any)}</option>
                 ))}
               </select>
             </label>
           </div>
 
-          <Field label={t('listings.addr')}>
-            <Input value={addr} onChange={(e) => setAddr(e.target.value)} />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t('listings.rooms')}>
-              <Input type="number" min={0} value={rooms} onChange={(e) => setRooms(e.target.value)} />
+          <div className="grid grid-cols-3 gap-3">
+            <Field label={ta('form.rooms')}>
+              <Input type="number" min={0} value={form.rooms} onChange={(e) => setForm({ ...form, rooms: e.target.value })} />
             </Field>
-            <Field label={t('listings.baths')}>
-              <Input type="number" min={1} value={baths} onChange={(e) => setBaths(e.target.value)} />
+            <Field label={ta('form.baths')}>
+              <Input type="number" min={1} value={form.baths} onChange={(e) => setForm({ ...form, baths: e.target.value })} />
+            </Field>
+            <Field label={ta('form.availableFrom')}>
+              <Input type="date" value={form.availableFrom} onChange={(e) => setForm({ ...form, availableFrom: e.target.value })} />
             </Field>
           </div>
 
-          <label className="flex items-center justify-between rounded-lg border border-line bg-card px-3.5 py-3">
-            <span className="text-[13.5px] font-medium text-ink">{t('listings.furnished')}</span>
-            <button
-              onClick={() => setFurnished((v) => !v)}
-              className={cn(
-                'relative h-6 w-11 rounded-full transition-colors',
-                furnished ? 'bg-accent' : 'bg-sub'
-              )}
-              aria-label="furnished"
-            >
-              <span
-                className={cn(
-                  'absolute top-0.5 h-5 w-5 rounded-full bg-card transition-transform',
-                  furnished ? 'left-[22px]' : 'left-0.5'
-                )}
-              />
-            </button>
+          <label className="flex items-center gap-2.5 text-[14px] text-ink-2">
+            <input
+              type="checkbox"
+              checked={form.furnished}
+              onChange={(e) => setForm({ ...form, furnished: e.target.checked })}
+              className="h-4 w-4 accent-[rgb(var(--accent))]"
+            />
+            {ta('form.furnished')}
           </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{ta('form.description')}</span>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={3}
+              placeholder={ta('form.descriptionPlaceholder')}
+              className="w-full rounded-md border border-line bg-card px-3 py-2.5 text-[14px] text-ink"
+            />
+          </label>
+
+          <Field label={ta('form.amenities')}>
+            <Input value={form.amenities} onChange={(e) => setForm({ ...form, amenities: e.target.value })} placeholder={ta('form.amenitiesPlaceholder')} />
+          </Field>
 
           <Button variant="solid" size="block" disabled={busy} onClick={save}>
             {tc('save')}

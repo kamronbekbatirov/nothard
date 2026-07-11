@@ -619,6 +619,15 @@
       "bought": "Bought",
       "completed": "Completed",
       "viewing": "Property viewing"
+    },
+    "share": {
+      "cta": "Share with family",
+      "title": "Share your relocation",
+      "subtitle": "Send this link to your parents — they’ll see your package, manager, companion and move progress. No sign-in needed.",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "shareNative": "Share",
+      "open": "Open page"
     }
   },
   "Admin": {
@@ -722,7 +731,8 @@
       "deleteConfirm": "Delete this account? This can't be undone.",
       "deleteCta": "Delete",
       "phone": "Phone",
-      "telegramUser": "Telegram"
+      "telegramUser": "Telegram",
+      "search": "Search by name, email, phone…"
     },
     "payments": {
       "item": "Item",
@@ -944,5 +954,22 @@
     "terms": "Terms of Service",
     "accept": "Accept & continue",
     "decline": "Log out"
+  },
+  "SharePage": {
+    "heading": "{name}’s move to London",
+    "headingNoName": "A move to London",
+    "progress": "{done} of {total} steps done",
+    "packageLabel": "Package",
+    "managerLabel": "Manager",
+    "companionLabel": "Companion",
+    "pathLabel": "Relocation path",
+    "servicesLabel": "Extra services",
+    "completed": "The move is complete 🎉",
+    "notFound": "This link is no longer available.",
+    "tagline": "Nothard — relocation to London",
+    "done": "Done",
+    "inProgress": "In progress",
+    "pending": "Pending",
+    "cta": "Learn about Nothard"
   }
 }
