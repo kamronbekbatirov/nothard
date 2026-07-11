@@ -132,6 +132,8 @@ class Task(Base):
     # When this step/service was marked done — kept as completion history for the
     # operator's finished-clients view. Cleared if the task is reopened.
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Whether the runner has been paid their fee for this completed field visit.
+    runner_paid: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class Message(Base):

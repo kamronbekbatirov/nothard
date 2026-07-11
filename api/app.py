@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 from flask import Flask, request, jsonify, redirect, g, send_from_directory
 from flask_cors import CORS
-from sqlalchemy import select
+from sqlalchemy import select, func
 from werkzeug.utils import secure_filename
 
 from config import settings
@@ -26,6 +26,7 @@ from catalog import (
     PACKAGE_STEPS,
     RUNNER_STEPS,
     RUNNER_SERVICES,
+    RUNNER_VISIT_FEE,
     docs_for_package,
     docs_for_service,
 )
@@ -1979,8 +1980,18 @@ def create_app() -> Flask:
             rtasks = SessionLocal.execute(
                 select(Task).where(Task.runner_id == u.id)
             ).scalars().all()
+            done = [t for t in rtasks if t.status == "done"]
+            unpaid = [t for t in done if not t.runner_paid]
             row["taskTotal"] = len(rtasks)
-            row["taskDone"] = sum(1 for t in rtasks if t.status == "done")
+            row["taskDone"] = len(done)
+            # Payout: fee per completed visit; owed = completed-but-unpaid.
+            row["visitFee"] = RUNNER_VISIT_FEE
+            row["visitsDone"] = len(done)
+            row["visitsUnpaid"] = len(unpaid)
+            row["owedGBP"] = len(unpaid) * RUNNER_VISIT_FEE
+            row["clientCount"] = SessionLocal.execute(
+                select(func.count()).select_from(Client).where(Client.runner_id == u.id)
+            ).scalar_one()
         if u.role == "client":
             cl = SessionLocal.execute(
                 select(Client).where(Client.user_id == u.id)
@@ -2003,6 +2014,99 @@ def create_app() -> Flask:
             return err
         users = SessionLocal.execute(select(User).order_by(User.role, User.id)).scalars().all()
         return jsonify({"accounts": [account_row(u) for u in users]})
+
+    # ---- Runner detail + payouts (operator) -------------------------------
+    @app.get("/admin/runners/<int:runner_id>")
+    def admin_runner_detail(runner_id: int):
+        user, err = require_role("operator")
+        if err:
+            return err
+        u = SessionLocal.get(User, runner_id)
+        if not u or u.role != "runner":
+            return jsonify({"error": "not found"}), 404
+        names = client_name_map()
+
+        def _iso(dt):
+            return dt.isoformat() + "Z" if dt else None
+
+        tasks = SessionLocal.execute(
+            select(Task).where(Task.runner_id == u.id).order_by(Task.position, Task.id)
+        ).scalars().all()
+
+        # Group the runner's field visits by client.
+        by_client: dict = {}
+        for t in tasks:
+            by_client.setdefault(t.client_id, []).append(t)
+
+        clients = []
+        for c in SessionLocal.execute(
+            select(Client).where(Client.runner_id == u.id).order_by(Client.id)
+        ).scalars().all():
+            ct = by_client.pop(c.id, [])
+            clients.append({
+                "id": c.id,
+                "name": names.get(c.id, c.name or ""),
+                "tasks": [{
+                    "id": t.id, "kind": t.kind, "key": t.key, "status": t.status,
+                    "time": t.time, "addr": t.addr,
+                    "completedAt": _iso(t.completed_at), "runnerPaid": t.runner_paid,
+                } for t in ct],
+            })
+        # Any leftover tasks whose client is no longer assigned to this runner.
+        for cid, ct in by_client.items():
+            clients.append({
+                "id": cid, "name": names.get(cid, ""),
+                "tasks": [{
+                    "id": t.id, "kind": t.kind, "key": t.key, "status": t.status,
+                    "time": t.time, "addr": t.addr,
+                    "completedAt": _iso(t.completed_at), "runnerPaid": t.runner_paid,
+                } for t in ct],
+            })
+
+        done = [t for t in tasks if t.status == "done"]
+        unpaid = [t for t in done if not t.runner_paid]
+        return jsonify({
+            "runner": account_row(u),
+            "clients": clients,
+            "payout": {
+                "visitFee": RUNNER_VISIT_FEE,
+                "visitsDone": len(done),
+                "visitsUnpaid": len(unpaid),
+                "owedGBP": len(unpaid) * RUNNER_VISIT_FEE,
+                "paidGBP": (len(done) - len(unpaid)) * RUNNER_VISIT_FEE,
+            },
+        })
+
+    @app.post("/admin/tasks/<int:task_id>/runner-paid")
+    def admin_task_runner_paid(task_id: int):
+        user, err = require_role("operator")
+        if err:
+            return err
+        t = SessionLocal.get(Task, task_id)
+        if not t:
+            return jsonify({"error": "not found"}), 404
+        d = request.get_json(silent=True) or {}
+        t.runner_paid = bool(d.get("paid", True))
+        SessionLocal.commit()
+        return jsonify({"ok": True, "id": t.id, "runnerPaid": t.runner_paid})
+
+    @app.post("/admin/runners/<int:runner_id>/pay-all")
+    def admin_runner_pay_all(runner_id: int):
+        """Mark every completed-but-unpaid visit for this runner as paid."""
+        user, err = require_role("operator")
+        if err:
+            return err
+        u = SessionLocal.get(User, runner_id)
+        if not u or u.role != "runner":
+            return jsonify({"error": "not found"}), 404
+        n = 0
+        for t in SessionLocal.execute(
+            select(Task).where(Task.runner_id == u.id, Task.status == "done", Task.runner_paid == False)  # noqa: E712
+        ).scalars().all():
+            t.runner_paid = True
+            n += 1
+        SessionLocal.commit()
+        return jsonify({"ok": True, "paid": n})
 
     @app.post("/admin/accounts")
     def admin_create_account():

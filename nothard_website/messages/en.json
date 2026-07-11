@@ -828,6 +828,24 @@
       "completed": "Completed",
       "done": "Completed",
       "inProgress": "In progress"
+    },
+    "runner": {
+      "open": "Open",
+      "clients": "Clients",
+      "visits": "Visits",
+      "owed": "To pay",
+      "paid": "Paid",
+      "totalOwed": "To pay across runners",
+      "perVisit": "per visit",
+      "payAll": "Pay all",
+      "markPaid": "Mark paid",
+      "markUnpaid": "Unpaid",
+      "noVisits": "No field visits yet",
+      "paidAll": "Marked as paid",
+      "tasksTitle": "Visits & tasks",
+      "payoutTitle": "Payout",
+      "scheduled": "Scheduled",
+      "doneAt": "Done"
     }
   },
   "Agency": {

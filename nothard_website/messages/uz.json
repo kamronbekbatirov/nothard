@@ -828,6 +828,24 @@
       "completed": "Yakunlandi",
       "done": "Yakunlandi",
       "inProgress": "Jarayonda"
+    },
+    "runner": {
+      "open": "Ochish",
+      "clients": "Mijozlar",
+      "visits": "Chiqishlar",
+      "owed": "To‘lash kerak",
+      "paid": "To‘langan",
+      "totalOwed": "Rannerlarga to‘lov",
+      "perVisit": "har chiqish",
+      "payAll": "Hammasini to‘lash",
+      "markPaid": "To‘langan deb belgilash",
+      "markUnpaid": "To‘lanmagan",
+      "noVisits": "Hozircha chiqishlar yo‘q",
+      "paidAll": "To‘langan deb belgilandi",
+      "tasksTitle": "Chiqishlar va vazifalar",
+      "payoutTitle": "To‘lovlar",
+      "scheduled": "Belgilangan",
+      "doneAt": "Bajarildi"
     }
   },
   "Agency": {

@@ -74,22 +74,14 @@ export function Field({
 }
 
 /**
- * Date / time picker with a look identical to our other fields.
+ * Native date / time input, sized to match our other fields.
  *
- * Native <input type="date|time"> can't be sized or vertically-centred reliably
- * on iOS / the Telegram webview (it top-aligns its value and grows taller than
- * neighbouring fields). So we render our OWN visible box — a flex-centred label
- * showing the placeholder or the formatted value — and lay a fully transparent
- * native input over it that only exists to open the picker. `showPicker()` opens
- * it on a tap/click anywhere (desktop + mobile); iOS opens it on focus too.
+ * We keep the real native control (so it stays fully interactive everywhere —
+ * the desktop calendar/clock and the iOS wheel picker both work). CSS (`.nh-dt`
+ * in globals) fixes the two WebKit quirks: it vertically-centres the value (iOS
+ * top-aligns it) and hides the native "mm/dd/yyyy" hint while empty so our own
+ * placeholder shows through. Height is fixed so it lines up with sibling fields.
  */
-function displayValue(type: 'date' | 'time', v: string): string {
-  if (!v) return ''
-  if (type === 'time') return v
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v)
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : v
-}
-
 export function DateTimeInput({
   type,
   value,
@@ -104,30 +96,28 @@ export function DateTimeInput({
   compact?: boolean
 }) {
   const box = compact ? 'h-9 px-2 text-[12.5px]' : 'h-11 px-3 text-[15px]'
-  const shown = displayValue(type, value)
   return (
-    <div
-      className={cn(
-        'relative box-border flex w-full min-w-0 items-center overflow-hidden rounded-md border border-line bg-card',
-        box
-      )}
-    >
-      <span className={cn('truncate', value ? 'text-ink' : 'text-gray-lt')}>
-        {shown || placeholder}
-      </span>
+    <div className="relative">
       <input
         type={type}
         value={value}
+        data-empty={value ? undefined : 'true'}
         onChange={(e) => onChange(e.target.value)}
-        onClick={(e) => {
-          const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void }
-          try {
-            el.showPicker?.()
-          } catch {}
-        }}
-        aria-label={placeholder}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        className={cn(
+          'nh-dt box-border block w-full min-w-0 rounded-md border border-line bg-card text-ink',
+          box
+        )}
       />
+      {!value && (
+        <span
+          className={cn(
+            'pointer-events-none absolute inset-y-0 flex items-center text-gray-lt',
+            compact ? 'left-2 text-[12.5px]' : 'left-3 text-[15px]'
+          )}
+        >
+          {placeholder}
+        </span>
+      )}
     </div>
   )
 }

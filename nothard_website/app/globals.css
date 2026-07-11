@@ -126,20 +126,19 @@
   select {
     font-family: inherit;
   }
-  /* Native date/time inputs on WebKit (iOS / Telegram webview) top-align their
-     value and don't stretch it, which makes them look taller/misaligned. Pin the
-     value box to fill the control's height and read left-aligned & centred. */
-  input[type='date']::-webkit-date-and-time-value,
-  input[type='time']::-webkit-date-and-time-value {
+  /* Our DateTimeInput (.nh-dt): keep the native control fully interactive but fix
+     the WebKit quirks — vertically centre the value (iOS top-aligns it) and hide
+     the native "mm/dd/yyyy" hint while empty so our own placeholder shows. */
+  .nh-dt {
+    display: flex;
+    align-items: center;
+  }
+  .nh-dt::-webkit-date-and-time-value {
     margin: 0;
     text-align: left;
   }
-  input[type='date']::-webkit-datetime-edit,
-  input[type='time']::-webkit-datetime-edit {
-    display: flex;
-    align-items: center;
-    height: 100%;
-    padding: 0;
+  .nh-dt[data-empty='true']::-webkit-datetime-edit {
+    color: transparent;
   }
   input:focus,
   textarea:focus {

@@ -24,6 +24,7 @@ import {
   type ListingStatus,
   type HousingStatus,
   type HousingItem,
+  type RunnerDetail,
 } from '@/app/lib/api'
 import { fmtGBP, PACKAGES, SERVICES, LONDON_AIRPORT_TERMINALS, LONDON_FLIGHTS } from '@/app/lib/data'
 import { useTaskLabel } from '@/app/lib/task-label'
@@ -221,7 +222,7 @@ export default function AdminPage() {
       />
       <div
         className={cn(
-          'fixed right-0 top-0 z-[99998] h-full w-[390px] max-w-[92vw] overflow-y-auto border-l border-line bg-surface shadow-drawer transition-transform duration-300',
+          'fixed right-0 top-0 z-[99998] h-full w-full overflow-y-auto border-l border-line bg-surface shadow-drawer transition-transform duration-300 sm:w-[400px]',
           selected ? 'translate-x-0' : 'translate-x-full'
         )}
       >
@@ -487,40 +488,56 @@ function RunnersView({
 }) {
   const t = useTranslations('Admin')
   const [editing, setEditing] = useState<AdminAccount | 'new' | null>(null)
+  const [openId, setOpenId] = useState<number | null>(null)
   const runners = (accounts ?? []).filter((a) => a.role === 'runner')
+  const totalOwed = runners.reduce((s, r) => s + (r.owedGBP ?? 0), 0)
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="font-display text-[20px] text-ink">{t('menu.runners')}</h2>
-        <Button variant="dark" size="sm" className="gap-1.5" onClick={() => setEditing('new')}>
-          <Plus size={15} /> {t('accounts.addRunner')}
+        <Button variant="dark" size="sm" className="shrink-0 gap-1.5" onClick={() => setEditing('new')}>
+          <Plus size={15} /> <span className="hidden sm:inline">{t('accounts.addRunner')}</span>
         </Button>
       </div>
+
+      {/* Payout summary across all runners */}
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Kpi value={fmtGBP(totalOwed)} label={t('runner.totalOwed')} tone={totalOwed > 0 ? 'terracotta' : 'accent'} />
+        <Kpi value={String(runners.length)} label={t('menu.runners')} />
+        <Kpi
+          value={String(runners.reduce((s, r) => s + (r.visitsDone ?? 0), 0))}
+          label={t('runner.visits')}
+        />
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {runners.map((r) => {
           const total = r.taskTotal ?? 0
           const done = r.taskDone ?? 0
           const pct = total ? Math.round((done / total) * 100) : 0
+          const owed = r.owedGBP ?? 0
           return (
-            <div key={r.id} className="rounded-xl border border-line bg-card p-4">
+            <button
+              key={r.id}
+              onClick={() => setOpenId(r.id)}
+              className="nd-lift rounded-xl border border-line bg-card p-4 text-left transition-colors hover:border-accent/40"
+            >
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2.5">
+                <div className="flex min-w-0 items-center gap-2.5">
                   <Avatar url={r.photoUrl} name={r.name} size={40} />
-                  <div>
-                    <div className="text-[14.5px] font-semibold text-ink">{r.name}</div>
+                  <div className="min-w-0">
+                    <div className="truncate text-[14.5px] font-semibold text-ink">{r.name}</div>
                     <div className="text-[12px] text-muted">
-                      {r.active ? t('accounts.active') : t('accounts.inactive')}
+                      {t('runner.clients')}: {r.clientCount ?? 0}
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setEditing(r)}
-                  className="text-gray hover:text-ink"
-                  aria-label="edit"
-                >
-                  <Pencil size={15} />
-                </button>
+                {owed > 0 && (
+                  <span className="shrink-0 rounded-full bg-terracotta-bg px-2 py-0.5 text-[11.5px] font-semibold text-terracotta">
+                    {fmtGBP(owed)}
+                  </span>
+                )}
               </div>
               <div className="mt-3 flex items-center justify-between text-[12.5px] text-muted">
                 <span>{t('accounts.workload', { done, total })}</span>
@@ -529,11 +546,23 @@ function RunnersView({
               <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-track">
                 <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
               </div>
-            </div>
+            </button>
           )
         })}
         {runners.length === 0 && <p className="text-[13.5px] text-muted">—</p>}
       </div>
+
+      {openId != null && (
+        <RunnerDetailDrawer
+          runnerId={openId}
+          onClose={() => setOpenId(null)}
+          onEdit={(acc) => {
+            setOpenId(null)
+            setEditing(acc)
+          }}
+          onChanged={onChanged}
+        />
+      )}
 
       {editing && (
         <AccountModal
@@ -547,6 +576,166 @@ function RunnersView({
         />
       )}
     </div>
+  )
+}
+
+function RunnerDetailDrawer({
+  runnerId,
+  onClose,
+  onEdit,
+  onChanged,
+}: {
+  runnerId: number
+  onClose: () => void
+  onEdit: (acc: AdminAccount) => void
+  onChanged: () => void
+}) {
+  const t = useTranslations('Admin')
+  const label = useTaskLabel()
+  const { toast } = useToast()
+  const [data, setData] = useState<RunnerDetail | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const load = () => api.admin.runnerDetail(runnerId).then(setData).catch(() => {})
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runnerId])
+
+  async function togglePaid(taskId: number, paid: boolean) {
+    try {
+      await api.admin.setRunnerPaid(taskId, paid)
+      await load()
+      onChanged()
+    } catch {}
+  }
+  async function payAll() {
+    setBusy(true)
+    try {
+      await api.admin.payRunnerAll(runnerId)
+      await load()
+      onChanged()
+      toast(t('runner.paidAll'))
+    } catch {
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const r = data?.runner
+  return (
+    <>
+      <div className="fixed inset-0 z-[99997] bg-black/25" onClick={onClose} />
+      <div className="fixed right-0 top-0 z-[99998] flex h-full w-full flex-col overflow-y-auto border-l border-line bg-surface shadow-drawer sm:w-[440px]">
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-line bg-surface/95 px-5 py-4 backdrop-blur">
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar url={r?.photoUrl} name={r?.name || '—'} size={40} />
+            <div className="min-w-0">
+              <div className="truncate font-display text-[18px] text-ink">{r?.name || '…'}</div>
+              <div className="text-[12px] text-muted">
+                {r?.active ? t('accounts.active') : t('accounts.inactive')}
+                {r?.phone ? ` · ${r.phone}` : ''}
+              </div>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {r && (
+              <button onClick={() => onEdit(r)} aria-label="edit" className="flex h-8 w-8 items-center justify-center rounded-md text-gray hover:text-ink">
+                <Pencil size={15} />
+              </button>
+            )}
+            <button onClick={onClose} aria-label="close" className="flex h-8 w-8 items-center justify-center rounded-md text-gray hover:text-ink">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6 p-5">
+          {/* Payout */}
+          {data && (
+            <div className="rounded-xl border border-line bg-card p-4">
+              <div className="eyebrow mb-3">{t('runner.payoutTitle')}</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="font-display text-[22px] text-terracotta">{fmtGBP(data.payout.owedGBP)}</div>
+                  <div className="text-[11.5px] text-muted">{t('runner.owed')}</div>
+                </div>
+                <div>
+                  <div className="font-display text-[22px] text-accent">{fmtGBP(data.payout.paidGBP)}</div>
+                  <div className="text-[11.5px] text-muted">{t('runner.paid')}</div>
+                </div>
+                <div>
+                  <div className="font-display text-[22px] text-ink">{data.payout.visitsDone}</div>
+                  <div className="text-[11.5px] text-muted">{t('runner.visits')}</div>
+                </div>
+              </div>
+              <div className="mt-2 text-center text-[12px] text-gray">
+                {fmtGBP(data.payout.visitFee)} {t('runner.perVisit')}
+              </div>
+              {data.payout.owedGBP > 0 && (
+                <Button variant="solid" size="block" className="mt-3" disabled={busy} onClick={payAll}>
+                  {t('runner.payAll')} · {fmtGBP(data.payout.owedGBP)}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Clients & their visits */}
+          <div>
+            <div className="eyebrow mb-3">{t('runner.tasksTitle')}</div>
+            {data && data.clients.length === 0 && (
+              <p className="text-[13.5px] text-muted">{t('runner.noVisits')}</p>
+            )}
+            <div className="flex flex-col gap-4">
+              {data?.clients.map((c) => (
+                <div key={c.id} className="rounded-xl border border-line bg-card p-4">
+                  <div className="mb-2.5 text-[14px] font-semibold text-ink">{c.name}</div>
+                  <div className="flex flex-col gap-2">
+                    {c.tasks.map((tk) => {
+                      const done = tk.status === 'done'
+                      return (
+                        <div key={tk.id} className="flex items-center justify-between gap-2 border-t border-line pt-2 first:border-0 first:pt-0">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={cn(
+                                  'h-1.5 w-1.5 shrink-0 rounded-full',
+                                  done ? 'bg-accent' : tk.status === 'todo' ? 'bg-line' : 'bg-amber-500'
+                                )}
+                              />
+                              <span className="truncate text-[13.5px] text-ink">{label(tk.kind, tk.key).title}</span>
+                            </div>
+                            <div className="mt-0.5 pl-3.5 text-[12px] text-muted">
+                              {tk.time && <span>{t('runner.scheduled')}: {tk.time} · </span>}
+                              {tk.addr || '—'}
+                            </div>
+                          </div>
+                          {done && (
+                            <button
+                              onClick={() => togglePaid(tk.id, !tk.runnerPaid)}
+                              className={cn(
+                                'shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors',
+                                tk.runnerPaid
+                                  ? 'border-accent/40 bg-accent-bg text-accent'
+                                  : 'border-terracotta/40 text-terracotta hover:bg-terracotta-bg'
+                              )}
+                            >
+                              {tk.runnerPaid ? t('runner.paid') : t('runner.markPaid')}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {c.tasks.length === 0 && <p className="text-[12.5px] text-muted">{t('runner.noVisits')}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 

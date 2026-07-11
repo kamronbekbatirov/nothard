@@ -266,6 +266,14 @@ export const api = {
     deleteClient: (clientId: number) =>
       req<{ ok: boolean }>(`/admin/clients/${clientId}`, { method: 'DELETE' }),
     accounts: () => req<{ accounts: AdminAccount[] }>('/admin/accounts'),
+    runnerDetail: (id: number) => req<RunnerDetail>(`/admin/runners/${id}`),
+    setRunnerPaid: (taskId: number, paid: boolean) =>
+      req<{ ok: boolean; id: number; runnerPaid: boolean }>(`/admin/tasks/${taskId}/runner-paid`, {
+        method: 'POST',
+        body: JSON.stringify({ paid }),
+      }),
+    payRunnerAll: (id: number) =>
+      req<{ ok: boolean; paid: number }>(`/admin/runners/${id}/pay-all`, { method: 'POST' }),
     createAccount: (body: {
       name: string
       role: Role
@@ -608,6 +616,29 @@ export type AdminAccount = {
   clientId?: number
   package?: string | null
   paid?: boolean
+  // Runner payout summary (present for role === 'runner')
+  visitFee?: number
+  visitsDone?: number
+  visitsUnpaid?: number
+  owedGBP?: number
+  clientCount?: number
+}
+
+export type RunnerVisit = {
+  id: number
+  kind: 'step' | 'service'
+  key: string
+  status: string
+  time: string
+  addr: string
+  completedAt: string | null
+  runnerPaid: boolean
+}
+
+export type RunnerDetail = {
+  runner: AdminAccount
+  clients: { id: number; name: string; tasks: RunnerVisit[] }[]
+  payout: { visitFee: number; visitsDone: number; visitsUnpaid: number; owedGBP: number; paidGBP: number }
 }
 export type AdminPayment = {
   id: number

@@ -56,6 +56,9 @@ RUNNER_STEPS = {"airportMeet", "transfer", "viewings", "moveIn"}
 # Individual services that also involve a field runner visit.
 RUNNER_SERVICES = {"airportTransport", "airportTaxi", "moving", "tempHousing"}
 
+# What we pay a runner (field companion) per completed in-person visit (GBP).
+RUNNER_VISIT_FEE = 15
+
 PACKAGE_ORDER = ["meet", "housing", "premium"]
 
 

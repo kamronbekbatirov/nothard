@@ -828,6 +828,24 @@
       "completed": "Завершено",
       "done": "Завершено",
       "inProgress": "В работе"
+    },
+    "runner": {
+      "open": "Открыть",
+      "clients": "Клиенты",
+      "visits": "Выезды",
+      "owed": "К выплате",
+      "paid": "Выплачено",
+      "totalOwed": "К выплате раннерам",
+      "perVisit": "за выезд",
+      "payAll": "Выплатить всё",
+      "markPaid": "Отметить оплату",
+      "markUnpaid": "Не оплачено",
+      "noVisits": "Пока нет выездов",
+      "paidAll": "Отмечено как выплачено",
+      "tasksTitle": "Выезды и задачи",
+      "payoutTitle": "Выплаты",
+      "scheduled": "Назначено",
+      "doneAt": "Выполнено"
     }
   },
   "Agency": {
