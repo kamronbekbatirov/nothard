@@ -28,6 +28,7 @@ import {
   AIRPORT_PACKAGES,
   LONDON_AIRPORT_TERMINALS,
   LONDON_FLIGHTS,
+  VIEWING_PRICE,
   fmtGBP,
   fmtUSD,
   fmtUZS,
@@ -623,8 +624,20 @@ function HousingStatusBadge({ status }: { status: string }) {
   )
 }
 
-function HousingCard({ h, onRemove }: { h: HousingItem; onRemove: (id: number) => void }) {
+function HousingCard({
+  h,
+  onRemove,
+  onRequestViewing,
+}: {
+  h: HousingItem
+  onRemove: (id: number) => void
+  onRequestViewing: (id: number) => Promise<void>
+}) {
   const t = useTranslations('Profile')
+  const [busy, setBusy] = useState(false)
+  // Once a viewing is scheduled (or already happened) the request CTA is moot.
+  const canRequestViewing =
+    !h.viewingRequested && ['new', 'reached', 'busy'].includes(h.status)
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-card">
       <div className="relative h-[160px]">
@@ -676,6 +689,30 @@ function HousingCard({ h, onRemove }: { h: HousingItem; onRemove: (id: number) =
         )}
         {h.note && <div className="mt-2 text-[12.5px] leading-snug text-ink-2">{h.note}</div>}
 
+        {/* Accompanied viewing — £30 per property, requested from the shortlist. */}
+        {canRequestViewing ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 w-full"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true)
+              try {
+                await onRequestViewing(h.id)
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
+            {t('housing.requestViewing', { price: VIEWING_PRICE })}
+          </Button>
+        ) : h.viewingRequested && h.status !== 'viewing' ? (
+          <div className="mt-3 rounded-lg bg-accent-bg px-3 py-2 text-[12.5px] font-medium text-accent">
+            {t('housing.viewingRequested')}
+          </div>
+        ) : null}
+
         {h.media.length > 0 && (
           <div className="mt-3">
             <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray">
@@ -726,6 +763,13 @@ function HousingSection({ items, onRefresh }: { items: HousingItem[]; onRefresh:
       onRefresh()
     } catch {}
   }
+  async function requestViewing(id: number) {
+    try {
+      await api.me.requestViewing(id)
+      onRefresh()
+      toast(t('housing.viewingRequested'))
+    } catch {}
+  }
 
   return (
     <div className="mt-9">
@@ -770,7 +814,7 @@ function HousingSection({ items, onRefresh }: { items: HousingItem[]; onRefresh:
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {items.map((h) => (
-            <HousingCard key={h.id} h={h} onRemove={remove} />
+            <HousingCard key={h.id} h={h} onRemove={remove} onRequestViewing={requestViewing} />
           ))}
         </div>
       )}
@@ -901,9 +945,11 @@ function PopulatedCabinet({
   const total = steps.length
   const hasPackage = !!data.package && total > 0
   const completedServices = data.completedServices || []
-  const firstNonDone = steps.findIndex((s) => s.status !== 'done')
-  const currentIndex = firstNonDone === -1 ? total : firstNonDone
-  const percent = total ? Math.round((Math.min(currentIndex, total) / total) * 100) : 0
+  // Parallel path: each step carries its own status (housing search, temp stay and
+  // viewings can all run at once), so progress is simply how many are done — not a
+  // single "current" cursor.
+  const doneCount = steps.filter((s) => s.status === 'done').length
+  const percent = total ? Math.round((doneCount / total) * 100) : 0
   const documents = data.documents || {}
   const docKeys = DOC_KEYS.filter((d) => d in documents)
   const manager = data.manager
@@ -1105,10 +1151,7 @@ function PopulatedCabinet({
               <div className="text-right">
                 <div className="font-display text-[34px] text-accent">{percent}%</div>
                 <div className="text-[13px] text-muted">
-                  {t('progressLabel', {
-                    done: Math.min(currentIndex + (currentIndex < total ? 1 : 0), total),
-                    total,
-                  })}
+                  {t('progressLabel', { done: doneCount, total })}
                 </div>
               </div>
             </div>
@@ -1121,30 +1164,39 @@ function PopulatedCabinet({
               <span className="absolute left-[9px] top-1 h-[calc(100%-1rem)] w-0.5 bg-track" />
               <div className="flex flex-col gap-4">
                 {steps.map((step, i) => {
-                  const state = i < currentIndex ? 'done' : i === currentIndex ? 'active' : 'upcoming'
+                  const done = step.status === 'done'
+                  // onWay/arrived are runner field-visit stages; inProgress is a
+                  // non-runner step actively being worked. Any of them = in progress.
+                  const active =
+                    step.status === 'inProgress' ||
+                    step.status === 'onWay' ||
+                    step.status === 'arrived'
                   const { title, desc } = label('step', step.key)
                   // For the airport-meet step, show a live countdown to arrival.
                   const countdown =
-                    step.key === 'airportMeet' && data.package?.hasAirportMeet
+                    step.key === 'airportMeet' && data.package?.hasAirportMeet && !done
                       ? arrivalCountdown(data.package.details?.arrivalDate, data.package.details?.arrivalTime)
                       : null
+                  // Expand a card for every in-progress step (several can run at
+                  // once), plus the arrival step so its countdown is always visible.
+                  const expanded = active || !!countdown
                   return (
                     <div key={`${step.key}-${i}`} className="relative">
                       <span className="absolute -left-8 top-0.5">
-                        {state === 'done' && (
+                        {done && (
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] text-white">
                             ✓
                           </span>
                         )}
-                        {state === 'active' && (
+                        {!done && expanded && (
                           <span className="nd-pulse block h-5 w-5 rounded-full border-2 border-accent bg-card" />
                         )}
-                        {state === 'upcoming' && (
+                        {!done && !expanded && (
                           <span className="block h-5 w-5 rounded-full border-2 border-line bg-surface" />
                         )}
                       </span>
 
-                      {state === 'active' ? (
+                      {expanded ? (
                         <div className="rounded-xl border border-accent/25 bg-card p-4">
                           <div className="flex items-center gap-2">
                             <h3 className="font-display text-[18px] text-ink">{title}</h3>
@@ -1172,10 +1224,10 @@ function PopulatedCabinet({
                         </div>
                       ) : (
                         <div className="py-0.5">
-                          <h3 className={cn('font-display text-[16px]', state === 'done' ? 'text-ink' : 'text-gray-lt')}>
+                          <h3 className={cn('font-display text-[16px]', done ? 'text-ink' : 'text-gray-lt')}>
                             {title}
                           </h3>
-                          {state === 'done' && <p className="text-[12.5px] text-muted">{desc}</p>}
+                          {done && <p className="text-[12.5px] text-muted">{desc}</p>}
                         </div>
                       )}
                     </div>

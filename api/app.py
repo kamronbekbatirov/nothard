@@ -21,6 +21,7 @@ from models import (
 )
 from catalog import (
     SERVICE_PRICE,
+    VIEWING_PRICE,
     PACKAGE_AMOUNT,
     PACKAGE_STEPS,
     RUNNER_STEPS,
@@ -260,12 +261,25 @@ def create_app() -> Flask:
 
     def housing_rows(items) -> list:
         media = housing_media([h.id for h in items])
+        # Properties the client has paid £30 to have accompanied-viewed. Derived
+        # from viewing Orders (item_id == housing id) so no extra column is needed.
+        viewing_ids: set[int] = set()
+        cids = {h.client_id for h in items}
+        if cids:
+            for o in SessionLocal.execute(
+                select(Order).where(Order.client_id.in_(cids), Order.item_type == "viewing")
+            ).scalars().all():
+                try:
+                    viewing_ids.add(int(o.item_id))
+                except (TypeError, ValueError):
+                    pass
         return [
             {
                 "id": h.id, "source": h.source, "ref": h.ref, "title": h.title,
                 "description": h.description, "priceGBP": h.price_gbp, "addr": h.addr,
                 "photoUrl": h.photo_url, "status": h.status, "viewingAt": h.viewing_at,
                 "note": h.note, "media": media.get(h.id, []),
+                "viewingRequested": h.id in viewing_ids,
             }
             for h in items
         ]
@@ -885,7 +899,7 @@ def create_app() -> Flask:
                  "paid": pkg_order.paid, "status": pkg_order.status,
                  "complete": package_complete, "orderId": pkg_order.id,
                  "details": pkg_order.details or {},
-                 "hasAirportMeet": pkg_order.item_id in {"meet", "housing", "premium"}}
+                 "hasAirportMeet": pkg_order.item_id in {"meet", "premium"}}
                 if pkg_order else None
             ),
             "packageComplete": package_complete,
@@ -1288,6 +1302,38 @@ def create_app() -> Flask:
         SessionLocal.commit()
         return jsonify({"ok": True})
 
+    @app.post("/me/housing/<int:item_id>/viewing")
+    def my_housing_viewing(item_id: int):
+        """Request (and pay £30 for) an accompanied viewing of a shortlisted
+        property. Creates a paid `viewing` order the operator then schedules."""
+        user, err = require_user()
+        if err:
+            return err
+        c = SessionLocal.execute(select(Client).where(Client.user_id == user.id)).scalar_one_or_none()
+        h = SessionLocal.get(HousingItem, item_id)
+        if not c or not h or h.client_id != c.id:
+            return jsonify({"error": "not found"}), 404
+        # One paid viewing per property — return the existing one if already requested.
+        existing = SessionLocal.execute(
+            select(Order).where(
+                Order.client_id == c.id,
+                Order.item_type == "viewing",
+                Order.item_id == str(h.id),
+            )
+        ).scalar_one_or_none()
+        if existing:
+            return jsonify(housing_row(h)), 200
+        order = Order(
+            client_id=c.id, item_type="viewing", item_id=str(h.id),
+            amount_gbp=VIEWING_PRICE, paid=True, status="active",
+            details={"housingId": h.id, "addr": h.addr or h.title},
+        )
+        SessionLocal.add(order)
+        SessionLocal.commit()
+        addr = h.title or h.addr or "квартира"
+        notify_client(c, "housing_status", addr=addr, status_key=h.status)
+        return jsonify(housing_row(h)), 201
+
     # ---- Client ↔ manager chat --------------------------------------------
     def message_row(m: Message) -> dict:
         return {
@@ -1410,7 +1456,8 @@ def create_app() -> Flask:
                 item["status"] = "done" if done else "active"
                 item["completedAt"] = _iso(max(comp)) if (done and comp) else None
             else:
-                st = svc_task_by_order.get(o.id) or svc_tasks.get(o.item_id)
+                # Services resolve to their per-order task; a viewing order has none.
+                st = svc_task_by_order.get(o.id)
                 done = bool(st and st.status == "done")
                 item["status"] = "done" if done else "active"
                 item["completedAt"] = _iso(st.completed_at) if (st and done) else None
@@ -1569,7 +1616,9 @@ def create_app() -> Flask:
             return jsonify({"error": "not found"}), 404
         data = request.get_json(silent=True) or {}
         status = data.get("status")
-        if status not in ("todo", "onWay", "arrived", "done"):
+        # onWay/arrived = runner field-visit stages; inProgress = a non-runner step
+        # actively being worked (so the parallel cabinet path can show it "in progress").
+        if status not in ("todo", "inProgress", "onWay", "arrived", "done"):
             return jsonify({"error": "bad status"}), 400
         was_done = t.status == "done"
         t.status = status
@@ -2111,6 +2160,19 @@ def create_app() -> Flask:
         return jsonify(admin_client_row(c, runner_name_map(), manager_name_map()))
 
     # ---- Agency ------------------------------------------------------------
+    def _clean_amenities(raw) -> list[str]:
+        """Normalise an amenities list from client JSON — short, de-duplicated slugs."""
+        if not isinstance(raw, list):
+            return []
+        out: list[str] = []
+        for a in raw:
+            s = str(a).strip()[:32]
+            if s and s not in out:
+                out.append(s)
+            if len(out) >= 20:
+                break
+        return out
+
     def listing_row(l: Listing) -> dict:
         return {
             "id": l.id,
@@ -2122,6 +2184,48 @@ def create_app() -> Flask:
             "furnished": l.furnished,
             "status": l.status,
             "matches": l.matches,
+            "photoUrl": l.photo_url,
+            "photos": listing_gallery(l),
+            "propertyType": l.property_type or "flat",
+            "description": l.description or "",
+            "amenities": l.amenities or [],
+            "availableFrom": l.available_from or "",
+            "depositGBP": l.deposit_gbp or 0,
+        }
+
+    def listing_gallery(l: Listing) -> list[str]:
+        """Cover first, then the extra gallery photos (de-duplicated)."""
+        out: list[str] = []
+        if l.photo_url:
+            out.append(l.photo_url)
+        for p in (l.photos or []):
+            if p and p not in out:
+                out.append(p)
+        return out
+
+    def listing_card(l: Listing) -> dict:
+        """Compact row for catalog grids (search page, agency)."""
+        return {
+            "id": l.id,
+            "priceGBP": l.price_gbp,
+            "addr": l.addr,
+            "area": l.area,
+            "rooms": l.rooms,
+            "baths": l.baths,
+            "furnished": l.furnished,
+            "photoUrl": l.photo_url,
+            "propertyType": l.property_type or "flat",
+        }
+
+    def listing_detail(l: Listing) -> dict:
+        """Full Rightmove-style detail for the public listing page."""
+        return {
+            **listing_card(l),
+            "photos": listing_gallery(l),
+            "description": l.description or "",
+            "amenities": l.amenities or [],
+            "availableFrom": l.available_from or "",
+            "depositGBP": l.deposit_gbp or 0,
         }
 
     @app.get("/agency/listings")
@@ -2161,12 +2265,112 @@ def create_app() -> Flask:
                 furnished=bool(d.get("furnished", True)),
                 status="moderation",
                 matches=0,
+                description=(d.get("description") or "").strip()[:4000],
+                amenities=_clean_amenities(d.get("amenities")),
+                property_type=(d.get("propertyType") or "flat").strip()[:32],
+                available_from=(d.get("availableFrom") or "").strip()[:32],
+                deposit_gbp=int(d.get("depositGBP") or 0),
             )
         except (TypeError, ValueError):
             return jsonify({"error": "invalid"}), 400
         SessionLocal.add(l)
         SessionLocal.commit()
         return jsonify(listing_row(l)), 201
+
+    def _apply_listing_fields(l: Listing, d: dict) -> None:
+        """Update the editable listing fields present in `d` (shared by the
+        operator and agency edit endpoints)."""
+        if "priceGBP" in d:
+            try:
+                l.price_gbp = int(d.get("priceGBP") or 0)
+            except (TypeError, ValueError):
+                pass
+        if "addr" in d:
+            l.addr = (d.get("addr") or "").strip()[:255]
+        if "area" in d:
+            l.area = (d.get("area") or "").strip()[:64]
+        if "rooms" in d:
+            try:
+                l.rooms = int(d.get("rooms") or 0)
+            except (TypeError, ValueError):
+                pass
+        if "baths" in d:
+            try:
+                l.baths = int(d.get("baths") or 1)
+            except (TypeError, ValueError):
+                pass
+        if "furnished" in d:
+            l.furnished = bool(d.get("furnished"))
+        if "description" in d:
+            l.description = (d.get("description") or "").strip()[:4000]
+        if "amenities" in d:
+            l.amenities = _clean_amenities(d.get("amenities"))
+        if "propertyType" in d:
+            l.property_type = (d.get("propertyType") or "flat").strip()[:32]
+        if "availableFrom" in d:
+            l.available_from = (d.get("availableFrom") or "").strip()[:32]
+        if "depositGBP" in d:
+            try:
+                l.deposit_gbp = int(d.get("depositGBP") or 0)
+            except (TypeError, ValueError):
+                pass
+        if "photos" in d and isinstance(d.get("photos"), list):
+            photos = [str(p).strip()[:512] for p in d["photos"] if str(p).strip()]
+            l.photo_url = photos[0] if photos else None
+            l.photos = photos[1:]
+
+    def _own_listing(user: User, lid: int) -> Listing | None:
+        l = SessionLocal.get(Listing, lid)
+        return l if (l and l.agency_id == user.id) else None
+
+    @app.patch("/agency/listings/<int:lid>")
+    def agency_update_listing(lid: int):
+        user, err = require_role("agency")
+        if err:
+            return err
+        l = _own_listing(user, lid)
+        if not l:
+            return jsonify({"error": "not found"}), 404
+        _apply_listing_fields(l, request.get_json(silent=True) or {})
+        l.status = "moderation"  # an edit re-enters moderation
+        SessionLocal.commit()
+        return jsonify(listing_row(l))
+
+    @app.delete("/agency/listings/<int:lid>")
+    def agency_delete_listing(lid: int):
+        user, err = require_role("agency")
+        if err:
+            return err
+        l = _own_listing(user, lid)
+        if not l:
+            return jsonify({"error": "not found"}), 404
+        SessionLocal.delete(l)
+        SessionLocal.commit()
+        return jsonify({"ok": True})
+
+    @app.post("/agency/listings/<int:lid>/photo")
+    def agency_listing_photo(lid: int):
+        user, err = require_role("agency")
+        if err:
+            return err
+        l = _own_listing(user, lid)
+        if not l:
+            return jsonify({"error": "not found"}), 404
+        f = request.files.get("file")
+        if not f or not f.filename:
+            return jsonify({"error": "no file"}), 400
+        ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+        if ext not in ALLOWED_IMG:
+            return jsonify({"error": "bad type", "code": "bad_type"}), 400
+        name = f"{uuid.uuid4().hex}.{ext}"
+        f.save(os.path.join(UPLOAD_DIR, secure_filename(name)))
+        url = f"/api/uploads/{name}"
+        if not l.photo_url:
+            l.photo_url = url
+        else:
+            l.photos = [*(l.photos or []), url]
+        SessionLocal.commit()
+        return jsonify(listing_row(l))
 
     # ---- Agency listing moderation (operator) -----------------------------
     def agency_name_map() -> dict:
@@ -2186,6 +2390,12 @@ def create_app() -> Flask:
             "furnished": l.furnished,
             "status": l.status,
             "photoUrl": l.photo_url,
+            "photos": listing_gallery(l),
+            "description": l.description or "",
+            "amenities": l.amenities or [],
+            "propertyType": l.property_type or "flat",
+            "availableFrom": l.available_from or "",
+            "depositGBP": l.deposit_gbp or 0,
             "agency": agencies.get(l.agency_id, ""),
             "createdAt": l.created_at.isoformat() if l.created_at else None,
         }
@@ -2245,6 +2455,24 @@ def create_app() -> Flask:
                 pass
         if "furnished" in d:
             l.furnished = bool(d.get("furnished"))
+        if "description" in d:
+            l.description = (d.get("description") or "").strip()[:4000]
+        if "amenities" in d:
+            l.amenities = _clean_amenities(d.get("amenities"))
+        if "propertyType" in d:
+            l.property_type = (d.get("propertyType") or "flat").strip()[:32]
+        if "availableFrom" in d:
+            l.available_from = (d.get("availableFrom") or "").strip()[:32]
+        if "depositGBP" in d:
+            try:
+                l.deposit_gbp = int(d.get("depositGBP") or 0)
+            except (TypeError, ValueError):
+                pass
+        if "photos" in d and isinstance(d.get("photos"), list):
+            # Reorder/remove gallery photos; the first becomes the cover.
+            photos = [str(p).strip()[:512] for p in d["photos"] if str(p).strip()]
+            l.photo_url = photos[0] if photos else None
+            l.photos = photos[1:]
         SessionLocal.commit()
         return jsonify(admin_listing_row(l, agency_name_map()))
 
@@ -2264,7 +2492,12 @@ def create_app() -> Flask:
             return jsonify({"error": "bad type", "code": "bad_type"}), 400
         name = f"{uuid.uuid4().hex}.{ext}"
         f.save(os.path.join(UPLOAD_DIR, secure_filename(name)))
-        l.photo_url = f"/api/uploads/{name}"
+        url = f"/api/uploads/{name}"
+        # First upload becomes the cover; later uploads extend the gallery.
+        if not l.photo_url:
+            l.photo_url = url
+        else:
+            l.photos = [*(l.photos or []), url]
         SessionLocal.commit()
         return jsonify(admin_listing_row(l, agency_name_map()))
 
@@ -2286,23 +2519,14 @@ def create_app() -> Flask:
         rows = SessionLocal.execute(
             select(Listing).where(Listing.status == "published").order_by(Listing.id.desc())
         ).scalars().all()
-        return jsonify(
-            {
-                "listings": [
-                    {
-                        "id": l.id,
-                        "priceGBP": l.price_gbp,
-                        "addr": l.addr,
-                        "area": l.area,
-                        "rooms": l.rooms,
-                        "baths": l.baths,
-                        "furnished": l.furnished,
-                        "photoUrl": l.photo_url,
-                    }
-                    for l in rows
-                ]
-            }
-        )
+        return jsonify({"listings": [listing_card(l) for l in rows]})
+
+    @app.get("/listings/<int:lid>")
+    def public_listing_detail(lid: int):
+        l = SessionLocal.get(Listing, lid)
+        if not l or l.status != "published":
+            return jsonify({"error": "not found"}), 404
+        return jsonify(listing_detail(l))
 
     @app.get("/og")
     def og_preview():

@@ -147,6 +147,12 @@ export default function ServicesPage() {
                 </div>
               )
             })}
+
+            {/* Plain-language explainer for the NHS/GP terms used above */}
+            <div className="rounded-xl border border-accent/25 bg-accent-bg/60 p-5">
+              <div className="text-[14px] font-semibold text-ink">{t('nhsWhat')}</div>
+              <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-ink-2">{t('nhsBody')}</p>
+            </div>
           </div>
 
           {/* Cart */}

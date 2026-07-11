@@ -223,6 +223,13 @@ class Listing(Base):
     baths: Mapped[int] = mapped_column(Integer, default=1)
     furnished: Mapped[bool] = mapped_column(Boolean, default=True)
     status: Mapped[str] = mapped_column(String(16), default="moderation")  # published|moderation|rejected
-    photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)  # cover photo
     matches: Mapped[int] = mapped_column(Integer, default=0)
+    # Rich detail (Rightmove-style listing page).
+    description: Mapped[str] = mapped_column(Text, default="")
+    photos: Mapped[list] = mapped_column(JSON, default=list)  # extra photo URLs (gallery)
+    amenities: Mapped[list] = mapped_column(JSON, default=list)  # e.g. ["wifi","washer"]
+    property_type: Mapped[str] = mapped_column(String(32), default="flat")  # flat|studio|house|room
+    available_from: Mapped[str] = mapped_column(String(32), default="")
+    deposit_gbp: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

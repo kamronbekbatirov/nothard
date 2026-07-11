@@ -121,6 +121,7 @@ export const api = {
   // Best-effort: revoke the current session server-side on logout.
   logout: () => req<{ ok: boolean }>('/auth/logout', { method: 'POST' }).catch(() => null),
   listings: () => req<{ listings: CatalogListing[] }>('/listings'),
+  listingDetail: (id: number) => req<ListingDetail>(`/listings/${id}`),
   // Public OpenGraph preview for a pasted listing URL (photo/title/price).
   ogPreview: (url: string) =>
     req<{ photo?: string; title?: string; description?: string; price?: number }>(
@@ -204,6 +205,9 @@ export const api = {
     }) => req<HousingItem>('/me/housing', { method: 'POST', body: JSON.stringify(body) }),
     deleteHousing: (id: number) =>
       req<{ ok: boolean }>(`/me/housing/${id}`, { method: 'DELETE' }),
+    // Request (and pay £30 for) an accompanied viewing of a shortlisted property.
+    requestViewing: (id: number) =>
+      req<HousingItem>(`/me/housing/${id}/viewing`, { method: 'POST' }),
     sessions: () =>
       req<{ sessions: DeviceSession[]; currentId: number | null }>('/me/sessions'),
     revokeSession: (id: number) =>
@@ -353,14 +357,17 @@ export const api = {
   },
   agency: {
     listings: () => req<AgencyData>('/agency/listings'),
-    add: (body: {
-      priceGBP: number
-      addr: string
-      area: string
-      rooms: number
-      baths: number
-      furnished: boolean
-    }) => req<Listing>('/agency/listings', { method: 'POST', body: JSON.stringify(body) }),
+    add: (body: ListingInput) =>
+      req<Listing>('/agency/listings', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: number, body: Partial<ListingInput>) =>
+      req<Listing>(`/agency/listings/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    remove: (id: number) =>
+      req<{ ok: boolean }>(`/agency/listings/${id}`, { method: 'DELETE' }),
+    uploadPhoto: (id: number, file: File) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      return req<Listing>(`/agency/listings/${id}/photo`, { method: 'POST', body: fd })
+    },
   },
   runner: {
     tasks: () => req<RunnerData>('/runner/tasks'),
@@ -386,6 +393,15 @@ export type CatalogListing = {
   baths: number
   furnished: boolean
   photoUrl?: string | null
+  propertyType?: string
+}
+
+export type ListingDetail = CatalogListing & {
+  photos: string[]
+  description: string
+  amenities: string[]
+  availableFrom: string
+  depositGBP: number
 }
 export type Attachment = { id: number; filename: string; url: string }
 export type HousingMedia = { id: number; url: string; filename: string; kind: 'image' | 'video' }
@@ -411,6 +427,7 @@ export type HousingItem = {
   viewingAt: string
   note: string
   media: HousingMedia[]
+  viewingRequested?: boolean
 }
 export type ServiceItem = {
   id: string
@@ -611,8 +628,29 @@ export type Listing = {
   rooms: number
   baths: number
   furnished: boolean
-  status: 'published' | 'moderation'
+  status: 'published' | 'moderation' | 'rejected'
   matches: number
+  photoUrl?: string | null
+  photos?: string[]
+  propertyType?: string
+  description?: string
+  amenities?: string[]
+  availableFrom?: string
+  depositGBP?: number
+}
+
+export type ListingInput = {
+  priceGBP: number
+  addr: string
+  area: string
+  rooms: number
+  baths: number
+  furnished: boolean
+  propertyType?: string
+  description?: string
+  amenities?: string[]
+  availableFrom?: string
+  depositGBP?: number
 }
 export type AgencyData = {
   kpis: { published: number; moderation: number; matches: number; views: number }

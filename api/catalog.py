@@ -6,7 +6,8 @@ SERVICE_PRICE = {
     "airportTaxi": 228,
     "sim": 15,
     "oyster": 15,
-    "housingSearch": 38,
+    # NOTE: home matching/shortlisting is FREE — viewings are charged per property
+    # (VIEWING_PRICE) via /me/housing/<id>/viewing, not as a catalog service.
     "tempHousing": 38,
     "moving": 76,
     "nhs": 76,
@@ -18,16 +19,18 @@ SERVICE_PRICE = {
     "docTranslate": 20,
 }
 
-# Bundle prices (discounted vs. buying the included services à la carte).
-PACKAGE_AMOUNT = {"meet": 114, "housing": 342, "premium": 647}
+# One accompanied property viewing (charged per property from the housing shortlist).
+VIEWING_PRICE = 30
 
-# Cumulative tiers: each higher tier is a superset of the lower one.
-# Keys match Profile.steps.<key> in the frontend messages (the cabinet timeline).
+# Bundle prices (discounted vs. buying the included services à la carte).
+PACKAGE_AMOUNT = {"meet": 114, "housing": 299, "premium": 647}
+
+# Intent-based packages (NOT cumulative): each matches one need. "Housing" has no
+# airport pickup — a home seeker may already be in London. Premium is the full
+# turnkey. Keys match Profile.steps.<key> in the frontend messages (cabinet path).
 PACKAGE_STEPS = {
     "meet": ["airportMeet", "transfer"],
     "housing": [
-        "airportMeet",
-        "transfer",
         "tempStay",
         "housingSearch",
         "viewings",

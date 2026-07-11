@@ -68,7 +68,7 @@
       },
       "bank": {
         "title": "Bank · NHS",
-        "desc": "We open an account and register you with a GP."
+        "desc": "We open a bank account and register you with the NHS — the UK’s free public healthcare — and a local doctor (GP)."
       },
       "moveIn": {
         "title": "Move-in",
@@ -81,13 +81,29 @@
     "choose": "Choose",
     "servicesTeaserTitle": "Or just what you need",
     "allServices": "All services",
-    "ctaTitle": "Just arrive — we handle the rest",
-    "ctaSubtitle": "Leave a request and a manager will get back to you the same day.",
+    "ctaTitle": "Ready to start your move?",
+    "ctaSubtitle": "Leave a request — a manager gets in touch the same day and maps out a plan for your move.",
     "ctaButton": "Start my move",
     "servicesTeaserHint": "Tap a service — the catalogue opens where you can build your own set.",
     "catalogTitle": "Housing catalog",
     "catalogSubtitle": "Browse flats in advance — or we'll find one to your criteria during the move.",
-    "catalogCta": "Open catalog"
+    "catalogCta": "Open catalog",
+    "ctaEyebrow": "Get started",
+    "ctaSecondary": "Compare packages",
+    "ctaTrust": {
+      "0": {
+        "title": "One manager, start to finish",
+        "desc": "From the airport to your keys — a single person who knows your case."
+      },
+      "1": {
+        "title": "Transparent pricing",
+        "desc": "Pay only for what you need. Free matching, £30 per viewing."
+      },
+      "2": {
+        "title": "Support in your language",
+        "desc": "Russian and Uzbek — we explain every step, including the NHS and banks."
+      }
+    }
   },
   "Packages": {
     "meet": {
@@ -95,32 +111,34 @@
       "tagline": "A soft landing on day one",
       "features": {
         "0": "Airport pickup",
-        "1": "Transfer to your stay",
+        "1": "Luggage help",
         "2": "SIM card and Oyster",
-        "3": "First-day support"
+        "3": "We take you to your place",
+        "4": "First-day support"
       }
     },
     "housing": {
       "name": "Housing",
-      "tagline": "Everything to move in",
+      "tagline": "We find your home and settle you in",
       "features": {
-        "0": "Everything in “Meet me”",
-        "1": "Home search and shortlisting",
-        "2": "Viewings arranged",
-        "3": "Help with the tenancy agreement",
-        "4": "Temporary stay to start with"
+        "0": "Matching to your budget & area — free",
+        "1": "3 viewings included",
+        "2": "Temporary stay while you search",
+        "3": "Tenancy agreement check",
+        "4": "Move-in help"
       }
     },
     "premium": {
       "name": "Premium",
-      "tagline": "A turnkey move",
+      "tagline": "A turnkey move, end to end",
       "features": {
-        "0": "Everything in “Housing”",
-        "1": "Opening a bank account",
-        "2": "NHS registration",
-        "3": "Setting up utilities",
-        "4": "Moving your belongings",
-        "5": "7 days of support"
+        "0": "Everything in “Meet me”",
+        "1": "Everything in “Housing”",
+        "2": "Bank account opening",
+        "3": "NHS & GP registration",
+        "4": "Utilities setup",
+        "5": "Moving your belongings",
+        "6": "7 days of support"
       }
     }
   },
@@ -137,62 +155,60 @@
     },
     "items": {
       "airportTransport": {
-        "name": "Pickup + transport",
-        "desc": "We meet you at the airport and drive you to your stay"
+        "name": "Meet + transport",
+        "desc": "We meet you at the airport, help with luggage, buy an Oyster and SIM if you need them, and travel with you to your place by public transport."
       },
       "airportTaxi": {
-        "name": "Pickup + taxi",
-        "desc": "Personal meet and taxi transfer"
+        "name": "Meet + taxi",
+        "desc": "We meet you at the airport, help with luggage, order a taxi and drive you straight to your place. Fare included."
       },
       "sim": {
         "name": "SIM card",
-        "desc": "A local number and mobile data from day one"
+        "desc": "We buy a UK SIM and hand-deliver it — a local number and data from day one."
       },
       "oyster": {
         "name": "Oyster card",
-        "desc": "Travel pass for the London tube and buses"
-      },
-      "housingSearch": {
-        "name": "Home search & shortlisting",
-        "desc": "We find options for your budget and area"
+        "desc": "We buy an Oyster card and hand-deliver it — for London tubes and buses."
       },
       "tempHousing": {
         "name": "Temporary stay",
-        "desc": "A place to live while you search"
+        "desc": "We find you a short-term place to stay while you search for a permanent home."
       },
       "moving": {
-        "name": "Moving belongings",
-        "desc": "Delivery of your belongings to the new home"
+        "name": "Moving your things",
+        "desc": "We arrange a mover and move your belongings from one home to another."
       },
       "nhs": {
         "name": "NHS registration",
-        "desc": "Register with a clinic and get a GP"
+        "desc": "We register you with the NHS and sign you up with a GP — your local doctor."
       },
       "support7": {
         "name": "7 days of support",
-        "desc": "A manager on hand throughout your first week"
+        "desc": "A manager on call for the whole first week, plus up to 2 in-person visits if you need help."
       },
       "neighborhood": {
-        "name": "Area review",
-        "desc": "A breakdown of areas: transport, safety, prices"
+        "name": "Area assessment",
+        "desc": "We visit the area and send photos and video: transport, safety, what’s around."
       },
       "utilities": {
-        "name": "Utilities",
-        "desc": "We set up electricity, water and internet"
+        "name": "Utilities setup",
+        "desc": "We set up electricity and home internet in the place you’ve moved into."
       },
       "bankOnline": {
-        "name": "Open account online",
-        "desc": "We help you open a Monzo, Revolut or Starling account"
+        "name": "Bank account",
+        "desc": "We help you open a UK bank account — Monzo, Revolut, Starling or a high-street bank."
       },
       "lease": {
         "name": "Tenancy agreement",
-        "desc": "We review and finalise the agreement with the landlord"
+        "desc": "We review and help you handle the tenancy agreement with the landlord."
       },
       "docTranslate": {
         "name": "Document translation",
-        "desc": "Official translation of your documents into English"
+        "desc": "Certified translation of your documents into English."
       }
-    }
+    },
+    "nhsWhat": "What are the NHS and GP?",
+    "nhsBody": "The NHS is the UK’s public healthcare system, free for residents. A GP is your local family doctor — you register with one to get treatment and referrals."
   },
   "Cart": {
     "title": "Your list",
@@ -282,7 +298,7 @@
     "noMatchTitle": "Nothing fit?",
     "noMatchText": "Send links to flats from Rightmove, Zoopla, SpareRoom, OpenRent or Google Drive — one per line. We'll call around and check availability.",
     "linksPlaceholder": "https://www.rightmove.co.uk/...\nhttps://www.zoopla.co.uk/...",
-    "pricingNote": "Search & shortlisting — £38 · each viewing — £38",
+    "pricingNote": "Matching & shortlisting — free · each accompanied viewing — £30",
     "submitLinks": "Send for calling",
     "howItWorks": "How it works",
     "howSteps": {
@@ -307,7 +323,42 @@
     "addLink": "Add",
     "yourLinks": "Your links · {count}",
     "selectionCount": "{count} selected",
-    "submitSelection": "Submit request"
+    "submitSelection": "Submit request",
+    "back": "Back to catalogue",
+    "tabAll": "All",
+    "tabFav": "Favourites",
+    "favEmpty": "No favourites yet — tap ♥ on a listing to save it.",
+    "viewFull": "View details",
+    "detail": {
+      "about": "About this property",
+      "facts": "Key facts",
+      "amenities": "Amenities",
+      "deposit": "Deposit",
+      "availableFrom": "Available from",
+      "type": "Type",
+      "furnishedYes": "Furnished",
+      "furnishedNo": "Unfurnished",
+      "notFound": "This listing is no longer available.",
+      "viewingNote": "Add to your shortlist, then request an accompanied viewing (£30) from your cabinet.",
+      "addShortlist": "Add to shortlist",
+      "inShortlist": "In shortlist ✓"
+    },
+    "types": {
+      "flat": "Flat",
+      "studio": "Studio",
+      "house": "House",
+      "room": "Room"
+    },
+    "amen": {
+      "wifi": "Wi-Fi",
+      "washer": "Washer",
+      "dishwasher": "Dishwasher",
+      "heating": "Heating",
+      "lift": "Lift",
+      "parking": "Parking",
+      "balcony": "Balcony",
+      "furnished": "Furnished"
+    }
   },
   "Auth": {
     "loginTitle": "Welcome back",
@@ -517,7 +568,9 @@
       "empty": "Nothing yet. Open the catalog or paste a listing link.",
       "viewingAt": "Viewing: {when}",
       "mediaTitle": "Photos & videos from the viewing",
-      "pendingAdded": "{count} added to your search"
+      "pendingAdded": "{count} added to your search",
+      "requestViewing": "Request a viewing — £{price}",
+      "viewingRequested": "Viewing requested — we’ll arrange a time"
     },
     "runnerTitle": "Your host",
     "runnerRole": "Meets and helps you on the ground",
@@ -609,6 +662,11 @@
     "managerNone": "unassigned",
     "markDone": "Done",
     "reopen": "Reopen",
+    "stepStatus": {
+      "todo": "Pending",
+      "inProgress": "In progress",
+      "done": "Done"
+    },
     "tasksTitle": "Tasks & services",
     "chat": {
       "title": "Chat with client",
@@ -759,10 +817,46 @@
     },
     "status": {
       "published": "Published",
-      "moderation": "In moderation"
+      "moderation": "In moderation",
+      "rejected": "Rejected"
     },
     "matchesClients": "Fits {count} {count, plural, one {client} other {clients}}",
-    "perMonth": "/mo"
+    "perMonth": "/mo",
+    "editListing": "Edit listing",
+    "delete": "Delete",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete this listing?",
+    "deleted": "Listing deleted",
+    "saved": "Listing saved",
+    "photos": "Photos",
+    "addPhoto": "Add photo",
+    "rejected": "Rejected",
+    "reModeration": "Edited — back to moderation",
+    "empty": "No listings yet — add your first one.",
+    "matchesTitle": "Client matches",
+    "form": {
+      "price": "£ / month",
+      "addr": "Address",
+      "area": "Area",
+      "rooms": "Bedrooms",
+      "baths": "Bathrooms",
+      "furnished": "Furnished",
+      "type": "Property type",
+      "description": "Description",
+      "amenities": "Amenities (comma-separated)",
+      "availableFrom": "Available from",
+      "deposit": "Deposit (£)",
+      "descriptionPlaceholder": "Bright flat, recently refurbished, great transport links…",
+      "amenitiesPlaceholder": "wifi, washer, heating"
+    },
+    "types": {
+      "flat": "Flat",
+      "studio": "Studio",
+      "house": "House",
+      "room": "Room"
+    }
   },
   "Runner": {
     "badge": "Runner",

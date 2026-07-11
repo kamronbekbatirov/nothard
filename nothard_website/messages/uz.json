@@ -68,7 +68,7 @@
       },
       "bank": {
         "title": "Bank · NHS",
-        "desc": "Hisob ochamiz va shifokorga ro‘yxatdan o‘tkazamiz."
+        "desc": "Bank hisobini ochamiz va sizni NHS — Britaniyaning bepul davlat tibbiyotiga — hamda uy yaqinidagi shifokorga (GP) ro‘yxatdan o‘tkazamiz."
       },
       "moveIn": {
         "title": "Joylashish",
@@ -81,46 +81,64 @@
     "choose": "Tanlash",
     "servicesTeaserTitle": "Yoki faqat kerakli narsani",
     "allServices": "Barcha xizmatlar",
-    "ctaTitle": "Siz keling — qolganini biz hal qilamiz",
-    "ctaSubtitle": "Ariza qoldiring, menejer o‘sha kuni siz bilan bog‘lanadi.",
+    "ctaTitle": "Ko‘chishni boshlashga tayyormisiz?",
+    "ctaSubtitle": "Ariza qoldiring — menejer o‘sha kuni bog‘lanadi va ko‘chishingiz uchun reja tuzadi.",
     "ctaButton": "Ko‘chishni boshlash",
     "servicesTeaserHint": "Xizmatni bosing — katalog ochiladi, u yerda o‘z to‘plamingizni yarating.",
     "catalogTitle": "Uy-joy katalogi",
     "catalogSubtitle": "Kvartirani oldindan tanlang — yoki ko‘chish paytida mezoningizga mos topamiz.",
-    "catalogCta": "Katalogni ochish"
+    "catalogCta": "Katalogni ochish",
+    "ctaEyebrow": "Qayerdan boshlash",
+    "ctaSecondary": "Paketlarni solishtirish",
+    "ctaTrust": {
+      "0": {
+        "title": "Boshidan oxirigacha bitta menejer",
+        "desc": "Aeroportdan kalitgacha — sizning ishingizni yurituvchi bitta odam."
+      },
+      "1": {
+        "title": "Shaffof narxlar",
+        "desc": "Faqat kerakli narsa uchun to‘laysiz. Tanlash bepul, ko‘rik — £30."
+      },
+      "2": {
+        "title": "O‘z tilingizda qo‘llab-quvvatlash",
+        "desc": "Rus va o‘zbek — har bir qadamni, NHS va banklarni ham tushuntiramiz."
+      }
+    }
   },
   "Packages": {
     "meet": {
       "name": "Meni kutib ol",
-      "tagline": "Birinchi kun uchun yumshoq boshlanish",
+      "tagline": "Birinchi kundan yumshoq boshlanish",
       "features": {
         "0": "Aeroportda kutib olish",
-        "1": "Turar joyga transfer",
+        "1": "Yuk bilan yordam",
         "2": "SIM-karta va Oyster",
-        "3": "Birinchi kun qo‘llab-quvvatlashi"
+        "3": "Yashash joyingizgacha yetkazamiz",
+        "4": "Birinchi kun qo‘llab-quvvatlash"
       }
     },
     "housing": {
       "name": "Uy-joy",
-      "tagline": "Joylashish uchun hammasi",
+      "tagline": "Uy topamiz va joylashamiz",
       "features": {
-        "0": "«Meni kutib ol» paketidagi hammasi",
-        "1": "Uy qidirish va tanlash",
-        "2": "Ko‘riklarni tashkil qilish",
-        "3": "Ijara shartnomasida yordam",
-        "4": "Boshida vaqtinchalik uy"
+        "0": "Byudjet va tuman bo‘yicha tanlash — bepul",
+        "1": "3 ta ko‘rik kiritilgan",
+        "2": "Qidiruv davomida vaqtincha uy",
+        "3": "Ijara shartnomasini tekshirish",
+        "4": "Ko‘chib o‘tishga yordam"
       }
     },
     "premium": {
       "name": "Premium",
-      "tagline": "Kalit ustidan ko‘chish",
+      "tagline": "To‘liq ko‘chish — kalit topshirish",
       "features": {
-        "0": "«Uy-joy» paketidagi hammasi",
-        "1": "Bank hisobini ochish",
-        "2": "NHS ro‘yxatdan o‘tkazish",
-        "3": "Kommunal xizmatlarni ulash",
-        "4": "Yuklarni tashish",
-        "5": "7 kunlik qo‘llab-quvvatlash"
+        "0": "«Meni kutib ol»dagi hammasi",
+        "1": "«Uy-joy»dagi hammasi",
+        "2": "Bank hisobini ochish",
+        "3": "NHS va GP ro‘yxati",
+        "4": "Kommunal xizmatlarni ulash",
+        "5": "Buyumlarni tashish",
+        "6": "7 kunlik qo‘llab-quvvatlash"
       }
     }
   },
@@ -138,61 +156,59 @@
     "items": {
       "airportTransport": {
         "name": "Kutib olish + transport",
-        "desc": "Aeroportda kutib olib, turar joyingizga olib boramiz"
+        "desc": "Aeroportda kutib olamiz, yuk bilan yordam beramiz, kerak bo‘lsa Oyster va SIM sotib olamiz va yashash joyingizgacha jamoat transportida birga boramiz."
       },
       "airportTaxi": {
         "name": "Kutib olish + taksi",
-        "desc": "Shaxsiy kutib olish va taksi transferi"
+        "desc": "Aeroportda kutib olamiz, yuk bilan yordam beramiz, taksi chaqirib to‘g‘ri yashash joyingizgacha yetkazamiz. Yo‘l haqi kiritilgan."
       },
       "sim": {
         "name": "SIM-karta",
-        "desc": "Birinchi kundan mahalliy raqam va mobil internet"
+        "desc": "Britaniya SIM-kartasini sotib olib yetkazamiz — birinchi kundan mahalliy raqam va internet."
       },
       "oyster": {
         "name": "Oyster-karta",
-        "desc": "London metrosi va avtobuslari uchun chipta"
-      },
-      "housingSearch": {
-        "name": "Uy qidirish va tanlash",
-        "desc": "Byudjet va hududingizga mos variantlar tanlaymiz"
+        "desc": "Oyster kartasini sotib olib yetkazamiz — London metrosi va avtobuslari uchun."
       },
       "tempHousing": {
-        "name": "Vaqtinchalik uy",
-        "desc": "Qidiruv davomida yashash uchun joy"
+        "name": "Vaqtincha uy",
+        "desc": "Doimiy uy qidirayotganingizda vaqtincha yashash joyini topamiz."
       },
       "moving": {
-        "name": "Yuklarni tashish",
-        "desc": "Yuklaringizni yangi uyga yetkazish"
+        "name": "Buyumlarni tashish",
+        "desc": "Tashuvchi topamiz va buyumlaringizni bir uydan boshqasiga ko‘chiramiz."
       },
       "nhs": {
-        "name": "NHS ro‘yxatdan o‘tkazish",
-        "desc": "Klinikaga biriktirish va GP olish"
+        "name": "NHS ro‘yxati",
+        "desc": "Sizni NHS ga ro‘yxatdan o‘tkazamiz va GP — mahalliy shifokorga biriktiramiz."
       },
       "support7": {
         "name": "7 kunlik qo‘llab-quvvatlash",
-        "desc": "Butun birinchi hafta menejer aloqada"
+        "desc": "Butun birinchi hafta menejer aloqada, kerak bo‘lsa 2 martagacha joyiga chiqish."
       },
       "neighborhood": {
-        "name": "Hududni baholash",
-        "desc": "Hududlar tahlili: transport, xavfsizlik, narxlar"
+        "name": "Tuman baholash",
+        "desc": "Tumanga chiqamiz va foto/video yuboramiz: transport, xavfsizlik, atrof."
       },
       "utilities": {
         "name": "Kommunal xizmatlar",
-        "desc": "Elektr, suv va internetni ulaymiz"
+        "desc": "Ko‘chib kirgan uyingizda elektr va uy internetini ulaymiz."
       },
       "bankOnline": {
-        "name": "Onlayn hisob ochish",
-        "desc": "Monzo, Revolut yoki Starlingda hisob ochishga yordam"
+        "name": "Bank hisobi",
+        "desc": "Britaniya bank hisobini ochishga yordam beramiz — Monzo, Revolut, Starling yoki oddiy bank."
       },
       "lease": {
         "name": "Ijara shartnomasi",
-        "desc": "Uy egasi bilan shartnomani tekshiramiz va rasmiylashtiramiz"
+        "desc": "Ijara shartnomasini tekshiramiz va uy egasi bilan rasmiylashtirishga yordam beramiz."
       },
       "docTranslate": {
-        "name": "Hujjatlarni tarjima qilish",
-        "desc": "Hujjatlarni ingliz tiliga rasmiy tarjima qilish"
+        "name": "Hujjatlar tarjimasi",
+        "desc": "Hujjatlaringizni ingliz tiliga rasmiy tarjima qilamiz."
       }
-    }
+    },
+    "nhsWhat": "NHS va GP nima?",
+    "nhsBody": "NHS — Britaniyaning davlat sog‘liqni saqlash tizimi, aholi uchun bepul. GP — yashash joyingizdagi oilaviy shifokor; davolanish va yo‘llanma olish uchun unga biriktirilishingiz kerak."
   },
   "Cart": {
     "title": "Sizning to‘plamingiz",
@@ -282,7 +298,7 @@
     "noMatchTitle": "Mosini topmadingizmi?",
     "noMatchText": "Rightmove, Zoopla, SpareRoom, OpenRent yoki Google Drivedan kvartira havolalarini yuboring — har birini alohida qatorda. Biz qo‘ng‘iroq qilib, dolzarbligini tekshiramiz.",
     "linksPlaceholder": "https://www.rightmove.co.uk/...\nhttps://www.zoopla.co.uk/...",
-    "pricingNote": "Qidiruv va tanlash — £38 · har bir ko‘rik — £38",
+    "pricingNote": "Tanlash va shortlist — bepul · har bir hamrohlikdagi ko‘rik — £30",
     "submitLinks": "Qo‘ng‘iroqqa yuborish",
     "howItWorks": "Qanday ishlaydi",
     "howSteps": {
@@ -307,7 +323,42 @@
     "addLink": "Qo'shish",
     "yourLinks": "Havolalaringiz · {count}",
     "selectionCount": "Tanlangan: {count}",
-    "submitSelection": "Rasmiylashtirish"
+    "submitSelection": "Rasmiylashtirish",
+    "back": "Katalogga qaytish",
+    "tabAll": "Hammasi",
+    "tabFav": "Sevimlilar",
+    "favEmpty": "Hozircha bo‘sh — saqlash uchun e’londa ♥ bosing.",
+    "viewFull": "Batafsil",
+    "detail": {
+      "about": "Obyekt haqida",
+      "facts": "Asosiy ma’lumotlar",
+      "amenities": "Qulayliklar",
+      "deposit": "Depozit",
+      "availableFrom": "Mavjud",
+      "type": "Turi",
+      "furnishedYes": "Mebelli",
+      "furnishedNo": "Mebelsiz",
+      "notFound": "Bu e’lon endi mavjud emas.",
+      "viewingNote": "Shortlistga qo‘shing, so‘ng kabinetdan hamrohlikdagi ko‘rikni (£30) buyurtma qiling.",
+      "addShortlist": "Shortlistga",
+      "inShortlist": "Shortlistda ✓"
+    },
+    "types": {
+      "flat": "Kvartira",
+      "studio": "Studiya",
+      "house": "Uy",
+      "room": "Xona"
+    },
+    "amen": {
+      "wifi": "Wi-Fi",
+      "washer": "Kir mashinasi",
+      "dishwasher": "Idish yuvish",
+      "heating": "Isitish",
+      "lift": "Lift",
+      "parking": "Parking",
+      "balcony": "Balkon",
+      "furnished": "Mebelli"
+    }
   },
   "Auth": {
     "loginTitle": "Qaytganingizdan xursandmiz",
@@ -517,7 +568,9 @@
       "empty": "Hozircha bo‘sh. Katalogni oching yoki havola qo‘shing.",
       "viewingAt": "Ko‘rik: {when}",
       "mediaTitle": "Ko‘rikdan foto va video",
-      "pendingAdded": "Qidiruvga qo'shildi: {count}"
+      "pendingAdded": "Qidiruvga qo'shildi: {count}",
+      "requestViewing": "Ko‘rikka yozilish — £{price}",
+      "viewingRequested": "Ko‘rik so‘raldi — vaqtini kelishamiz"
     },
     "runnerTitle": "Hamrohingiz",
     "runnerRole": "Kutib oladi va joyida yordam beradi",
@@ -609,6 +662,11 @@
     "managerNone": "tayinlanmagan",
     "markDone": "Bajarildi",
     "reopen": "Qaytarish",
+    "stepStatus": {
+      "todo": "Kutilmoqda",
+      "inProgress": "Jarayonda",
+      "done": "Bajarildi"
+    },
     "tasksTitle": "Vazifalar va xizmatlar",
     "chat": {
       "title": "Mijoz bilan chat",
@@ -759,10 +817,46 @@
     },
     "status": {
       "published": "E’lon qilingan",
-      "moderation": "Moderatsiyada"
+      "moderation": "Moderatsiyada",
+      "rejected": "Rad etildi"
     },
     "matchesClients": "{count} ta mijozga mos",
-    "perMonth": "/oy"
+    "perMonth": "/oy",
+    "editListing": "E’lonni tahrirlash",
+    "delete": "O‘chirish",
+    "edit": "Tahrirlash",
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "confirmDelete": "Bu e’lon o‘chirilsinmi?",
+    "deleted": "E’lon o‘chirildi",
+    "saved": "E’lon saqlandi",
+    "photos": "Rasmlar",
+    "addPhoto": "Rasm qo‘shish",
+    "rejected": "Rad etildi",
+    "reModeration": "Tahrirlandi — qayta moderatsiyaga",
+    "empty": "Hozircha e’lon yo‘q — birinchisini qo‘shing.",
+    "matchesTitle": "Mijoz mosliklari",
+    "form": {
+      "price": "£ / oy",
+      "addr": "Manzil",
+      "area": "Tuman",
+      "rooms": "Xonalar",
+      "baths": "Sanuzellar",
+      "furnished": "Mebelli",
+      "type": "Uy turi",
+      "description": "Tavsif",
+      "amenities": "Qulayliklar (vergul bilan)",
+      "availableFrom": "Mavjud",
+      "deposit": "Depozit (£)",
+      "descriptionPlaceholder": "Yorug‘ kvartira, yaqinda ta’mirlangan, transport qulay…",
+      "amenitiesPlaceholder": "wifi, kir mashinasi, isitish"
+    },
+    "types": {
+      "flat": "Kvartira",
+      "studio": "Studiya",
+      "house": "Uy",
+      "room": "Xona"
+    }
   },
   "Runner": {
     "badge": "Raner",

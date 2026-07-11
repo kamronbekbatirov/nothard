@@ -368,18 +368,40 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* CTA — calm, paper-toned final section (theme-aware) */}
       <section className="mx-auto max-w-[1200px] px-5 py-16 sm:px-11">
-        <div className="rounded-2xl bg-accent px-8 py-12 text-center sm:px-12 sm:py-14">
-          <h2 className="mx-auto max-w-[20ch] font-display text-[28px] text-white sm:text-[38px]">
-            {t('ctaTitle')}
-          </h2>
-          <p className="mx-auto mt-4 max-w-[46ch] text-[15px] leading-relaxed text-white/80">
-            {t('ctaSubtitle')}
-          </p>
-          <Button asChild variant="white" size="lg" className="mt-7">
-            <Link href="/register">{t('ctaButton')}</Link>
-          </Button>
+        <div className="overflow-hidden rounded-2xl border border-line bg-card">
+          <div className="grid gap-8 p-8 sm:p-12 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-12">
+            <div>
+              <div className="eyebrow mb-3">{t('ctaEyebrow')}</div>
+              <h2 className="font-display text-[28px] leading-tight text-ink sm:text-[36px]">
+                {t('ctaTitle')}
+              </h2>
+              <p className="mt-3 max-w-[46ch] text-[15px] leading-relaxed text-muted">{t('ctaSubtitle')}</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button asChild variant="solid" size="lg">
+                  <Link href="/register">{t('ctaButton')}</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="#packages">{t('ctaSecondary')}</Link>
+                </Button>
+              </div>
+            </div>
+
+            <ul className="flex flex-col gap-3">
+              {[0, 1, 2].map((i) => (
+                <li key={i} className="flex items-start gap-3 rounded-xl bg-surface p-4">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-bg text-[12px] text-accent">
+                    ✓
+                  </span>
+                  <div>
+                    <div className="text-[14px] font-semibold text-ink">{t(`ctaTrust.${i}.title`)}</div>
+                    <div className="mt-0.5 text-[13px] leading-snug text-muted">{t(`ctaTrust.${i}.desc`)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 

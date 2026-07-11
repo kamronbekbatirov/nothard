@@ -42,6 +42,7 @@ export default function SearchPage() {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
 
+  const [tab, setTab] = useState<'all' | 'fav'>('all')
   const [rooms, setRooms] = useState<RoomsFilter>('any')
   const [price, setPrice] = useState<PriceFilter>('any')
   const [area, setArea] = useState<AreaFilter>('any')
@@ -98,9 +99,13 @@ export default function SearchPage() {
     })
   }, [linkItems])
 
+  // Real listings have DB ids and a detail page; the sample fallback does not.
+  const isReal = listings !== null && listings.length > 0
+
   const results = useMemo(
     () =>
       source.filter((p) => {
+        if (tab === 'fav' && !fav.has(p.id)) return false
         if (rooms === 'studio' && p.rooms !== 0) return false
         if (rooms === 'one' && p.rooms !== 1) return false
         if (rooms === 'two' && p.rooms !== 2) return false
@@ -111,7 +116,7 @@ export default function SearchPage() {
         if (area !== 'any' && p.area !== area) return false
         return true
       }),
-    [rooms, price, area, source]
+    [tab, fav, rooms, price, area, source]
   )
 
   function toggleFav(id: number) {
@@ -203,6 +208,29 @@ export default function SearchPage() {
         )}
         <h1 className="font-display text-[30px] text-ink sm:text-[38px]">{t('title')}</h1>
 
+        {/* All / Favourites tabs */}
+        <div className="mt-5 flex gap-2">
+          <button
+            onClick={() => setTab('all')}
+            className={cn(
+              'rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors',
+              tab === 'all' ? 'bg-accent-bg text-accent' : 'text-muted hover:text-ink'
+            )}
+          >
+            {t('tabAll')}
+          </button>
+          <button
+            onClick={() => setTab('fav')}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors',
+              tab === 'fav' ? 'bg-accent-bg text-accent' : 'text-muted hover:text-ink'
+            )}
+          >
+            <Heart size={13} className={fav.size > 0 ? 'fill-current' : ''} /> {t('tabFav')}
+            {fav.size > 0 && <span className="text-[12px]">· {fav.size}</span>}
+          </button>
+        </div>
+
         {/* Filters */}
         <div className="mt-6 flex flex-col gap-3">
           <ChipRow label={t('filters.rooms')}>
@@ -230,57 +258,92 @@ export default function SearchPage() {
 
         <p className="mt-6 text-[14px] text-muted">{t('found', { count: results.length })}</p>
 
-        {/* Cards */}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map((p) => (
-            <div key={p.id} className="nd-lift overflow-hidden rounded-xl border border-line bg-card">
-              <div className="relative h-[168px]">
-                {(p as CatalogListing).photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={(p as CatalogListing).photoUrl!} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="photo-stripe h-full w-full" />
-                )}
-                <button
-                  onClick={() => toggleFav(p.id)}
-                  aria-label="favourite"
-                  className="nd-heart absolute right-3 top-3 text-[22px]"
-                  style={{ color: fav.has(p.id) ? 'rgb(var(--terracotta))' : 'rgb(var(--gray-lt))' }}
-                >
-                  {fav.has(p.id) ? '♥' : '♡'}
-                </button>
-              </div>
-              <div className="p-4">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="font-display text-[19px] text-ink">{fmtGBP(p.priceGBP)}</span>
-                  <span className="text-[13px] text-gray">{t('perMonth')}</span>
-                </div>
-                <div className="mt-1 text-[14px] text-ink-2">{p.addr}</div>
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-muted">
-                  <span>{p.rooms === 0 ? t('filters.roomsOpts.studio') : t('meta.bed', { count: p.rooms })}</span>
-                  <span>· {t('meta.bath', { count: p.baths })}</span>
-                  {p.furnished && <span>· {t('meta.furnished')}</span>}
-                </div>
-                <Button
-                  variant={shortlist.has(p.id) ? 'solid' : 'outline'}
-                  size="sm"
-                  className="mt-4 w-full gap-1.5"
-                  onClick={() => toggleShortlist(p.id)}
-                >
-                  {shortlist.has(p.id) ? (
-                    <>
-                      <Check size={15} /> {t('shortlisted')}
-                    </>
+        {/* Favourites tab, nothing saved */}
+        {tab === 'fav' && results.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
+            <Heart size={22} className="mx-auto text-gray-lt" />
+            <p className="mt-2 text-[14px] text-muted">{t('favEmpty')}</p>
+          </div>
+        ) : (
+          /* Cards */
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {results.map((p) => {
+              const photoUrl = (p as CatalogListing).photoUrl
+              const Photo = (
+                <div className="relative h-[168px]">
+                  {photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photoUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    <>
-                      <Heart size={15} /> {t('shortlist')}
-                    </>
+                    <div className="photo-stripe h-full w-full" />
                   )}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+                </div>
+              )
+              return (
+                <div key={p.id} className="nd-lift overflow-hidden rounded-xl border border-line bg-card">
+                  <div className="relative">
+                    {isReal ? (
+                      <Link href={`/search/${p.id}`} aria-label={p.addr}>
+                        {Photo}
+                      </Link>
+                    ) : (
+                      Photo
+                    )}
+                    <button
+                      onClick={() => toggleFav(p.id)}
+                      aria-label="favourite"
+                      className="nd-heart absolute right-3 top-3 text-[22px]"
+                      style={{ color: fav.has(p.id) ? 'rgb(var(--terracotta))' : 'rgb(var(--gray-lt))' }}
+                    >
+                      {fav.has(p.id) ? '♥' : '♡'}
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-display text-[19px] text-ink">{fmtGBP(p.priceGBP)}</span>
+                      <span className="text-[13px] text-gray">{t('perMonth')}</span>
+                    </div>
+                    {isReal ? (
+                      <Link href={`/search/${p.id}`} className="mt-1 block text-[14px] text-ink-2 hover:text-accent">
+                        {p.addr}
+                      </Link>
+                    ) : (
+                      <div className="mt-1 text-[14px] text-ink-2">{p.addr}</div>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-muted">
+                      <span>{p.rooms === 0 ? t('filters.roomsOpts.studio') : t('meta.bed', { count: p.rooms })}</span>
+                      <span>· {t('meta.bath', { count: p.baths })}</span>
+                      {p.furnished && <span>· {t('meta.furnished')}</span>}
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        variant={shortlist.has(p.id) ? 'solid' : 'outline'}
+                        size="sm"
+                        className="flex-1 gap-1.5"
+                        onClick={() => toggleShortlist(p.id)}
+                      >
+                        {shortlist.has(p.id) ? (
+                          <>
+                            <Check size={15} /> {t('shortlisted')}
+                          </>
+                        ) : (
+                          <>
+                            <Heart size={15} /> {t('shortlist')}
+                          </>
+                        )}
+                      </Button>
+                      {isReal && (
+                        <Button asChild variant="ghost" size="sm" className="shrink-0">
+                          <Link href={`/search/${p.id}`}>{t('viewFull')}</Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* No match — add your own links (with live previews) */}
         <div className="mt-14 grid gap-8 rounded-2xl bg-panel-dark p-7 text-white sm:p-9 lg:grid-cols-2">

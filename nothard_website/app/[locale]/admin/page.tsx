@@ -1720,7 +1720,35 @@ function Drawer({
                     </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
-                    {r.taskId != null && (
+                    {r.taskId != null && r.kind === 'step' ? (
+                      // Parallel path: mark each step Pending / In progress / Done
+                      // independently (several steps run at once).
+                      <div className="flex overflow-hidden rounded-full border border-line">
+                        {(['todo', 'inProgress', 'done'] as const).map((st) => {
+                          const activeSt =
+                            r.status === st ||
+                            (st === 'inProgress' && (r.status === 'onWay' || r.status === 'arrived'))
+                          return (
+                            <button
+                              key={st}
+                              onClick={() => onSetTaskStatus(r.taskId!, st)}
+                              className={cn(
+                                'px-2 py-1 text-[11px] font-medium transition-colors',
+                                activeSt
+                                  ? st === 'done'
+                                    ? 'bg-accent text-white'
+                                    : st === 'inProgress'
+                                      ? 'bg-amber-500/15 text-amber-700'
+                                      : 'bg-line text-ink'
+                                  : 'text-muted hover:text-ink'
+                              )}
+                            >
+                              {t(`stepStatus.${st}` as any)}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : r.taskId != null ? (
                       <button
                         onClick={() => onSetTaskStatus(r.taskId!, done ? 'todo' : 'done')}
                         className={cn(
@@ -1732,7 +1760,7 @@ function Drawer({
                       >
                         {done ? t('reopen') : t('markDone')}
                       </button>
-                    )}
+                    ) : null}
                     {r.kind === 'service' && r.orderId != null && (
                       <button
                         onClick={() => onDeleteOrder(r.orderId!)}

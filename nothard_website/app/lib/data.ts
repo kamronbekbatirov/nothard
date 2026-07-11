@@ -29,7 +29,8 @@ export const SERVICES: Service[] = [
   { id: 'airportTaxi', price: 228, stage: 'arrival' },
   { id: 'sim', price: 15, stage: 'arrival' },
   { id: 'oyster', price: 15, stage: 'arrival' },
-  { id: 'housingSearch', price: 38, stage: 'housing' },
+  // Home matching/shortlisting is free; viewings are £30 each, requested per
+  // property from the housing shortlist (VIEWING_PRICE), not a catalog service.
   { id: 'tempHousing', price: 38, stage: 'housing' },
   { id: 'moving', price: 76, stage: 'housing' },
   { id: 'nhs', price: 76, stage: 'setup' },
@@ -41,6 +42,9 @@ export const SERVICES: Service[] = [
   { id: 'docTranslate', price: 20, stage: 'documents', online: true },
 ]
 
+// £ price of a single accompanied property viewing (per-property charge).
+export const VIEWING_PRICE = 30
+
 export function serviceById(id: string) {
   return SERVICES.find((s) => s.id === id)
 }
@@ -48,7 +52,7 @@ export function serviceById(id: string) {
 // Teaser on the landing page — six highlighted services.
 export const TEASER_SERVICE_IDS = [
   'airportTransport',
-  'housingSearch',
+  'tempHousing',
   'nhs',
   'bankOnline',
   'lease',
@@ -65,9 +69,9 @@ export type Pkg = {
 }
 
 export const PACKAGES: Pkg[] = [
-  { id: 'meet', gbp: 114, usd: 150, uzs: 1860000, featureCount: 4 },
-  { id: 'housing', gbp: 342, usd: 450, uzs: 5580000, popular: true, featureCount: 5 },
-  { id: 'premium', gbp: 647, usd: 850, uzs: 10540000, featureCount: 6 },
+  { id: 'meet', gbp: 114, usd: 150, uzs: 1860000, featureCount: 5 },
+  { id: 'housing', gbp: 299, usd: 389, uzs: 4874000, popular: true, featureCount: 5 },
+  { id: 'premium', gbp: 647, usd: 850, uzs: 10540000, featureCount: 7 },
 ]
 
 // London arrival airports (for the airport-pickup intake question).
@@ -105,7 +109,8 @@ export const LONDON_FLIGHTS = [
 ] as const
 
 // Packages that include an airport pickup → ask arrival details at checkout.
-export const AIRPORT_PACKAGES = new Set(['meet', 'housing', 'premium'])
+// "Housing" has no pickup (a home seeker may already be in London).
+export const AIRPORT_PACKAGES = new Set(['meet', 'premium'])
 
 // 9-step relocation path shown in the client cabinet.
 export const CABINET_STEPS = [
@@ -166,15 +171,14 @@ export const FIELD_TYPE: Record<CheckoutFieldKey, 'date' | 'text' | 'number' | '
 }
 
 export const ITEM_FIELDS: Record<string, CheckoutFieldKey[]> = {
-  // packages (arrival based)
-  meet: ['arrivalDate', 'flight'],
-  housing: ['arrivalDate', 'flight'],
+  // packages
+  meet: ['arrivalDate', 'flight'], // arrival package
+  housing: [], // home search — no airport intake
   premium: ['arrivalDate', 'flight'],
   // services
   airportTransport: ['arrivalDate', 'flight'],
   airportTaxi: ['arrivalDate', 'flight'],
   tempHousing: ['arrivalDate', 'nights'],
-  housingSearch: ['budget', 'area'],
   neighborhood: ['area'],
   utilities: ['address'],
   moving: ['address', 'arrivalDate'],
