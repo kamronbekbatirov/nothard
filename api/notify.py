@@ -89,6 +89,18 @@ TEMPLATES = {
         "uz": "📎 Kabinetingizga yangi fayl qo‘shildi.",
         "uz-cyrl": "📎 Кабинетингизга янги файл қўшилди.",
     },
+    "review_request": {
+        "ru": "🎉 Спасибо! Мы всё выполнили — ваш переезд завершён. Будем благодарны, если оставите отзыв в кабинете.",
+        "en": "🎉 Thank you! Everything is done — your move is complete. We'd love a quick review in your cabinet.",
+        "uz": "🎉 Rahmat! Hammasi bajarildi — ko‘chishingiz yakunlandi. Kabinetda fikr qoldirsangiz, minnatdor bo‘lamiz.",
+        "uz-cyrl": "🎉 Раҳмат! Ҳаммаси бажарилди — кўчишингиз якунланди. Кабинетда фикр қолдирсангиз, миннатдор бўламиз.",
+    },
+    "chat_message": {
+        "ru": "💬 Новое сообщение от {name}: {preview}",
+        "en": "💬 New message from {name}: {preview}",
+        "uz": "💬 {name}dan yangi xabar: {preview}",
+        "uz-cyrl": "💬 {name}дан янги хабар: {preview}",
+    },
 }
 
 

@@ -74,9 +74,17 @@ export function Field({
 }
 
 /** Inline Telegram glyph. */
+// Renders in Telegram brand blue (#229ED9) by default so the logo reads as
+// Telegram even inside an accent/green button. Pass `className` to override.
 export function TelegramIcon({ size = 18, className }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className ?? 'text-[#229ED9]'}
+    >
       <path d="M21.94 4.6l-3.32 15.66c-.25 1.1-.9 1.38-1.83.86l-5.05-3.72-2.44 2.35c-.27.27-.5.5-1.02.5l.36-5.15L18.02 6.5c.41-.37-.09-.57-.63-.2L6.1 13.55l-5-1.57c-1.09-.34-1.11-1.09.23-1.61l19.55-7.54c.9-.34 1.7.2 1.4 1.77z" />
     </svg>
   )

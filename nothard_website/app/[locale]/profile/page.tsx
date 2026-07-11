@@ -21,6 +21,7 @@ import {
   type Attachment,
   type DashboardData,
   type HousingItem,
+  type OrderHistoryItem,
   type PendingReview,
 } from '@/app/lib/api'
 import {
@@ -69,7 +70,8 @@ export default function ProfilePage() {
   const { user, loading, refresh: refreshAuth } = useAuth()
   const [data, setData] = useState<DashboardData | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(false)
+  // Which chat thread is open — with the manager or the field companion (runner).
+  const [chatWith, setChatWith] = useState<'manager' | 'runner' | null>(null)
   const [buying, setBuying] = useState(false)
   const [intakePkg, setIntakePkg] = useState<string | null>(null)
 
@@ -171,7 +173,7 @@ export default function ProfilePage() {
         {data.hasOrders ? (
           <PopulatedCabinet
             data={data}
-            onChat={() => setChatOpen(true)}
+            onChat={(who = 'manager') => setChatWith(who)}
             onBuy={buyPackage}
             buying={buying}
             onRefresh={refresh}
@@ -196,17 +198,33 @@ export default function ProfilePage() {
         />
       )}
 
-      {chatOpen && (
+      {chatWith === 'manager' && (
         <ChatModal
           title={data.manager.assigned && data.manager.name ? data.manager.name : t('chat.title')}
           subtitle={data.manager.assigned ? t('managerHours') : t('managerPending')}
           peerName={data.manager.name || t('chat.title')}
+          peerAvatarUrl={data.manager.photoUrl}
           placeholder={t('chat.placeholder')}
           emptyText={data.manager.assigned ? t('chat.empty') : t('chat.noManagerYet')}
           meSide="client"
-          fetchMessages={() => api.me.messages().then((r) => r.messages)}
-          sendMessage={(body) => api.me.sendMessage(body)}
-          onClose={() => setChatOpen(false)}
+          fetchMessages={() => api.me.messages('manager').then((r) => r.messages)}
+          sendMessage={(body) => api.me.sendMessage(body, 'manager')}
+          onClose={() => setChatWith(null)}
+        />
+      )}
+
+      {chatWith === 'runner' && (
+        <ChatModal
+          title={data.runner.name || t('runnerChatTitle')}
+          subtitle={t('runnerRole')}
+          peerName={data.runner.name || t('runnerChatTitle')}
+          peerAvatarUrl={data.runner.photoUrl}
+          placeholder={t('chat.placeholder')}
+          emptyText={t('runnerChatEmpty')}
+          meSide="client"
+          fetchMessages={() => api.me.messages('runner').then((r) => r.messages)}
+          sendMessage={(body) => api.me.sendMessage(body, 'runner')}
+          onClose={() => setChatWith(null)}
         />
       )}
 
@@ -221,6 +239,7 @@ export default function ProfilePage() {
 
       {data.pendingReview && (
         <ReviewModal
+          key={data.pendingReview.orderId}
           review={data.pendingReview}
           onSubmit={async (stars, text) => {
             try {
@@ -360,7 +379,11 @@ function ReviewModal({
             disabled={busy}
             onClick={async () => {
               setBusy(true)
-              await onSubmit(stars, text.trim())
+              try {
+                await onSubmit(stars, text.trim())
+              } finally {
+                setBusy(false)
+              }
             }}
           >
             {t('review.submit')}
@@ -920,6 +943,101 @@ function ServiceStatusBadge({ status }: { status: string }) {
   )
 }
 
+/* ---------- Order history (past & current purchases) ---------- */
+function fmtDateTime(iso?: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleString(undefined, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
+  const t = useTranslations('Profile')
+  const tp = useTranslations('Packages')
+  const ts = useTranslations('Services')
+  const label = useTaskLabel()
+  const [open, setOpen] = useState(false)
+  if (!items || items.length === 0) return null
+
+  const nameOf = (it: OrderHistoryItem) =>
+    it.type === 'package'
+      ? tp(`${it.id}.name` as any)
+      : it.type === 'viewing'
+        ? t('history.viewing')
+        : ts(`items.${it.id}.name` as any)
+
+  return (
+    <div className="mt-8">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 text-left"
+      >
+        <span className="eyebrow">{t('history.title', { count: items.length })}</span>
+        <span className="text-[13px] text-muted">{open ? t('history.hide') : t('history.show')}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3 flex flex-col gap-3">
+          {items.map((it, i) => {
+            const done = it.status === 'done'
+            return (
+              <div key={`${it.type}-${it.id}-${i}`} className="rounded-xl border border-line bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-[14.5px] font-semibold text-ink">{nameOf(it)}</span>
+                      <span
+                        className={cn(
+                          'shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide',
+                          done ? 'bg-accent-bg text-accent' : 'bg-sub text-muted'
+                        )}
+                      >
+                        {done ? t('history.done') : t('history.active')}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-[12px] text-muted">
+                      {it.createdAt && <>{t('history.bought')}: {fmtDateTime(it.createdAt)}</>}
+                      {done && it.completedAt && (
+                        <> · {t('history.completed')}: {fmtDateTime(it.completedAt)}</>
+                      )}
+                    </div>
+                  </div>
+                  <span className="shrink-0 font-display text-[16px] text-accent">{fmtGBP(it.amountGBP)}</span>
+                </div>
+
+                {it.steps && it.steps.length > 0 && (
+                  <ul className="mt-3 flex flex-col gap-1.5 border-t border-line pt-3">
+                    {it.steps.map((s) => (
+                      <li key={s.key} className="flex items-center justify-between gap-2 text-[12.5px]">
+                        <span className="flex min-w-0 items-center gap-2 text-ink-2">
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ background: s.status === 'done' ? 'rgb(var(--accent))' : 'rgb(var(--line))' }}
+                          />
+                          <span className="truncate">{label('step', s.key).title}</span>
+                        </span>
+                        <span className="shrink-0 text-gray-lt">
+                          {s.status === 'done' && s.completedAt ? fmtDateTime(s.completedAt) : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PopulatedCabinet({
   data,
   onChat,
@@ -928,7 +1046,7 @@ function PopulatedCabinet({
   onRefresh,
 }: {
   data: DashboardData
-  onChat: () => void
+  onChat: (who?: 'manager' | 'runner') => void
   onBuy: (id: string) => void
   buying: boolean
   onRefresh: () => void
@@ -1045,7 +1163,9 @@ function PopulatedCabinet({
           </div>
         )}
 
-        {/* Manager */}
+        {/* Manager — shown while there's active work; hidden once everything is
+            done (the completed banner + order history take over) until a new buy. */}
+        {data.state === 'active' && (
         <div className="rounded-xl border border-line bg-card p-5">
           <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray">{t('managerTitle')}</div>
           {manager.assigned ? (
@@ -1058,7 +1178,7 @@ function PopulatedCabinet({
                 </div>
               </div>
               <PersonContact telegram={manager.telegram} phone={manager.phone} />
-              <Button variant="dark" size="block" className="mt-4" onClick={onChat}>
+              <Button variant="dark" size="block" className="mt-4" onClick={() => onChat('manager')}>
                 {t('writeChat')}
               </Button>
             </>
@@ -1070,16 +1190,17 @@ function PopulatedCabinet({
                 </span>
                 <div className="text-[13px] leading-snug text-muted">{t('managerPending')}</div>
               </div>
-              <Button variant="outline" size="block" className="mt-4" onClick={onChat}>
+              <Button variant="outline" size="block" className="mt-4" onClick={() => onChat('manager')}>
                 {t('chat.open')}
               </Button>
             </>
           )}
         </div>
+        )}
 
-        {/* Runner — only shown when the active work needs a field companion
-            (airport meet / transport / moving). Plain services don't. */}
-        {(data.needsRunner || data.runner.assigned) && (
+        {/* Runner — shown only while there's active field work left. Once every
+            visit is done the companion card disappears (manager stays). */}
+        {data.state === 'active' && data.needsRunner && (
         <div className="rounded-xl border border-line bg-card p-5">
           <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray">{t('runnerTitle')}</div>
           {data.runner.assigned ? (
@@ -1092,6 +1213,9 @@ function PopulatedCabinet({
                 </div>
               </div>
               <PersonContact telegram={data.runner.telegram} phone={data.runner.phone} />
+              <Button variant="dark" size="block" className="mt-4" onClick={() => onChat('runner')}>
+                {t('writeChat')}
+              </Button>
             </>
           ) : (
             <div className="mt-3 flex items-center gap-3">
@@ -1217,7 +1341,7 @@ function PopulatedCabinet({
                           </div>
                           <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted">{desc}</p>
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Button variant="dark" size="sm" onClick={onChat}>
+                            <Button variant="dark" size="sm" onClick={() => onChat('manager')}>
                               {t('stepActions.chat')}
                             </Button>
                           </div>
@@ -1305,6 +1429,9 @@ function PopulatedCabinet({
             </div>
           </div>
         )}
+
+        {/* Order history — everything bought, its status and completion times */}
+        <OrderHistory items={data.history} />
       </section>
 
       {arrivalOpen && data.package && (

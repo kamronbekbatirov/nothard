@@ -607,6 +607,18 @@
       "cta": "Upgrade package",
       "title": "Upgrade your package",
       "subtitle": "Choose a higher tier — everything you've already entered carries over."
+    },
+    "runnerChatTitle": "Your companion",
+    "runnerChatEmpty": "Write to your companion — they help you on the ground.",
+    "history": {
+      "title": "Order history · {count}",
+      "show": "Show",
+      "hide": "Hide",
+      "done": "Done",
+      "active": "In progress",
+      "bought": "Bought",
+      "completed": "Completed",
+      "viewing": "Property viewing"
     }
   },
   "Admin": {
@@ -873,7 +885,12 @@
       "onWay": "On the way",
       "arrived": "Arrived",
       "done": "Done"
-    }
+    },
+    "clientsTitle": "My clients",
+    "writeChat": "Message",
+    "clientChatSubtitle": "Your client",
+    "chatPlaceholder": "Message…",
+    "chatEmpty": "Write to your client — coordinate the meeting here."
   },
   "Footer": {
     "tagline": "End-to-end relocation to London. Calm, human, in your language.",

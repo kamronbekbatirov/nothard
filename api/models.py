@@ -133,13 +133,16 @@ class Task(Base):
 
 
 class Message(Base):
-    """A chat message between a client and their manager."""
+    """A chat message in one of a client's two threads: with their manager or
+    with their field companion (runner)."""
 
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"))
-    sender: Mapped[str] = mapped_column(String(16), default="client")  # client | manager
+    sender: Mapped[str] = mapped_column(String(16), default="client")  # client | manager | runner
+    # Which conversation this belongs to — the manager thread or the runner thread.
+    channel: Mapped[str] = mapped_column(String(16), default="manager")  # manager | runner
     author_name: Mapped[str] = mapped_column(String(255), default="")
     body: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

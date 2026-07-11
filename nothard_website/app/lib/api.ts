@@ -38,10 +38,22 @@ export type User = {
 
 export type ChatMessage = {
   id: number
-  sender: 'client' | 'manager'
+  sender: 'client' | 'manager' | 'runner'
+  channel?: 'manager' | 'runner'
   author: string
   body: string
   createdAt: string
+}
+
+export type OrderHistoryItem = {
+  type: 'package' | 'service' | 'viewing'
+  id: string
+  amountGBP: number
+  paid: boolean
+  createdAt: string | null
+  status: 'done' | 'active'
+  completedAt: string | null
+  steps?: { key: string; status: string; completedAt: string | null }[]
 }
 
 export type DeviceSession = {
@@ -193,9 +205,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ orderId }),
       }),
-    messages: () => req<{ messages: ChatMessage[] }>('/me/messages'),
-    sendMessage: (body: string) =>
-      req<ChatMessage>('/me/messages', { method: 'POST', body: JSON.stringify({ body }) }),
+    messages: (channel: 'manager' | 'runner' = 'manager') =>
+      req<{ messages: ChatMessage[] }>(`/me/messages?channel=${channel}`),
+    sendMessage: (body: string, channel: 'manager' | 'runner' = 'manager') =>
+      req<ChatMessage>('/me/messages', { method: 'POST', body: JSON.stringify({ body, channel }) }),
     addHousing: (body: {
       source: 'catalog' | 'link'
       ref: string
@@ -373,6 +386,14 @@ export const api = {
     tasks: () => req<RunnerData>('/runner/tasks'),
     advance: (taskId: number) =>
       req<RunnerTask>(`/runner/tasks/${taskId}/advance`, { method: 'POST' }),
+    clients: () => req<{ clients: RunnerClient[] }>('/runner/clients'),
+    messages: (clientId: number) =>
+      req<{ messages: ChatMessage[] }>(`/runner/clients/${clientId}/messages`),
+    sendMessage: (clientId: number, body: string) =>
+      req<ChatMessage>(`/runner/clients/${clientId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      }),
   },
 }
 
@@ -486,6 +507,8 @@ export type DashboardData = {
   documentFiles: Record<string, Attachment[]>
   housingSearch: boolean
   housing: HousingItem[]
+  history: OrderHistoryItem[]
+  runnerChatAvailable: boolean
 }
 
 export type AdminTaskRef = {
@@ -662,10 +685,13 @@ export type RunnerTask = {
   time: string
   kind: 'step' | 'service'
   key: string
+  clientId: number
   client: string
   addr: string
   stage: string
 }
+
+export type RunnerClient = { id: number; name: string; photoUrl: string | null }
 export type RunnerData = { name: string; total: number; done: number; tasks: RunnerTask[] }
 
 export { req as apiRequest }

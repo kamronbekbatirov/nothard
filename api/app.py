@@ -207,6 +207,25 @@ def create_app() -> Flask:
             if u:
                 notify.send(u, event, **params)
 
+    def notify_task_done(client, task):
+        """A task just completed. If it finishes a reviewable order (a service, or
+        the last step of a package), invite the client to leave a review; otherwise
+        just report the intermediate step. Keeps the '🎉 all done → review' Telegram
+        message in sync with the cabinet's review prompt."""
+        if task.kind == "service":
+            notify_client(client, "review_request")
+            return
+        # Package step — is the whole package now complete?
+        if task.order_id:
+            steps = [
+                t for t in client_tasks(client.id)
+                if t.kind == "step" and t.order_id == task.order_id
+            ]
+            if steps and all(t.status == "done" for t in steps):
+                notify_client(client, "review_request")
+                return
+        notify_client(client, "task_done")
+
     def _document_files(step_tasks) -> dict:
         docs = [t for t in step_tasks if t.key in FILE_STEPS]
         att = task_attachments([t.id for t in docs])
@@ -812,7 +831,7 @@ def create_app() -> Flask:
             return {**base, "state": "empty", "hasOrders": False, "package": None,
                     "packageComplete": False, "pendingReview": None, "services": [],
                     "documents": {}, "path": [], "runner": runner_block(None),
-                    "needsRunner": False}
+                    "needsRunner": False, "history": [], "runnerChatAvailable": False}
 
         orders = client_orders(c.id)
         tasks = client_tasks(c.id)
@@ -845,13 +864,16 @@ def create_app() -> Flask:
             t.status == "done" for t in pkg_steps
         )
 
-        # A runner (field companion) is only relevant when the active work actually
-        # involves an in-person visit: a package step like the airport meet, or a
-        # standalone service such as airport transport / moving. Plain admin
-        # services (e.g. Oyster card) don't need one, so hide the runner card then.
-        needs_runner = bool(c.runner_id) or any(
-            t.key in RUNNER_STEPS for t in pkg_steps
-        ) or any(o.item_id in RUNNER_SERVICES for o in svc_active)
+        # A runner (field companion) is only relevant while there's ACTIVE in-person
+        # work left: a not-yet-done runner step (airport meet / viewings / move-in) or
+        # a not-yet-done runner service (transport / moving). Once every field visit is
+        # done the companion card disappears (the manager stays). Plain admin services
+        # (e.g. Oyster) never need one.
+        needs_runner = any(
+            t.key in RUNNER_STEPS and t.status != "done" for t in pkg_steps
+        ) or any(
+            o.item_id in RUNNER_SERVICES and not svc_done(o) for o in svc_active
+        )
 
         # Review prompt queue: a completed-but-unacknowledged package, then any
         # completed-but-unacknowledged service. (archived == acknowledged.)
@@ -879,6 +901,41 @@ def create_app() -> Flask:
 
         services = [svc_row(o) for o in svc_active]
         completed_services = [svc_row(o) for o in svc_archived]
+
+        # Full order history — what the client bought, its status, and when each part
+        # was completed. Kept even after a package is archived, so a finished client
+        # keeps a record of previous relocations/services in their cabinet.
+        steps_by_order: dict = {}
+        for t in tasks:
+            if t.kind == "step" and t.order_id:
+                steps_by_order.setdefault(t.order_id, []).append(t)
+
+        def _iso_z(dt):
+            return dt.isoformat() + "Z" if dt else None
+
+        history = []
+        for o in orders:
+            row = {
+                "type": o.item_type, "id": o.item_id, "amountGBP": o.amount_gbp,
+                "paid": o.paid, "createdAt": _iso_z(o.created_at),
+            }
+            if o.item_type == "package":
+                osteps = sorted(steps_by_order.get(o.id, []), key=lambda x: (x.position, x.id))
+                comp = [s.completed_at for s in osteps if s.completed_at]
+                done = bool(osteps) and all(s.status == "done" for s in osteps)
+                row["status"] = "done" if done else "active"
+                row["completedAt"] = _iso_z(max(comp)) if (done and comp) else None
+                row["steps"] = [
+                    {"key": s.key, "status": s.status, "completedAt": _iso_z(s.completed_at)}
+                    for s in osteps
+                ]
+            else:
+                st = svc_task_by_order.get(o.id)
+                done = bool(st and st.status == "done")
+                row["status"] = "done" if done else "active"
+                row["completedAt"] = _iso_z(st.completed_at) if (st and done) else None
+            history.append(row)
+        history.reverse()  # newest first
 
         if not orders:
             state = "empty"
@@ -910,6 +967,9 @@ def create_app() -> Flask:
             "documentFiles": _document_files(pkg_steps),
             "housingSearch": has_housing_search(tasks),
             "housing": housing_rows(client_housing(c.id)),
+            "history": history,
+            # The client may chat with their companion only once a runner is assigned.
+            "runnerChatAvailable": bool(c.runner_id),
         }
 
     @app.get("/me/dashboard")
@@ -1339,15 +1399,26 @@ def create_app() -> Flask:
         return {
             "id": m.id,
             "sender": m.sender,
+            "channel": m.channel,
             "author": m.author_name,
             "body": m.body,
             "createdAt": m.created_at.isoformat(),
         }
 
-    def client_messages(client_id: int):
+    def client_messages(client_id: int, channel: str = "manager"):
         return SessionLocal.execute(
-            select(Message).where(Message.client_id == client_id).order_by(Message.id)
+            select(Message)
+            .where(Message.client_id == client_id, Message.channel == channel)
+            .order_by(Message.id)
         ).scalars().all()
+
+    def _chat_preview(body: str) -> str:
+        s = " ".join((body or "").split())
+        return (s[:80] + "…") if len(s) > 80 else s
+
+    def _channel_arg(default: str = "manager") -> str:
+        ch = (request.args.get("channel") or (request.get_json(silent=True) or {}).get("channel") or default)
+        return "runner" if ch == "runner" else "manager"
 
     @app.get("/me/messages")
     def my_messages():
@@ -1357,7 +1428,7 @@ def create_app() -> Flask:
         c = SessionLocal.execute(select(Client).where(Client.user_id == user.id)).scalar_one_or_none()
         if not c:
             return jsonify({"messages": []})
-        return jsonify({"messages": [message_row(m) for m in client_messages(c.id)]})
+        return jsonify({"messages": [message_row(m) for m in client_messages(c.id, _channel_arg())]})
 
     @app.post("/me/messages")
     def my_send_message():
@@ -1368,10 +1439,19 @@ def create_app() -> Flask:
         body = (data.get("body") or "").strip()
         if not body:
             return jsonify({"error": "empty"}), 400
+        channel = _channel_arg()
         c = get_or_create_client(user)
-        m = Message(client_id=c.id, sender="client", author_name=user.name or "Client", body=body[:4000])
+        m = Message(client_id=c.id, sender="client", channel=channel,
+                    author_name=user.name or "Client", body=body[:4000])
         SessionLocal.add(m)
         SessionLocal.commit()
+        # Notify the counterpart on their Telegram (best-effort).
+        peer_id = c.runner_id if channel == "runner" else c.manager_id
+        if peer_id:
+            peer = SessionLocal.get(User, peer_id)
+            if peer:
+                notify.send(peer, "chat_message", name=(user.name or "Клиент"),
+                            preview=_chat_preview(body))
         return jsonify(message_row(m)), 201
 
     @app.get("/admin/clients/<int:client_id>/messages")
@@ -1379,7 +1459,7 @@ def create_app() -> Flask:
         user, err = require_role("operator")
         if err:
             return err
-        return jsonify({"messages": [message_row(m) for m in client_messages(client_id)]})
+        return jsonify({"messages": [message_row(m) for m in client_messages(client_id, "manager")]})
 
     @app.post("/admin/clients/<int:client_id>/messages")
     def admin_send_message(client_id: int):
@@ -1393,9 +1473,64 @@ def create_app() -> Flask:
         body = (data.get("body") or "").strip()
         if not body:
             return jsonify({"error": "empty"}), 400
-        m = Message(client_id=c.id, sender="manager", author_name=user.name or "Manager", body=body[:4000])
+        m = Message(client_id=c.id, sender="manager", channel="manager",
+                    author_name=user.name or "Manager", body=body[:4000])
         SessionLocal.add(m)
         SessionLocal.commit()
+        notify_client(c, "chat_message", name=(user.name or "Менеджер"), preview=_chat_preview(body))
+        return jsonify(message_row(m)), 201
+
+    # ---- Runner ↔ client chat ---------------------------------------------
+    @app.get("/runner/clients")
+    def runner_clients():
+        """Clients assigned to this runner — so they can open a chat with each."""
+        user, err = require_role("runner")
+        if err:
+            return err
+        rows = SessionLocal.execute(
+            select(Client).where(Client.runner_id == user.id).order_by(Client.id)
+        ).scalars().all()
+        out = []
+        for c in rows:
+            u = SessionLocal.get(User, c.user_id) if c.user_id else None
+            out.append({
+                "id": c.id,
+                "name": c.name or (u.name if u else "") or "Клиент",
+                "photoUrl": (u.photo_url if u else None),
+            })
+        return jsonify({"clients": out})
+
+    def _runner_client(user: User, client_id: int) -> Client | None:
+        c = SessionLocal.get(Client, client_id)
+        return c if (c and c.runner_id == user.id) else None
+
+    @app.get("/runner/clients/<int:client_id>/messages")
+    def runner_messages(client_id: int):
+        user, err = require_role("runner")
+        if err:
+            return err
+        c = _runner_client(user, client_id)
+        if not c:
+            return jsonify({"error": "not found"}), 404
+        return jsonify({"messages": [message_row(m) for m in client_messages(c.id, "runner")]})
+
+    @app.post("/runner/clients/<int:client_id>/messages")
+    def runner_send_message(client_id: int):
+        user, err = require_role("runner")
+        if err:
+            return err
+        c = _runner_client(user, client_id)
+        if not c:
+            return jsonify({"error": "not found"}), 404
+        data = request.get_json(silent=True) or {}
+        body = (data.get("body") or "").strip()
+        if not body:
+            return jsonify({"error": "empty"}), 400
+        m = Message(client_id=c.id, sender="runner", channel="runner",
+                    author_name=user.name or "Runner", body=body[:4000])
+        SessionLocal.add(m)
+        SessionLocal.commit()
+        notify_client(c, "chat_message", name=(user.name or "Сопровождающий"), preview=_chat_preview(body))
         return jsonify(message_row(m)), 201
 
     # ---- Operator console --------------------------------------------------
@@ -1630,7 +1765,7 @@ def create_app() -> Flask:
         SessionLocal.commit()
         c = SessionLocal.get(Client, t.client_id)
         if status == "done" and not was_done:
-            notify_client(c, "task_done")
+            notify_task_done(c, t)
         return jsonify(admin_client_row(c, runner_name_map(), manager_name_map()))
 
     # ---- Operator: manage a client's packages / services ------------------
@@ -2556,6 +2691,7 @@ def create_app() -> Flask:
             "time": t.time,
             "kind": t.kind,
             "key": t.key,
+            "clientId": t.client_id,
             "client": names.get(t.client_id, ""),
             "addr": t.addr,
             "stage": t.status,
@@ -2593,6 +2729,8 @@ def create_app() -> Flask:
             if t.status == "done":
                 t.completed_at = datetime.utcnow()
             SessionLocal.commit()
+            if t.status == "done":
+                notify_task_done(SessionLocal.get(Client, t.client_id), t)
         return jsonify(runner_task_row(t, client_name_map()))
 
     return app

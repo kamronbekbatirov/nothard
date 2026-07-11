@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { MapPin, Camera } from 'lucide-react'
+import { MapPin, Camera, MessageSquare } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
+import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { useRequireRole } from '@/app/lib/use-require-role'
 import { useTaskLabel } from '@/app/lib/task-label'
-import { api, clearTokens, type RunnerTask } from '@/app/lib/api'
+import { api, clearTokens, type RunnerTask, type RunnerClient } from '@/app/lib/api'
 import { cn } from '@/app/lib/utils'
 
 export default function RunnerPage() {
@@ -16,6 +17,8 @@ export default function RunnerPage() {
   const { toast } = useToast()
   const { ready, user } = useRequireRole(['runner'])
   const [tasks, setTasks] = useState<RunnerTask[]>([])
+  const [clients, setClients] = useState<RunnerClient[]>([])
+  const [chatClient, setChatClient] = useState<RunnerClient | null>(null)
   const [name, setName] = useState('')
   const [loaded, setLoaded] = useState(false)
 
@@ -29,6 +32,7 @@ export default function RunnerPage() {
       })
       .catch(() => {})
       .finally(() => setLoaded(true))
+    api.runner.clients().then((d) => setClients(d.clients)).catch(() => {})
   }, [ready])
 
   const done = useMemo(() => tasks.filter((x) => x.stage === 'done').length, [tasks])
@@ -71,7 +75,47 @@ export default function RunnerPage() {
             </p>
           )}
         </div>
+
+        {/* Clients this runner is attached to — chat with each */}
+        {clients.length > 0 && (
+          <div className="mt-8">
+            <div className="eyebrow mb-3">{t('clientsTitle')}</div>
+            <div className="flex flex-col gap-2.5">
+              {clients.map((c) => (
+                <div key={c.id} className="flex items-center gap-3 rounded-xl border border-line bg-card p-3.5">
+                  {c.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.photoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sub text-[15px] font-semibold text-gray">
+                      {(c.name.trim().charAt(0) || '?').toUpperCase()}
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-[14.5px] font-medium text-ink">{c.name}</span>
+                  <Button variant="dark" size="sm" className="gap-1.5" onClick={() => setChatClient(c)}>
+                    <MessageSquare size={14} /> {t('writeChat')}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
+
+      {chatClient && (
+        <ChatModal
+          title={chatClient.name}
+          subtitle={t('clientChatSubtitle')}
+          peerName={chatClient.name}
+          peerAvatarUrl={chatClient.photoUrl}
+          placeholder={t('chatPlaceholder')}
+          emptyText={t('chatEmpty')}
+          meSide="runner"
+          fetchMessages={() => api.runner.messages(chatClient.id).then((r) => r.messages)}
+          sendMessage={(body) => api.runner.sendMessage(chatClient.id, body)}
+          onClose={() => setChatClient(null)}
+        />
+      )}
     </div>
   )
 }

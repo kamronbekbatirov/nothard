@@ -33,6 +33,7 @@ export function ChatModal({
   title,
   subtitle,
   peerName,
+  peerAvatarUrl,
   placeholder,
   emptyText,
   meSide,
@@ -43,13 +44,15 @@ export function ChatModal({
   title: string
   subtitle?: string
   peerName?: string
+  peerAvatarUrl?: string | null
   placeholder: string
   emptyText: string
-  meSide: 'client' | 'manager'
+  meSide: 'client' | 'manager' | 'runner'
   fetchMessages: () => Promise<ChatMessage[]>
   sendMessage: (body: string) => Promise<ChatMessage>
   onClose: () => void
 }) {
+  const [avatarBroken, setAvatarBroken] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -122,9 +125,20 @@ export function ChatModal({
           {/* grab-handle affordance for the mobile bottom sheet */}
           <div className="mx-auto mb-2.5 h-1 w-9 rounded-full bg-white/30 sm:hidden" />
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-[16px] font-semibold leading-none text-white ring-1 ring-white/20">
-              {avatarChar}
-            </span>
+            {peerAvatarUrl && !avatarBroken ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={peerAvatarUrl}
+                alt=""
+                onError={() => setAvatarBroken(true)}
+                referrerPolicy="no-referrer"
+                className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-white/20"
+              />
+            ) : (
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-[16px] font-semibold leading-none text-white ring-1 ring-white/20">
+                {avatarChar}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <div className="truncate font-display text-[17px] leading-tight text-white">{title}</div>
               {subtitle && (

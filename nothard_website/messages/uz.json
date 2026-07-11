@@ -607,6 +607,18 @@
       "cta": "Paketni yaxshilash",
       "title": "Paketni yaxshilash",
       "subtitle": "Yuqoriroq tarifni tanlang — kiritgan ma'lumotlaringiz saqlanib qoladi."
+    },
+    "runnerChatTitle": "Hamrohingiz",
+    "runnerChatEmpty": "Hamrohingizga yozing — u sizga joyida yordam beradi.",
+    "history": {
+      "title": "Buyurtmalar tarixi · {count}",
+      "show": "Ko‘rsatish",
+      "hide": "Yashirish",
+      "done": "Bajarildi",
+      "active": "Jarayonda",
+      "bought": "Sotib olindi",
+      "completed": "Yakunlandi",
+      "viewing": "Uy ko‘rigi"
     }
   },
   "Admin": {
@@ -873,7 +885,12 @@
       "onWay": "Yo‘lda",
       "arrived": "Joyda",
       "done": "Bajarildi"
-    }
+    },
+    "clientsTitle": "Mening mijozlarim",
+    "writeChat": "Yozish",
+    "clientChatSubtitle": "Sizning mijozingiz",
+    "chatPlaceholder": "Xabar…",
+    "chatEmpty": "Mijozga yozing — uchrashuvni shu yerda kelishing."
   },
   "Footer": {
     "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",
