@@ -6,7 +6,8 @@ import { CheckCircle2, ChevronDown, ExternalLink, History, Home, Paperclip, Plus
 import { Link, useRouter } from '@/i18n/navigation'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
-import { Input } from '@/app/components/field'
+import { LogoMark } from '@/app/components/logo'
+import { Input, PickOrType } from '@/app/components/field'
 import { SettingsModal } from '@/app/components/settings-modal'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
@@ -264,37 +265,71 @@ function ConsentGate({ onAccept, onLogout }: { onAccept: () => void; onLogout?: 
   const [busy, setBusy] = useState(false)
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-5 py-10">
-      <div className="w-full max-w-[440px] rounded-2xl border border-line bg-card p-7 text-center shadow-card">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-bg text-accent">
-          <CheckCircle2 size={26} />
-        </span>
-        <h1 className="mt-4 font-display text-[24px] text-ink">{t('title')}</h1>
-        <p className="mt-2 text-[14px] leading-relaxed text-muted">{t('text')}</p>
-        <div className="mt-4 flex flex-col gap-2 rounded-xl border border-line bg-surface p-3 text-[13.5px]">
-          <Link href="/privacy" className="font-medium text-accent hover:underline">
-            {t('privacy')} →
-          </Link>
-          <Link href="/terms" className="font-medium text-accent hover:underline">
-            {t('terms')} →
-          </Link>
+      <div className="w-full max-w-[420px]">
+        <div className="overflow-hidden rounded-[22px] border border-line bg-card shadow-card">
+          {/* Hero — logo + welcome */}
+          <div className="bg-accent-bg px-7 pb-7 pt-9 text-center">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-card shadow-sm">
+              <LogoMark size={38} />
+            </span>
+            <h1 className="mt-4 font-display text-[26px] text-ink">{t('title')}</h1>
+            <p className="mx-auto mt-1.5 max-w-[34ch] text-[14px] leading-relaxed text-muted">
+              {t('subtitle')}
+            </p>
+          </div>
+
+          {/* What we do */}
+          <div className="px-7 py-6">
+            <ul className="flex flex-col gap-3.5">
+              {[0, 1, 2].map((i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <CheckCircle2 size={19} className="mt-px shrink-0 text-accent" />
+                  <span className="text-[14px] leading-snug text-ink-2">{t(`points.${i}` as any)}</span>
+                </li>
+              ))}
+            </ul>
+
+            {/* Legal */}
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              <Link
+                href="/privacy"
+                className="rounded-lg border border-line bg-surface px-3 py-2.5 text-center text-[13px] font-medium text-accent transition-colors hover:border-accent/40"
+              >
+                {t('privacy')}
+              </Link>
+              <Link
+                href="/terms"
+                className="rounded-lg border border-line bg-surface px-3 py-2.5 text-center text-[13px] font-medium text-accent transition-colors hover:border-accent/40"
+              >
+                {t('terms')}
+              </Link>
+            </div>
+
+            <Button
+              variant="solid"
+              size="block"
+              className="mt-5"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true)
+                await onAccept()
+              }}
+            >
+              {t('accept')}
+            </Button>
+            <p className="mx-auto mt-3 max-w-[38ch] text-center text-[12px] leading-relaxed text-gray">
+              {t('agree')}
+            </p>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="mx-auto mt-3 block text-[13px] text-gray hover:text-ink"
+              >
+                {t('decline')}
+              </button>
+            )}
+          </div>
         </div>
-        <Button
-          variant="solid"
-          size="block"
-          className="mt-5"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true)
-            await onAccept()
-          }}
-        >
-          {t('accept')}
-        </Button>
-        {onLogout && (
-          <button onClick={onLogout} className="mt-3 text-[13px] text-gray hover:text-ink">
-            {t('decline')}
-          </button>
-        )}
       </div>
     </div>
   )
@@ -433,59 +468,44 @@ function PackageIntakeModal({
             {t('intake.subtitle', { pkg: tp(`${pkgId}.name` as any) })}
           </p>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
-              <input
-                type="date"
-                value={arrivalDate}
-                onChange={(e) => setArrivalDate(e.target.value)}
-                className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-              />
-            </label>
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
-              <input
-                type="time"
-                value={arrivalTime}
-                onChange={(e) => setArrivalTime(e.target.value)}
-                className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-              />
-            </label>
-          </div>
-
           <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.airport')}</span>
+            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
             <input
-              value={airport}
-              onChange={(e) => setAirport(e.target.value)}
-              placeholder={t('intake.airportPick')}
-              list="nh-airports"
-              className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
+              type="date"
+              value={arrivalDate}
+              onChange={(e) => setArrivalDate(e.target.value)}
+              className="box-border block h-11 w-full rounded-md border border-line bg-card px-3 text-[15px] text-ink"
             />
-            <datalist id="nh-airports">
-              {LONDON_AIRPORT_TERMINALS.map((a) => (
-                <option key={a} value={a} />
-              ))}
-            </datalist>
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
+            <input
+              type="time"
+              value={arrivalTime}
+              onChange={(e) => setArrivalTime(e.target.value)}
+              className="box-border block h-11 w-full rounded-md border border-line bg-card px-3 text-[15px] text-ink"
+            />
           </label>
 
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.flight')}</span>
-            <input
-              value={flight}
-              onChange={(e) => setFlight(e.target.value)}
-              placeholder={t('intake.flightPlaceholder')}
-              list="nh-flights"
-              className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-            />
-            <datalist id="nh-flights">
-              {LONDON_FLIGHTS.map((f) => (
-                <option key={f} value={f} />
-              ))}
-            </datalist>
-            <span className="mt-1.5 block text-[12px] text-gray">{t('intake.flightHint')}</span>
-          </label>
+          <PickOrType
+            label={t('intake.airport')}
+            options={LONDON_AIRPORT_TERMINALS}
+            value={airport}
+            onChange={setAirport}
+            pickLabel={t('intake.airportPickList')}
+            otherLabel={t('intake.other')}
+            placeholder={t('intake.airportOther')}
+          />
+
+          <PickOrType
+            label={t('intake.flight')}
+            options={LONDON_FLIGHTS}
+            value={flight}
+            onChange={setFlight}
+            pickLabel={t('intake.flightPickList')}
+            otherLabel={t('intake.other')}
+            placeholder={t('intake.flightOther')}
+          />
 
           <Button
             variant="solid"
@@ -1632,56 +1652,42 @@ function ArrivalEditModal({
           </button>
         </div>
         <div className="flex flex-col gap-4 p-6">
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
-              <input
-                type="date"
-                value={arrivalDate}
-                onChange={(e) => setArrivalDate(e.target.value)}
-                className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-              />
-            </label>
-            <label className="block min-w-0">
-              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
-              <input
-                type="time"
-                value={arrivalTime}
-                onChange={(e) => setArrivalTime(e.target.value)}
-                className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-              />
-            </label>
-          </div>
           <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.airport')}</span>
+            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
             <input
-              value={airport}
-              onChange={(e) => setAirport(e.target.value)}
-              placeholder={t('intake.airportPick')}
-              list="nh-airports-edit"
-              className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
+              type="date"
+              value={arrivalDate}
+              onChange={(e) => setArrivalDate(e.target.value)}
+              className="box-border block h-11 w-full rounded-md border border-line bg-card px-3 text-[15px] text-ink"
             />
-            <datalist id="nh-airports-edit">
-              {LONDON_AIRPORT_TERMINALS.map((a) => (
-                <option key={a} value={a} />
-              ))}
-            </datalist>
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.flight')}</span>
+            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
             <input
-              value={flight}
-              onChange={(e) => setFlight(e.target.value)}
-              placeholder="HY201"
-              list="nh-flights-edit"
-              className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
+              type="time"
+              value={arrivalTime}
+              onChange={(e) => setArrivalTime(e.target.value)}
+              className="box-border block h-11 w-full rounded-md border border-line bg-card px-3 text-[15px] text-ink"
             />
-            <datalist id="nh-flights-edit">
-              {LONDON_FLIGHTS.map((f) => (
-                <option key={f} value={f} />
-              ))}
-            </datalist>
           </label>
+          <PickOrType
+            label={t('intake.airport')}
+            options={LONDON_AIRPORT_TERMINALS}
+            value={airport}
+            onChange={setAirport}
+            pickLabel={t('intake.airportPickList')}
+            otherLabel={t('intake.other')}
+            placeholder={t('intake.airportOther')}
+          />
+          <PickOrType
+            label={t('intake.flight')}
+            options={LONDON_FLIGHTS}
+            value={flight}
+            onChange={setFlight}
+            pickLabel={t('intake.flightPickList')}
+            otherLabel={t('intake.other')}
+            placeholder={t('intake.flightOther')}
+          />
           <Button
             variant="solid"
             size="block"

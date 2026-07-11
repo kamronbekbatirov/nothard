@@ -73,6 +73,83 @@ export function Field({
   )
 }
 
+/**
+ * Pick from a list, or choose "Other" to type a custom value. The native
+ * <select> gives a proper mobile wheel-picker; picking the "other" option
+ * reveals a text field. Good for airports / flight numbers where most people
+ * choose from the list but some need to enter their own.
+ */
+export function PickOrType({
+  label,
+  options,
+  value,
+  onChange,
+  placeholder,
+  otherLabel,
+  pickLabel,
+  compact = false,
+}: {
+  label?: string
+  options: readonly string[]
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  otherLabel: string
+  pickLabel: string
+  compact?: boolean
+}) {
+  const known = !!value && options.includes(value)
+  const [other, setOther] = React.useState<boolean>(!!value && !known)
+
+  const control = compact
+    ? 'box-border h-9 w-full min-w-0 rounded-md border border-line bg-card px-2 text-[12.5px] text-ink'
+    : 'box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink'
+
+  const field = (
+    <>
+      <select
+        value={other ? '__other__' : value}
+        onChange={(e) => {
+          const v = e.target.value
+          if (v === '__other__') {
+            setOther(true)
+            onChange('')
+          } else {
+            setOther(false)
+            onChange(v)
+          }
+        }}
+        className={control}
+      >
+        <option value="">{pickLabel}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+        <option value="__other__">{otherLabel}</option>
+      </select>
+      {other && (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoFocus
+          className={cn(control, 'mt-2')}
+        />
+      )}
+    </>
+  )
+
+  if (!label) return field
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{label}</span>
+      {field}
+    </label>
+  )
+}
+
 /** Inline Telegram glyph. */
 // Renders in Telegram brand blue (#229ED9) by default so the logo reads as
 // Telegram even inside an accent/green button. Pass `className` to override.

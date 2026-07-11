@@ -593,7 +593,12 @@
         "luton": "Luton",
         "city": "London City"
       },
-      "airportPick": "Aeroportni tanlang"
+      "airportPick": "Aeroportni tanlang",
+      "other": "Boshqa…",
+      "airportPickList": "Aeroportni tanlang",
+      "flightPickList": "Reysni tanlang",
+      "airportOther": "Aeroportni kiriting",
+      "flightOther": "Reys raqamini kiriting"
     },
     "arrival": {
       "title": "Uchib kelish ma'lumotlari",
@@ -958,7 +963,14 @@
     "privacy": "Maxfiylik siyosati",
     "terms": "Foydalanish shartlari",
     "accept": "Qabul qilaman",
-    "decline": "Chiqish"
+    "decline": "Chiqish",
+    "subtitle": "Londonga ko‘chishda yordam beramiz — aeroportda kutib olishdan joylashuvgacha.",
+    "points": {
+      "0": "Aeroportda kutib olish va yumshoq birinchi kun",
+      "1": "Uy qidirish va hamrohlikdagi ko‘riklar",
+      "2": "Hujjatlar, bank hisobi va NHS"
+    },
+    "agree": "«Qabul qilaman va davom etaman» tugmasini bosib, siz maxfiylik siyosati va shartlarga rozilik bildirasiz."
   },
   "SharePage": {
     "heading": "{name}ning Londonga ko‘chishi",

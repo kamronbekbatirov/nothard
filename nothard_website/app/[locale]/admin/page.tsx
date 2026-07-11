@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Camera, Paperclip, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
-import { Field, Input } from '@/app/components/field'
+import { Field, Input, PickOrType } from '@/app/components/field'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { PanelLoading } from '../runner/page'
@@ -2082,6 +2082,7 @@ function ArrivalRow({
   onSave: (fields: Record<string, string>) => void
 }) {
   const t = useTranslations('Admin')
+  const ti = useTranslations('Profile')
   const [editing, setEditing] = useState(false)
   const [date, setDate] = useState(details.arrivalDate || '')
   const [time, setTime] = useState(details.arrivalTime || '')
@@ -2117,22 +2118,28 @@ function ArrivalRow({
   return (
     <div className="mt-4 rounded-lg border border-accent/25 bg-card p-3">
       <div className="mb-2 text-[11px] uppercase tracking-wide text-gray">{t('arrivalInfo')}</div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="box-border w-full min-w-0 rounded-md border border-line bg-card px-2 py-1.5 text-[12.5px]" />
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="box-border w-full min-w-0 rounded-md border border-line bg-card px-2 py-1.5 text-[12.5px]" />
+      <div className="flex flex-col gap-2">
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="box-border h-9 w-full rounded-md border border-line bg-card px-2 text-[12.5px] text-ink" />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="box-border h-9 w-full rounded-md border border-line bg-card px-2 text-[12.5px] text-ink" />
+        <PickOrType
+          compact
+          options={LONDON_AIRPORT_TERMINALS}
+          value={airport}
+          onChange={setAirport}
+          pickLabel={t('manage.airport')}
+          otherLabel={ti('intake.other')}
+          placeholder={ti('intake.airportOther')}
+        />
+        <PickOrType
+          compact
+          options={LONDON_FLIGHTS}
+          value={flight}
+          onChange={setFlight}
+          pickLabel={ti('intake.flightPickList')}
+          otherLabel={ti('intake.other')}
+          placeholder={ti('intake.flightOther')}
+        />
       </div>
-      <select value={airport} onChange={(e) => setAirport(e.target.value)} className="mt-2 box-border w-full min-w-0 rounded-md border border-line bg-card px-2 py-1.5 text-[12.5px]">
-        <option value="">{t('manage.airport')}</option>
-        {LONDON_AIRPORT_TERMINALS.map((a) => (
-          <option key={a} value={a}>{a}</option>
-        ))}
-      </select>
-      <input value={flight} onChange={(e) => setFlight(e.target.value)} placeholder={t('flightNo')} list="nh-flights-admin" className="mt-2 box-border w-full min-w-0 rounded-md border border-line bg-card px-2 py-1.5 text-[12.5px]" />
-      <datalist id="nh-flights-admin">
-        {LONDON_FLIGHTS.map((f) => (
-          <option key={f} value={f} />
-        ))}
-      </datalist>
       <div className="mt-2 flex gap-2">
         <button
           onClick={() => {

@@ -593,7 +593,12 @@
         "luton": "Luton",
         "city": "London City"
       },
-      "airportPick": "Select an airport"
+      "airportPick": "Select an airport",
+      "other": "Other…",
+      "airportPickList": "Choose an airport",
+      "flightPickList": "Choose a flight",
+      "airportOther": "Enter the airport",
+      "flightOther": "Enter the flight number"
     },
     "arrival": {
       "title": "Arrival details",
@@ -958,7 +963,14 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "accept": "Accept & continue",
-    "decline": "Log out"
+    "decline": "Log out",
+    "subtitle": "We help you move to London — from the airport welcome to settling in.",
+    "points": {
+      "0": "Meeting you at the airport and a soft first day",
+      "1": "Home search and accompanied viewings",
+      "2": "Documents, a bank account and the NHS"
+    },
+    "agree": "By tapping “Accept & continue” you agree to our Privacy Policy and Terms of Service."
   },
   "SharePage": {
     "heading": "{name}’s move to London",
