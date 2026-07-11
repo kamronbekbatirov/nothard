@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Camera, Paperclip, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
-import { Field, Input, PickOrType } from '@/app/components/field'
+import { DateTimeInput, Field, Input, PickOrType } from '@/app/components/field'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { PanelLoading } from '../runner/page'
@@ -2119,8 +2119,8 @@ function ArrivalRow({
     <div className="mt-4 rounded-lg border border-accent/25 bg-card p-3">
       <div className="mb-2 text-[11px] uppercase tracking-wide text-gray">{t('arrivalInfo')}</div>
       <div className="flex flex-col gap-2">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="box-border h-9 w-full rounded-md border border-line bg-card px-2 text-[12.5px] text-ink" />
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="box-border h-9 w-full rounded-md border border-line bg-card px-2 text-[12.5px] text-ink" />
+        <DateTimeInput compact type="date" value={date} onChange={setDate} placeholder={ti('intake.datePick')} />
+        <DateTimeInput compact type="time" value={time} onChange={setTime} placeholder={ti('intake.timePick')} />
         <PickOrType
           compact
           options={LONDON_AIRPORT_TERMINALS}

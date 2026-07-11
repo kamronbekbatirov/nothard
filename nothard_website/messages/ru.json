@@ -598,7 +598,9 @@
       "airportPickList": "Выберите аэропорт",
       "flightPickList": "Выберите рейс",
       "airportOther": "Введите аэропорт",
-      "flightOther": "Введите номер рейса"
+      "flightOther": "Введите номер рейса",
+      "datePick": "Выберите дату",
+      "timePick": "Выберите время"
     },
     "arrival": {
       "title": "Данные о прилёте",

@@ -598,7 +598,9 @@
       "airportPickList": "Aeroportni tanlang",
       "flightPickList": "Reysni tanlang",
       "airportOther": "Aeroportni kiriting",
-      "flightOther": "Reys raqamini kiriting"
+      "flightOther": "Reys raqamini kiriting",
+      "datePick": "Sanani tanlang",
+      "timePick": "Vaqtni tanlang"
     },
     "arrival": {
       "title": "Uchib kelish ma'lumotlari",

@@ -598,7 +598,9 @@
       "airportPickList": "Choose an airport",
       "flightPickList": "Choose a flight",
       "airportOther": "Enter the airport",
-      "flightOther": "Enter the flight number"
+      "flightOther": "Enter the flight number",
+      "datePick": "Choose a date",
+      "timePick": "Choose a time"
     },
     "arrival": {
       "title": "Arrival details",

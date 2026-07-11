@@ -6,8 +6,8 @@ import { CheckCircle2, ChevronDown, ExternalLink, History, Home, Paperclip, Plus
 import { Link, useRouter } from '@/i18n/navigation'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
-import { LogoMark } from '@/app/components/logo'
-import { Input, PickOrType } from '@/app/components/field'
+import { Logo } from '@/app/components/logo'
+import { DateTimeInput, Input, PickOrType } from '@/app/components/field'
 import { SettingsModal } from '@/app/components/settings-modal'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
@@ -267,10 +267,10 @@ function ConsentGate({ onAccept, onLogout }: { onAccept: () => void; onLogout?: 
     <div className="flex min-h-screen items-center justify-center bg-paper px-5 py-10">
       <div className="w-full max-w-[420px]">
         <div className="overflow-hidden rounded-[22px] border border-line bg-card shadow-card">
-          {/* Hero — logo + welcome */}
+          {/* Hero — wordmark logo + welcome */}
           <div className="bg-accent-bg px-7 pb-7 pt-9 text-center">
-            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-card shadow-sm">
-              <LogoMark size={38} />
+            <span className="mx-auto inline-flex items-center rounded-full bg-card px-4 py-2 shadow-sm">
+              <Logo asLink={false} size={22} />
             </span>
             <h1 className="mt-4 font-display text-[26px] text-ink">{t('title')}</h1>
             <p className="mx-auto mt-1.5 max-w-[34ch] text-[14px] leading-relaxed text-muted">
@@ -289,19 +289,19 @@ function ConsentGate({ onAccept, onLogout }: { onAccept: () => void; onLogout?: 
               ))}
             </ul>
 
-            {/* Legal */}
-            <div className="mt-6 grid grid-cols-2 gap-2">
+            {/* Legal — full-width rows so long titles don't overflow */}
+            <div className="mt-6 flex flex-col gap-2">
               <Link
                 href="/privacy"
-                className="rounded-lg border border-line bg-surface px-3 py-2.5 text-center text-[13px] font-medium text-accent transition-colors hover:border-accent/40"
+                className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-[13.5px] font-medium text-accent transition-colors hover:border-accent/40"
               >
-                {t('privacy')}
+                {t('privacy')} <span aria-hidden>→</span>
               </Link>
               <Link
                 href="/terms"
-                className="rounded-lg border border-line bg-surface px-3 py-2.5 text-center text-[13px] font-medium text-accent transition-colors hover:border-accent/40"
+                className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-[13.5px] font-medium text-accent transition-colors hover:border-accent/40"
               >
-                {t('terms')}
+                {t('terms')} <span aria-hidden>→</span>
               </Link>
             </div>
 
@@ -470,21 +470,11 @@ function PackageIntakeModal({
 
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
-            <input
-              type="date"
-              value={arrivalDate}
-              onChange={(e) => setArrivalDate(e.target.value)}
-              className="box-border block h-11 w-full rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-            />
+            <DateTimeInput type="date" value={arrivalDate} onChange={setArrivalDate} placeholder={t('intake.datePick')} />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
-            <input
-              type="time"
-              value={arrivalTime}
-              onChange={(e) => setArrivalTime(e.target.value)}
-              className="box-border block h-11 w-full rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-            />
+            <DateTimeInput type="time" value={arrivalTime} onChange={setArrivalTime} placeholder={t('intake.timePick')} />
           </label>
 
           <PickOrType
@@ -1654,21 +1644,11 @@ function ArrivalEditModal({
         <div className="flex flex-col gap-4 p-6">
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
-            <input
-              type="date"
-              value={arrivalDate}
-              onChange={(e) => setArrivalDate(e.target.value)}
-              className="box-border block h-11 w-full rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-            />
+            <DateTimeInput type="date" value={arrivalDate} onChange={setArrivalDate} placeholder={t('intake.datePick')} />
           </label>
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
-            <input
-              type="time"
-              value={arrivalTime}
-              onChange={(e) => setArrivalTime(e.target.value)}
-              className="box-border block h-11 w-full rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-            />
+            <DateTimeInput type="time" value={arrivalTime} onChange={setArrivalTime} placeholder={t('intake.timePick')} />
           </label>
           <PickOrType
             label={t('intake.airport')}

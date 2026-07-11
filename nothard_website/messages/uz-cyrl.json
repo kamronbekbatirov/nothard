@@ -598,7 +598,9 @@
       "airportPickList": "Аэропортни танланг",
       "flightPickList": "Рейсни танланг",
       "airportOther": "Аэропортни киритинг",
-      "flightOther": "Рейс рақамини киритинг"
+      "flightOther": "Рейс рақамини киритинг",
+      "datePick": "Санани танланг",
+      "timePick": "Вақтни танланг"
     },
     "arrival": {
       "title": "Учиб келиш маълумотлари",

@@ -74,6 +74,53 @@ export function Field({
 }
 
 /**
+ * Native date / time input with a fixed height and a placeholder overlay.
+ * iOS Safari (and the Telegram webview) render an empty date/time input blank —
+ * no "mm/dd/yyyy" hint — so we lay our own placeholder text over it until a value
+ * is picked. The overlay is click-through so the native picker still opens.
+ */
+export function DateTimeInput({
+  type,
+  value,
+  onChange,
+  placeholder,
+  compact = false,
+}: {
+  type: 'date' | 'time'
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  compact?: boolean
+}) {
+  const box = compact
+    ? 'h-9 px-2 text-[12.5px]'
+    : 'h-11 px-3 text-[15px]'
+  return (
+    <div className="relative">
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          'box-border block w-full min-w-0 rounded-md border border-line bg-card text-ink',
+          box
+        )}
+      />
+      {!value && (
+        <span
+          className={cn(
+            'pointer-events-none absolute inset-y-0 flex items-center text-gray-lt',
+            compact ? 'left-2 text-[12.5px]' : 'left-3 text-[15px]'
+          )}
+        >
+          {placeholder}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/**
  * Pick from a list, or choose "Other" to type a custom value. The native
  * <select> gives a proper mobile wheel-picker; picking the "other" option
  * reveals a text field. Good for airports / flight numbers where most people
