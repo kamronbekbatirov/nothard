@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Laptop, LogOut, Smartphone, Tablet, X } from 'lucide-react'
 import { Button } from './button'
 import { Field, Input, PasswordInput, TelegramIcon } from './field'
+import { LangSwitcher } from './lang-switcher'
 import { useToast } from './toast'
 import { api, type DeviceSession, type User } from '@/app/lib/api'
 
@@ -201,6 +202,12 @@ export function SettingsModal({
                 </div>
               )}
             </form>
+          </section>
+
+          {/* Language */}
+          <section>
+            <div className="eyebrow mb-3">{t('settings.language')}</div>
+            <LangSwitcher />
           </section>
 
           {/* Email — link so you can also sign in with a code by email */}

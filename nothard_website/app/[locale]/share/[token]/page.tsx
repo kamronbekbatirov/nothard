@@ -26,13 +26,26 @@ export default function SharePage() {
       setState('error')
       return
     }
-    api
-      .sharedRelocation(token)
-      .then((d) => {
-        setData(d)
-        setState('ready')
-      })
-      .catch(() => setState('error'))
+    let cancelled = false
+    // Poll so family watching the page see status changes live (the client cabinet
+    // polls too), without a manual reload. Only the first load can flip to error.
+    const load = (first: boolean) =>
+      api
+        .sharedRelocation(token)
+        .then((d) => {
+          if (cancelled) return
+          setData(d)
+          setState('ready')
+        })
+        .catch(() => {
+          if (!cancelled && first) setState('error')
+        })
+    load(true)
+    const id = window.setInterval(() => load(false), 7000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
   }, [token])
 
   const percent =

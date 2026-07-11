@@ -514,7 +514,8 @@
       "revokeSession": "Sign out",
       "sessionsRevokeOthers": "Sign out all other devices",
       "sessionsEmpty": "No active sessions",
-      "sessionsSignedOutOthers": "Signed out of other devices"
+      "sessionsSignedOutOthers": "Signed out of other devices",
+      "language": "Language"
     },
     "managerPending": "A manager will be assigned soon",
     "serviceInProgress": "In progress",
@@ -628,6 +629,10 @@
       "copied": "Link copied",
       "shareNative": "Share",
       "open": "Open page"
+    },
+    "meetSign": {
+      "title": "How to find us",
+      "body": "Your greeter will be holding a sign — a black board with a white sheet and the “nothard” logo. Just look for it at the exit."
     }
   },
   "Admin": {

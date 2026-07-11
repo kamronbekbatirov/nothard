@@ -514,7 +514,8 @@
       "revokeSession": "Чиқиш",
       "sessionsRevokeOthers": "Бошқа барча қурилмалардан чиқиш",
       "sessionsEmpty": "Фаол сеанслар йўқ",
-      "sessionsSignedOutOthers": "Бошқа қурилмалардан чиқилди"
+      "sessionsSignedOutOthers": "Бошқа қурилмалардан чиқилди",
+      "language": "Тил"
     },
     "managerPending": "Менежер тез орада тайинланади",
     "serviceInProgress": "Жараёнда",
@@ -628,6 +629,10 @@
       "copied": "Ҳавола нусхаланди",
       "shareNative": "Улашиш",
       "open": "Саҳифани очиш"
+    },
+    "meetSign": {
+      "title": "Бизни қандай топиш мумкин",
+      "body": "Сизни кутиб олувчи тахтача ушлаб туради — оқ варақли ва “nothard” логотипли қора тахтача. Чиқишда уни қидиринг."
     }
   },
   "Admin": {

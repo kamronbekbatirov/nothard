@@ -514,7 +514,8 @@
       "revokeSession": "Выйти",
       "sessionsRevokeOthers": "Выйти на всех других устройствах",
       "sessionsEmpty": "Нет активных сессий",
-      "sessionsSignedOutOthers": "Вышли на других устройствах"
+      "sessionsSignedOutOthers": "Вышли на других устройствах",
+      "language": "Язык"
     },
     "managerPending": "Менеджер скоро будет назначен",
     "serviceInProgress": "В работе",
@@ -628,6 +629,10 @@
       "copied": "Ссылка скопирована",
       "shareNative": "Поделиться",
       "open": "Открыть страницу"
+    },
+    "meetSign": {
+      "title": "Как нас найти",
+      "body": "Встречающий будет держать табличку — чёрную дощечку с белым листом и логотипом «nothard». Просто ищите её у выхода."
     }
   },
   "Admin": {

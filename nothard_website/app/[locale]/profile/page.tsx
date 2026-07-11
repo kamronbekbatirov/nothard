@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
-import { CheckCircle2, ExternalLink, Home, Paperclip, Plus, Share2, Star, Trash2, X } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ExternalLink, History, Home, Paperclip, Plus, Share2, Star, Trash2, X } from 'lucide-react'
 import { Link, useRouter } from '@/i18n/navigation'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
@@ -440,7 +440,7 @@ function PackageIntakeModal({
                 type="date"
                 value={arrivalDate}
                 onChange={(e) => setArrivalDate(e.target.value)}
-                className="box-border w-full min-w-0 appearance-none rounded-md border border-line bg-card px-3 py-2.5 text-[15px] text-ink"
+                className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
               />
             </label>
             <label className="block min-w-0">
@@ -449,25 +449,25 @@ function PackageIntakeModal({
                 type="time"
                 value={arrivalTime}
                 onChange={(e) => setArrivalTime(e.target.value)}
-                className="box-border w-full min-w-0 appearance-none rounded-md border border-line bg-card px-3 py-2.5 text-[15px] text-ink"
+                className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
               />
             </label>
           </div>
 
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.airport')}</span>
-            <select
+            <input
               value={airport}
               onChange={(e) => setAirport(e.target.value)}
-              className="box-border w-full min-w-0 rounded-md border border-line bg-card px-3 py-3 text-[15px] text-ink"
-            >
-              <option value="">{t('intake.airportPick')}</option>
+              placeholder={t('intake.airportPick')}
+              list="nh-airports"
+              className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
+            />
+            <datalist id="nh-airports">
               {LONDON_AIRPORT_TERMINALS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
+                <option key={a} value={a} />
               ))}
-            </select>
+            </datalist>
           </label>
 
           <label className="block">
@@ -477,7 +477,7 @@ function PackageIntakeModal({
               onChange={(e) => setFlight(e.target.value)}
               placeholder={t('intake.flightPlaceholder')}
               list="nh-flights"
-              className="box-border w-full min-w-0 rounded-md border border-line bg-card px-3 py-2.5 text-[15px] text-ink"
+              className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
             />
             <datalist id="nh-flights">
               {LONDON_FLIGHTS.map((f) => (
@@ -943,6 +943,58 @@ function ServiceStatusBadge({ status }: { status: string }) {
   )
 }
 
+/* ---------- Airport greeter: "how to find the person meeting you" ---------- */
+// A little illustration of our greeter holding a meeting board (black frame,
+// white sheet, the "nothard" wordmark) so the client knows what to look for.
+function GreeterSign() {
+  return (
+    <svg viewBox="0 0 150 120" role="img" aria-hidden className="h-auto w-[132px] shrink-0">
+      {/* board — held up above the head */}
+      <g>
+        <rect x="26" y="6" width="98" height="52" rx="6" fill="#141210" />
+        <rect x="31" y="11" width="88" height="42" rx="3" fill="#f6f4ee" />
+        {/* wordmark */}
+        <circle cx="49" cy="32" r="6.5" fill="rgb(var(--accent))" />
+        <text
+          x="61"
+          y="37"
+          fontFamily="var(--font-onest), sans-serif"
+          fontSize="15"
+          fontWeight="700"
+          fill="#141210"
+        >
+          nothard
+        </text>
+      </g>
+      {/* person */}
+      <g fill="rgb(var(--ink))">
+        {/* head */}
+        <circle cx="75" cy="74" r="12" />
+        {/* shoulders / torso */}
+        <path d="M53 118c0-13 10-22 22-22s22 9 22 22z" />
+      </g>
+      {/* raised arms holding the board */}
+      <g stroke="rgb(var(--ink))" strokeWidth="6" strokeLinecap="round" fill="none">
+        <path d="M60 100 L40 58" />
+        <path d="M90 100 L110 58" />
+      </g>
+    </svg>
+  )
+}
+
+function MeetingSignNote() {
+  const t = useTranslations('Profile')
+  return (
+    <div className="mt-3 flex items-center gap-3 rounded-xl bg-surface p-3.5">
+      <GreeterSign />
+      <div className="min-w-0">
+        <div className="text-[13px] font-semibold text-ink">{t('meetSign.title')}</div>
+        <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{t('meetSign.body')}</p>
+      </div>
+    </div>
+  )
+}
+
 /* ---------- Order history (past & current purchases) ---------- */
 function fmtDateTime(iso?: string | null): string {
   if (!iso) return ''
@@ -976,10 +1028,16 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
     <div className="mt-8">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 text-left"
+        className="btn-motion flex w-full items-center gap-3 rounded-xl border border-line bg-card px-4 py-3.5 text-left transition-colors hover:border-accent/40"
       >
-        <span className="eyebrow">{t('history.title', { count: items.length })}</span>
-        <span className="text-[13px] text-muted">{open ? t('history.hide') : t('history.show')}</span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-bg text-accent">
+          <History size={17} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14.5px] font-semibold text-ink">{t('history.title', { count: items.length })}</span>
+          <span className="block text-[12.5px] text-muted">{open ? t('history.hide') : t('history.show')}</span>
+        </span>
+        <ChevronDown size={18} className={cn('shrink-0 text-gray transition-transform', open && 'rotate-180')} />
       </button>
 
       {open && (
@@ -1269,14 +1327,12 @@ function PopulatedCabinet({
 
         {hasPackage ? (
           <>
-            <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-              <h1 className="font-display text-[28px] text-ink sm:text-[30px]">{t('heading')}</h1>
-              <div className="text-right">
-                <div className="font-display text-[34px] text-accent">{percent}%</div>
-                <div className="text-[13px] text-muted">
-                  {t('progressLabel', { done: doneCount, total })}
-                </div>
-              </div>
+            <h1 className="mt-1 font-display text-[28px] text-ink sm:text-[30px]">{t('heading')}</h1>
+
+            {/* Progress — flush left */}
+            <div className="mt-3 flex items-baseline gap-2.5">
+              <span className="font-display text-[34px] leading-none text-accent">{percent}%</span>
+              <span className="text-[13px] text-muted">{t('progressLabel', { done: doneCount, total })}</span>
             </div>
 
             <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-track">
@@ -1345,6 +1401,7 @@ function PopulatedCabinet({
                             </span>
                           </div>
                           <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted">{desc}</p>
+                          {step.key === 'airportMeet' && <MeetingSignNote />}
                           <div className="mt-3 flex flex-wrap gap-2">
                             <Button variant="dark" size="sm" onClick={() => onChat('manager')}>
                               {t('stepActions.chat')}
@@ -1558,38 +1615,40 @@ function ArrivalEditModal({
           </button>
         </div>
         <div className="flex flex-col gap-4 p-6">
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
-            <input
-              type="date"
-              value={arrivalDate}
-              onChange={(e) => setArrivalDate(e.target.value)}
-              className="box-border block h-11 w-full min-w-0 appearance-none rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
-            <input
-              type="time"
-              value={arrivalTime}
-              onChange={(e) => setArrivalTime(e.target.value)}
-              className="box-border block h-11 w-full min-w-0 appearance-none rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block min-w-0">
+              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.date')}</span>
+              <input
+                type="date"
+                value={arrivalDate}
+                onChange={(e) => setArrivalDate(e.target.value)}
+                className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
+              />
+            </label>
+            <label className="block min-w-0">
+              <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.time')}</span>
+              <input
+                type="time"
+                value={arrivalTime}
+                onChange={(e) => setArrivalTime(e.target.value)}
+                className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
+              />
+            </label>
+          </div>
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.airport')}</span>
-            <select
+            <input
               value={airport}
               onChange={(e) => setAirport(e.target.value)}
+              placeholder={t('intake.airportPick')}
+              list="nh-airports-edit"
               className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
-            >
-              <option value="">{t('intake.airportPick')}</option>
+            />
+            <datalist id="nh-airports-edit">
               {LONDON_AIRPORT_TERMINALS.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
+                <option key={a} value={a} />
               ))}
-            </select>
+            </datalist>
           </label>
           <label className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.flight')}</span>
@@ -1598,7 +1657,7 @@ function ArrivalEditModal({
               onChange={(e) => setFlight(e.target.value)}
               placeholder="HY201"
               list="nh-flights-edit"
-              className="box-border block h-11 w-full min-w-0 appearance-none rounded-md border border-line bg-card px-3 text-[15px] text-ink"
+              className="box-border block h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink"
             />
             <datalist id="nh-flights-edit">
               {LONDON_FLIGHTS.map((f) => (

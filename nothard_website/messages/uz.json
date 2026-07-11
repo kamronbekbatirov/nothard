@@ -514,7 +514,8 @@
       "revokeSession": "Chiqish",
       "sessionsRevokeOthers": "Boshqa barcha qurilmalardan chiqish",
       "sessionsEmpty": "Faol seanslar yo'q",
-      "sessionsSignedOutOthers": "Boshqa qurilmalardan chiqildi"
+      "sessionsSignedOutOthers": "Boshqa qurilmalardan chiqildi",
+      "language": "Til"
     },
     "managerPending": "Menejer tez orada tayinlanadi",
     "serviceInProgress": "Jarayonda",
@@ -628,6 +629,10 @@
       "copied": "Havola nusxalandi",
       "shareNative": "Ulashish",
       "open": "Sahifani ochish"
+    },
+    "meetSign": {
+      "title": "Bizni qanday topish mumkin",
+      "body": "Sizni kutib oluvchi taxtacha ushlab turadi — oq varaqli va “nothard” logotipli qora taxtacha. Chiqishda uni qidiring."
     }
   },
   "Admin": {
