@@ -1042,7 +1042,9 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
   const ts = useTranslations('Services')
   const label = useTaskLabel()
   const [open, setOpen] = useState(false)
-  if (!items || items.length === 0) return null
+  // Only surface the history once the client has at least one COMPLETED order —
+  // there's nothing to look back on before that. Once shown, it stays.
+  if (!items || !items.some((it) => it.status === 'done')) return null
 
   const nameOf = (it: OrderHistoryItem) =>
     it.type === 'package'
