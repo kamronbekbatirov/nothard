@@ -960,44 +960,41 @@ function GreeterSign({ size = 128 }: { size?: number }) {
       {/* soft backdrop panel */}
       <rect x="0" y="0" width="140" height="118" rx="16" fill="#f1eee6" />
       {/* shoulders / torso — green shirt */}
-      <path d="M30 118C30 84 45 70 70 70s40 14 40 48Z" fill="#2f5d45" />
-      <path d="M64 64h12v10a6 6 0 0 1-12 0Z" fill="#f0c8a6" />
-      {/* head — tilted for a livelier pose */}
-      <g transform="rotate(-7 70 36)">
-        <circle cx="70" cy="34" r="20.5" fill="#2b2724" />
-        {/* ears */}
-        <circle cx="52.5" cy="40" r="4" fill="#f0c8a6" />
-        <circle cx="87.5" cy="40" r="4" fill="#f0c8a6" />
-        {/* face */}
-        <circle cx="70" cy="39" r="16.5" fill="#f0c8a6" />
-        {/* cheeks */}
-        <circle cx="59" cy="45" r="3.6" fill="#e79a80" opacity="0.55" />
-        <circle cx="81" cy="45" r="3.6" fill="#e79a80" opacity="0.55" />
-        {/* eyes */}
-        <circle cx="63.5" cy="38" r="2.2" fill="#2b2724" />
-        <circle cx="76.5" cy="38" r="2.2" fill="#2b2724" />
-        {/* smile */}
-        <path d="M62 44 Q70 52.5 78 44" fill="none" stroke="#2b2724" strokeWidth="2.6" strokeLinecap="round" />
-      </g>
-      {/* the sign — held at chest height, jaunty tilt */}
-      <g transform="rotate(3 70 97)">
-        <rect x="23" y="80" width="94" height="34" rx="8" fill="#ffffff" stroke="#e5e0d5" strokeWidth="1.5" />
-        <text
-          x="70"
-          y="102"
-          textAnchor="middle"
-          fontFamily="var(--font-onest), sans-serif"
-          fontSize="17"
-          fontWeight="700"
-          letterSpacing="-0.02em"
-        >
-          <tspan fill="#1b1a17">not</tspan>
-          <tspan fill="#2f5d45">hard.</tspan>
-        </text>
-        {/* hands gripping the top corners */}
-        <rect x="26" y="76" width="12" height="10" rx="4" fill="#f0c8a6" />
-        <rect x="102" y="76" width="12" height="10" rx="4" fill="#f0c8a6" />
-      </g>
+      <path d="M32 118C32 86 46 72 70 72s38 14 38 46Z" fill="#2f5d45" />
+      {/* neck */}
+      <rect x="63" y="56" width="14" height="13" rx="5" fill="#f2cda8" />
+      {/* face */}
+      <circle cx="70" cy="40" r="19" fill="#f2cda8" />
+      {/* soft cheeks */}
+      <circle cx="59.5" cy="46" r="3" fill="#e8917a" opacity="0.35" />
+      <circle cx="80.5" cy="46" r="3" fill="#e8917a" opacity="0.35" />
+      {/* hair — a tidy cap over the top */}
+      <path
+        d="M51 43 C51 11 89 11 89 43 C84 36 77 34 70 34 C63 34 56 36 51 43 Z"
+        fill="#3a332c"
+      />
+      {/* eyes */}
+      <circle cx="63" cy="41" r="2" fill="#3a332c" />
+      <circle cx="77" cy="41" r="2" fill="#3a332c" />
+      {/* gentle smile */}
+      <path d="M64 48 Q70 53 76 48" fill="none" stroke="#3a332c" strokeWidth="2.4" strokeLinecap="round" />
+      {/* the sign — held at chest height */}
+      <rect x="22" y="82" width="96" height="32" rx="8" fill="#ffffff" stroke="#e5e0d5" strokeWidth="1.5" />
+      <text
+        x="70"
+        y="103"
+        textAnchor="middle"
+        fontFamily="var(--font-onest), sans-serif"
+        fontSize="16.5"
+        fontWeight="700"
+        letterSpacing="-0.02em"
+      >
+        <tspan fill="#1b1a17">not</tspan>
+        <tspan fill="#2f5d45">hard.</tspan>
+      </text>
+      {/* hands gripping the top corners */}
+      <rect x="26" y="78" width="12" height="10" rx="4" fill="#f2cda8" />
+      <rect x="102" y="78" width="12" height="10" rx="4" fill="#f2cda8" />
     </svg>
   )
 }
