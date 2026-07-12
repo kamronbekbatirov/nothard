@@ -378,6 +378,7 @@ export const api = {
   },
   agency: {
     listings: () => req<AgencyData>('/agency/listings'),
+    matches: () => req<{ matches: AgencyMatch[]; total: number }>('/agency/matches'),
     add: (body: ListingInput) =>
       req<Listing>('/agency/listings', { method: 'POST', body: JSON.stringify(body) }),
     update: (id: number, body: Partial<ListingInput>) =>
@@ -702,6 +703,7 @@ export type Listing = {
   furnished: boolean
   status: 'published' | 'moderation' | 'rejected'
   matches: number
+  views?: number
   photoUrl?: string | null
   photos?: string[]
   propertyType?: string
@@ -709,6 +711,11 @@ export type Listing = {
   amenities?: string[]
   availableFrom?: string
   depositGBP?: number
+}
+
+export type AgencyMatch = {
+  listing: Listing
+  clients: { name: string; status: HousingStatus }[]
 }
 
 export type ListingInput = {

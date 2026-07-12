@@ -231,7 +231,8 @@ class Listing(Base):
     furnished: Mapped[bool] = mapped_column(Boolean, default=True)
     status: Mapped[str] = mapped_column(String(16), default="moderation")  # published|moderation|rejected
     photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)  # cover photo
-    matches: Mapped[int] = mapped_column(Integer, default=0)
+    matches: Mapped[int] = mapped_column(Integer, default=0)  # legacy seed; real matches derived from shortlists
+    views: Mapped[int] = mapped_column(Integer, default=0)  # public detail-page opens
     # Rich detail (Rightmove-style listing page).
     description: Mapped[str] = mapped_column(Text, default="")
     photos: Mapped[list] = mapped_column(JSON, default=list)  # extra photo URLs (gallery)

@@ -39,6 +39,23 @@ export default function RunnerPage() {
     } catch {}
   }
 
+  // Active work = clients with at least one pending visit (only their pending
+  // visits shown). Completed visits move to the History log below.
+  const activeClients = useMemo(
+    () =>
+      (data?.clients ?? [])
+        .map((c) => ({ ...c, tasks: c.tasks.filter((v) => v.stage !== 'done') }))
+        .filter((c) => c.tasks.length > 0),
+    [data]
+  )
+  const history = useMemo(() => {
+    const rows: (RunnerVisitRow & { client: string })[] = []
+    for (const c of data?.clients ?? []) {
+      for (const v of c.tasks) if (v.stage === 'done') rows.push({ ...v, client: c.name })
+    }
+    return rows.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))
+  }, [data])
+
   if (!ready) return <PanelLoading />
 
   return (
@@ -85,7 +102,7 @@ export default function RunnerPage() {
           </div>
         )}
 
-        {/* Clients & their visits */}
+        {/* Active work — clients with pending visits */}
         <div className="mt-7">
           <div className="eyebrow mb-3">{t('clientsTitle')}</div>
           {loaded && data && data.clients.length === 0 && (
@@ -93,8 +110,13 @@ export default function RunnerPage() {
               {t('noClients')}
             </div>
           )}
+          {loaded && data && data.clients.length > 0 && activeClients.length === 0 && (
+            <div className="rounded-xl border border-dashed border-line bg-surface p-8 text-center text-[14px] text-muted">
+              {t('allDone')}
+            </div>
+          )}
           <div className="flex flex-col gap-4">
-            {data?.clients.map((c) => (
+            {activeClients.map((c) => (
               <ClientCard
                 key={c.id}
                 c={c}
@@ -104,6 +126,9 @@ export default function RunnerPage() {
             ))}
           </div>
         </div>
+
+        {/* History — completed visits (the runner's earnings log) */}
+        {history.length > 0 && <VisitHistory rows={history} fee={data?.payout.visitFee ?? 0} />}
       </main>
 
       {chatClient && (
@@ -250,6 +275,45 @@ function VisitRow({ v, onAdvance }: { v: RunnerVisitRow; onAdvance: () => void }
       </div>
     </div>
   )
+}
+
+function VisitHistory({ rows, fee }: { rows: (RunnerVisitRow & { client: string })[]; fee: number }) {
+  const t = useTranslations('Runner')
+  const label = useTaskLabel()
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-8">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-card px-4 py-3.5 text-left"
+      >
+        <span className="text-[14.5px] font-semibold text-ink">{t('historyTitle', { count: rows.length })}</span>
+        <span className="text-[12.5px] text-muted">{open ? t('hide') : t('show')}</span>
+      </button>
+      {open && (
+        <div className="mt-3 flex flex-col gap-2">
+          {rows.map((v) => (
+            <div key={v.id} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-card px-4 py-3">
+              <div className="min-w-0">
+                <div className="truncate text-[13.5px] font-medium text-ink">{label(v.kind, v.key).title}</div>
+                <div className="text-[12px] text-muted">
+                  {v.client}
+                  {v.completedAt ? ` · ${fmtDateTime(v.completedAt)}` : ''}
+                </div>
+              </div>
+              <span className="shrink-0 text-[13px] font-semibold text-accent">+{fmtGBP(fee)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function fmtDateTime(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 export function PanelLoading() {

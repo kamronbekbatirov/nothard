@@ -891,7 +891,7 @@
     "rejected": "Rad etildi",
     "reModeration": "Tahrirlandi — qayta moderatsiyaga",
     "empty": "Hozircha e’lon yo‘q — birinchisini qo‘shing.",
-    "matchesTitle": "Mijoz mosliklari",
+    "matchesTitle": "Mijozlar qiziqishi",
     "form": {
       "price": "£ / oy",
       "addr": "Manzil",
@@ -912,7 +912,16 @@
       "studio": "Studiya",
       "house": "Uy",
       "room": "Xona"
-    }
+    },
+    "matchesEmpty": "Hozircha hech kim e’lonlaringizni saqlamagan. Mijozlar saqlagan e’lonlar shu yerda ko‘rinadi.",
+    "interested": "{count} qiziqdi",
+    "views": "Ko‘rishlar",
+    "matchesShort": "Saqlangan",
+    "statusNew": "Saqlandi",
+    "statusViewing": "Ko‘rik belgilandi",
+    "statusReached": "Bog‘lanildi",
+    "statusSecured": "Band qilindi",
+    "overview": "Umumiy"
   },
   "Runner": {
     "badge": "Raner",
@@ -952,7 +961,11 @@
     "pkgLabel": "Paket",
     "scheduledFor": "Belgilangan",
     "notScheduled": "Vaqt hali belgilanmagan",
-    "visitsWord": "chiqish"
+    "visitsWord": "chiqish",
+    "allDone": "Barcha chiqishlar bajarildi — zo‘r ish!",
+    "historyTitle": "Tarix · {count}",
+    "hide": "Yashirish",
+    "show": "Ko‘rsatish"
   },
   "Footer": {
     "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",

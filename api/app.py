@@ -2532,7 +2532,28 @@ def create_app() -> Flask:
                 break
         return out
 
-    def listing_row(l: Listing) -> dict:
+    def agency_shortlists(agency_id: int):
+        """HousingItem shortlist rows that reference this agency's catalog listings,
+        keyed by listing id. Real 'matches' come from clients shortlisting a listing."""
+        ids = [
+            l.id for l in SessionLocal.execute(
+                select(Listing).where(Listing.agency_id == agency_id)
+            ).scalars().all()
+        ]
+        by_listing: dict = {i: [] for i in ids}
+        if not ids:
+            return by_listing
+        refs = {f"catalog:{i}": i for i in ids}
+        rows = SessionLocal.execute(
+            select(HousingItem).where(HousingItem.ref.in_(list(refs.keys())))
+        ).scalars().all()
+        for h in rows:
+            lid = refs.get(h.ref)
+            if lid is not None:
+                by_listing[lid].append(h)
+        return by_listing
+
+    def listing_row(l: Listing, match_count: int | None = None) -> dict:
         return {
             "id": l.id,
             "priceGBP": l.price_gbp,
@@ -2542,7 +2563,8 @@ def create_app() -> Flask:
             "baths": l.baths,
             "furnished": l.furnished,
             "status": l.status,
-            "matches": l.matches,
+            "matches": match_count if match_count is not None else l.matches,
+            "views": l.views or 0,
             "photoUrl": l.photo_url,
             "photos": listing_gallery(l),
             "propertyType": l.property_type or "flat",
@@ -2595,17 +2617,50 @@ def create_app() -> Flask:
         listings = SessionLocal.execute(
             select(Listing).where(Listing.agency_id == user.id).order_by(Listing.id.desc())
         ).scalars().all()
+        shortlists = agency_shortlists(user.id)
+        counts = {lid: len(rows) for lid, rows in shortlists.items()}
         return jsonify(
             {
                 "kpis": {
                     "published": sum(1 for l in listings if l.status == "published"),
                     "moderation": sum(1 for l in listings if l.status == "moderation"),
-                    "matches": sum(l.matches for l in listings),
-                    "views": 142,
+                    "matches": sum(counts.values()),
+                    "views": sum(l.views or 0 for l in listings),
                 },
-                "listings": [listing_row(l) for l in listings],
+                "listings": [listing_row(l, counts.get(l.id, 0)) for l in listings],
             }
         )
+
+    @app.get("/agency/matches")
+    def agency_matches():
+        """Which clients shortlisted each of the agency's listings — real demand."""
+        user, err = require_role("agency")
+        if err:
+            return err
+        shortlists = agency_shortlists(user.id)
+        listings = {
+            l.id: l for l in SessionLocal.execute(
+                select(Listing).where(Listing.agency_id == user.id)
+            ).scalars().all()
+        }
+        cnames = client_name_map()
+        out = []
+        for lid, rows in shortlists.items():
+            if not rows:
+                continue
+            l = listings.get(lid)
+            if not l:
+                continue
+            out.append({
+                "listing": listing_row(l, len(rows)),
+                "clients": [
+                    {"name": cnames.get(h.client_id, "Клиент"), "status": h.status}
+                    for h in rows
+                ],
+            })
+        # Busiest listings first.
+        out.sort(key=lambda x: len(x["clients"]), reverse=True)
+        return jsonify({"matches": out, "total": sum(len(x["clients"]) for x in out)})
 
     @app.post("/agency/listings")
     def agency_add_listing():
@@ -2885,6 +2940,12 @@ def create_app() -> Flask:
         l = SessionLocal.get(Listing, lid)
         if not l or l.status != "published":
             return jsonify({"error": "not found"}), 404
+        # Count a view (agency analytics). Best-effort — never blocks the response.
+        try:
+            l.views = (l.views or 0) + 1
+            SessionLocal.commit()
+        except Exception:
+            SessionLocal.rollback()
         return jsonify(listing_detail(l))
 
     @app.get("/og")

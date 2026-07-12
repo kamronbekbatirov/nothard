@@ -2,18 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Eye, Heart, ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Field, Input } from '@/app/components/field'
 import { useToast } from '@/app/components/toast'
 import { PanelLoading } from '../runner/page'
 import { useRequireRole } from '@/app/lib/use-require-role'
-import { api, clearTokens, type AgencyData, type Listing, type ListingInput } from '@/app/lib/api'
+import { api, clearTokens, type AgencyData, type AgencyMatch, type Listing, type ListingInput } from '@/app/lib/api'
 import { fmtGBP } from '@/app/lib/data'
 import { cn } from '@/app/lib/utils'
 
-type Tab = 'all' | 'published' | 'moderation'
+type Section = 'listings' | 'matches'
+type StatusFilter = 'all' | 'published' | 'moderation'
 const AREAS = ['whitechapel', 'stratford', 'canadaWater', 'woolwich'] as const
 const TYPES = ['flat', 'studio', 'house', 'room'] as const
 
@@ -23,17 +24,24 @@ export default function AgencyPage() {
   const { toast } = useToast()
   const { ready, user } = useRequireRole(['agency'])
   const [data, setData] = useState<AgencyData | null>(null)
-  const [tab, setTab] = useState<Tab>('all')
+  const [matches, setMatches] = useState<{ matches: AgencyMatch[]; total: number } | null>(null)
+  const [section, setSection] = useState<Section>('listings')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [editing, setEditing] = useState<Listing | 'new' | null>(null)
 
+  const loadListings = () => api.agency.listings().then(setData).catch(() => {})
+  const loadMatches = () => api.agency.matches().then(setMatches).catch(() => {})
   useEffect(() => {
-    if (ready) api.agency.listings().then(setData).catch(() => {})
+    if (!ready) return
+    loadListings()
+    loadMatches()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready])
 
   const filtered = useMemo(() => {
     const list = data?.listings ?? []
-    return tab === 'all' ? list : list.filter((l) => l.status === tab)
-  }, [data, tab])
+    return statusFilter === 'all' ? list : list.filter((l) => l.status === statusFilter)
+  }, [data, statusFilter])
 
   function upsert(l: Listing) {
     setData((d) => {
@@ -63,9 +71,8 @@ export default function AgencyPage() {
       <AppTopbar
         badge={t('badge')}
         menu={[
-          { label: t('menu.listings'), active: true },
-          { label: t('menu.matches') },
-          { label: t('menu.views') },
+          { label: t('menu.listings'), active: section === 'listings', onClick: () => setSection('listings') },
+          { label: t('menu.matches'), active: section === 'matches', onClick: () => setSection('matches') },
         ]}
         name={user?.name}
         avatarUrl={user?.photo_url}
@@ -81,6 +88,7 @@ export default function AgencyPage() {
       />
 
       <main className="mx-auto max-w-[1240px] px-5 py-8 sm:px-8">
+        {/* KPIs — always visible */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {kpis.map((k) => (
             <div key={k.key} className="rounded-xl border border-line bg-card p-4">
@@ -92,36 +100,42 @@ export default function AgencyPage() {
           ))}
         </div>
 
-        <div className="mt-7 flex gap-2">
-          {(['all', 'published', 'moderation'] as Tab[]).map((tb) => (
-            <button
-              key={tb}
-              onClick={() => setTab(tb)}
-              className={cn(
-                'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
-                tab === tb ? 'bg-inverse text-inverse-fg' : 'bg-card text-muted hover:text-ink'
-              )}
-            >
-              {t(`tabs.${tb}`)}
-            </button>
-          ))}
-        </div>
+        {section === 'listings' ? (
+          <>
+            <div className="mt-7 flex gap-2">
+              {(['all', 'published', 'moderation'] as StatusFilter[]).map((tb) => (
+                <button
+                  key={tb}
+                  onClick={() => setStatusFilter(tb)}
+                  className={cn(
+                    'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
+                    statusFilter === tb ? 'bg-inverse text-inverse-fg' : 'bg-card text-muted hover:text-ink'
+                  )}
+                >
+                  {t(`tabs.${tb}`)}
+                </button>
+              ))}
+            </div>
 
-        {filtered.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
-            <p className="text-[14px] text-muted">{t('empty')}</p>
-          </div>
+            {filtered.length === 0 ? (
+              <div className="mt-6 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
+                <p className="text-[14px] text-muted">{t('empty')}</p>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((l) => (
+                  <ListingCard
+                    key={l.id}
+                    l={l}
+                    onEdit={() => setEditing(l)}
+                    onDeleted={() => removeLocal(l.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((l) => (
-              <ListingCard
-                key={l.id}
-                l={l}
-                onEdit={() => setEditing(l)}
-                onDeleted={() => removeLocal(l.id)}
-              />
-            ))}
-          </div>
+          <MatchesSection data={matches} />
         )}
       </main>
 
@@ -132,11 +146,74 @@ export default function AgencyPage() {
           onSaved={(l) => {
             upsert(l)
             setEditing(null)
+            loadListings()
             toast(t('saved'))
           }}
           areaLabel={(a) => ts(`filters.areaOpts.${a}` as any)}
         />
       )}
+    </div>
+  )
+}
+
+function MatchesSection({ data }: { data: { matches: AgencyMatch[]; total: number } | null }) {
+  const t = useTranslations('Agency')
+  const ts = useTranslations('Search')
+  const statusLabel = (s: string) =>
+    s === 'viewing'
+      ? t('statusViewing')
+      : s === 'reached'
+        ? t('statusReached')
+        : s === 'secured' || s === 'completed'
+          ? t('statusSecured')
+          : t('statusNew')
+
+  if (data && data.matches.length === 0) {
+    return (
+      <div className="mt-6 rounded-2xl border border-dashed border-line bg-surface p-10 text-center">
+        <Heart size={22} className="mx-auto text-gray-lt" />
+        <p className="mx-auto mt-2 max-w-[46ch] text-[14px] leading-relaxed text-muted">{t('matchesEmpty')}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-7">
+      <div className="eyebrow mb-3">{t('matchesTitle')}</div>
+      <div className="flex flex-col gap-4">
+        {data?.matches.map((m) => (
+          <div key={m.listing.id} className="overflow-hidden rounded-2xl border border-line bg-card">
+            <div className="flex items-center gap-3 border-b border-line p-4">
+              <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-track">
+                {m.listing.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.listing.photoUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="photo-stripe h-full w-full" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-display text-[17px] text-ink">
+                  {fmtGBP(m.listing.priceGBP)} <span className="text-[12.5px] font-normal text-gray">{ts('perMonth')}</span>
+                </div>
+                <div className="truncate text-[13px] text-ink-2">{m.listing.addr}</div>
+              </div>
+              <span className="shrink-0 rounded-full bg-accent-bg px-2.5 py-1 text-[12px] font-semibold text-accent">
+                {t('interested', { count: m.clients.length })}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2 p-4">
+              {m.clients.map((c, i) => (
+                <span key={i} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[13px]">
+                  <span className="font-medium text-ink">{c.name}</span>
+                  <span className="text-gray-lt">·</span>
+                  <span className="text-muted">{statusLabel(c.status)}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -185,8 +262,13 @@ function ListingCard({ l, onEdit, onDeleted }: { l: Listing; onEdit: () => void;
         </div>
         <div className="mt-1 truncate text-[13.5px] text-ink-2">{l.addr}</div>
         {l.status === 'published' && (
-          <div className="mt-3 border-t border-line pt-3 text-[12.5px] text-accent">
-            {t('matchesClients', { count: l.matches })}
+          <div className="mt-3 flex items-center gap-4 border-t border-line pt-3 text-[12.5px]">
+            <span className="inline-flex items-center gap-1.5 text-muted">
+              <Eye size={14} /> {l.views ?? 0} {t('views').toLowerCase()}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-accent">
+              <Heart size={14} /> {l.matches} {t('matchesShort').toLowerCase()}
+            </span>
           </div>
         )}
 

@@ -891,7 +891,7 @@
     "rejected": "Rejected",
     "reModeration": "Edited — back to moderation",
     "empty": "No listings yet — add your first one.",
-    "matchesTitle": "Client matches",
+    "matchesTitle": "Client interest",
     "form": {
       "price": "£ / month",
       "addr": "Address",
@@ -912,7 +912,16 @@
       "studio": "Studio",
       "house": "House",
       "room": "Room"
-    }
+    },
+    "matchesEmpty": "No one has shortlisted your listings yet. Published listings that clients save will appear here.",
+    "interested": "{count} interested",
+    "views": "Views",
+    "matchesShort": "Saved",
+    "statusNew": "Saved",
+    "statusViewing": "Viewing set",
+    "statusReached": "Contacted",
+    "statusSecured": "Secured",
+    "overview": "Overview"
   },
   "Runner": {
     "badge": "Runner",
@@ -952,7 +961,11 @@
     "pkgLabel": "Package",
     "scheduledFor": "Scheduled",
     "notScheduled": "Time not set yet",
-    "visitsWord": "visits"
+    "visitsWord": "visits",
+    "allDone": "All visits done — great work!",
+    "historyTitle": "History · {count}",
+    "hide": "Hide",
+    "show": "Show"
   },
   "Footer": {
     "tagline": "End-to-end relocation to London. Calm, human, in your language.",
