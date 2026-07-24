@@ -1172,6 +1172,15 @@
     "back": "Orqaga",
     "adminSectionTitle": "Jonli safar",
     "tflLabel": "TfL API kaliti (transport)",
-    "tflHint": "London transporti marshrutlari TfL orqali kalitsiz ham ishlaydi. Bepul kalit (api-portal.tfl.gov.uk) so‘rov limitini oshiradi."
+    "tflHint": "London transporti marshrutlari TfL orqali kalitsiz ham ishlaydi. Bepul kalit (api-portal.tfl.gov.uk) so‘rov limitini oshiradi.",
+    "busyElsewhere": "Avval joriy safarni yakunlang",
+    "offRoute": "Siz marshrutdan uzoqdasiz",
+    "rebuild": "Mening joyimdan qayta qurish",
+    "myLocation": "Mening joylashuvim",
+    "useMyLocation": "Mening joyim",
+    "locating": "Aniqlanmoqda…",
+    "locateFail": "Joylashuvni aniqlab bo‘lmadi",
+    "startFail": "Safarni boshlab bo‘lmadi",
+    "previewLabel": "Marshrut ko‘rinishi"
   }
 }

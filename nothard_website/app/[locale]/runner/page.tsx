@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
-import { ChevronDown, MapPin, MessageSquare, Pencil, Phone, Smartphone } from 'lucide-react'
+import { ChevronDown, MapPin, MessageSquare, Navigation, Pencil, Phone, Smartphone, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Avatar } from '@/app/components/avatar'
@@ -25,9 +26,16 @@ import {
   type TrackConfig,
   type GeoResult,
   type TravelMode,
+  type RoutePreview,
 } from '@/app/lib/api'
 import { fmtGBP } from '@/app/lib/data'
 import { cn } from '@/app/lib/utils'
+
+// Leaflet touches `window`, so the route-preview map is client-only.
+const LiveMap = dynamic(() => import('@/app/components/live-map'), {
+  ssr: false,
+  loading: () => <div className="h-[180px] animate-pulse rounded-xl border border-line bg-card" />,
+})
 
 export default function RunnerPage() {
   const t = useTranslations('Runner')
@@ -38,13 +46,61 @@ export default function RunnerPage() {
   const [chatClient, setChatClient] = useState<RunnerClientRow | null>(null)
 
   const load = () => api.runner.dashboard().then(setData).catch(() => {}).finally(() => setLoaded(true))
+  // The one active trip (if any) + the phone-setup config, lifted here so the
+  // live map/route can live inside the matching client's card.
+  const [trip, setTrip] = useState<(TripLive & { client: { id: number; name: string } | null }) | null>(null)
+  const [cfg, setCfg] = useState<TrackConfig | null>(null)
+  const [startFor, setStartFor] = useState<{ id: number; name: string } | null>(null)
+  const tt = useTranslations('Tracking')
+  const loadTrip = () => api.runner.trip().then((r) => setTrip(r.trip)).catch(() => {})
   useEffect(() => {
     if (!ready) return
     load()
-    const id = window.setInterval(load, 8000)
+    loadTrip()
+    api.runner.trackConfig().then(setCfg).catch(() => {})
+    const id = window.setInterval(() => {
+      load()
+      loadTrip()
+    }, 8000)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready])
+
+  // Trip controls — used by whichever client card holds the active trip.
+  const tripCtl = {
+    setMode: async (m: TravelMode) => {
+      if (!trip) return
+      setTrip({ ...trip, mode: m })
+      try {
+        const r = await api.runner.setMode(trip.id, m)
+        setTrip((c) => (c ? { ...r.trip, client: c.client } : c))
+      } catch {
+        loadTrip()
+      }
+    },
+    setDest: async (label: string, coords: { lat: number; lng: number } | null) => {
+      if (!trip) return
+      await api.runner
+        .setDestination(trip.id, { dest_label: label, dest_lat: coords?.lat, dest_lng: coords?.lng })
+        .catch(() => {})
+      loadTrip()
+    },
+    rebuild: async () => {
+      if (!trip) return
+      await api.runner.rebuildTrip(trip.id).catch(() => {})
+      loadTrip()
+    },
+    arrive: async () => {
+      if (!trip) return
+      await api.runner.arrive(trip.id).catch(() => {})
+      loadTrip()
+    },
+    cancel: async () => {
+      if (!trip || !window.confirm(tt('cancelConfirm'))) return
+      await api.runner.cancel(trip.id).catch(() => {})
+      loadTrip()
+    },
+  }
 
   async function advance(taskId: number) {
     try {
@@ -70,6 +126,18 @@ export default function RunnerPage() {
     }
     return rows.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))
   }, [data])
+
+  // Cards to render: clients with pending visits, plus the client of the active
+  // trip (so its live map shows even if that client has no pending visit).
+  const shownClients = useMemo(() => {
+    const list = [...activeClients]
+    const cid = trip?.client?.id
+    if (cid != null && !list.some((c) => c.id === cid)) {
+      const full = (data?.clients ?? []).find((c) => c.id === cid)
+      if (full) list.unshift({ ...full, tasks: full.tasks.filter((v) => v.stage !== 'done') })
+    }
+    return list
+  }, [activeClients, trip, data])
 
   if (!ready) return <PanelLoading />
 
@@ -126,10 +194,10 @@ export default function RunnerPage() {
           </div>
         )}
 
-        {/* Live tracking — phone setup + start/stop a trip */}
-        <TrackingSection clients={(data?.clients ?? []).map((c) => ({ id: c.id, name: c.name }))} />
+        {/* Phone setup — collapsible; the live trip lives in the client cards below */}
+        <PhoneSetupCard cfg={cfg} onRegen={(id) => setCfg((c) => (c ? { ...c, deviceId: id } : c))} />
 
-        {/* Active work — clients with pending visits */}
+        {/* My clients — each card holds that client's visits AND their live trip */}
         <div className="mt-7">
           <div className="eyebrow mb-3">{t('clientsTitle')}</div>
           {loaded && data && data.clients.length === 0 && (
@@ -137,16 +205,20 @@ export default function RunnerPage() {
               {t('noClients')}
             </div>
           )}
-          {loaded && data && data.clients.length > 0 && activeClients.length === 0 && (
+          {loaded && data && data.clients.length > 0 && shownClients.length === 0 && (
             <div className="rounded-xl border border-dashed border-line bg-surface p-8 text-center text-[14px] text-muted">
               {t('allDone')}
             </div>
           )}
           <div className="flex flex-col gap-4">
-            {activeClients.map((c) => (
+            {shownClients.map((c) => (
               <ClientCard
                 key={c.id}
                 c={c}
+                trip={trip?.client?.id === c.id ? trip : null}
+                tripCtl={tripCtl}
+                tripBusyElsewhere={!!trip && trip.client?.id !== c.id}
+                onStartTrip={() => setStartFor({ id: c.id, name: c.name })}
                 onAdvance={advance}
                 onChat={() => setChatClient(c)}
               />
@@ -172,6 +244,17 @@ export default function RunnerPage() {
           onClose={() => setChatClient(null)}
         />
       )}
+
+      {startFor && (
+        <StartTripModal
+          client={startFor}
+          onClose={() => setStartFor(null)}
+          onStarted={() => {
+            setStartFor(null)
+            loadTrip()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -187,12 +270,29 @@ function Stat({ value, label, tone }: { value?: number; label: string; tone?: 'a
   )
 }
 
+type TripWithClient = TripLive & { client: { id: number; name: string } | null }
+type TripCtl = {
+  setMode: (m: TravelMode) => void
+  setDest: (label: string, coords: { lat: number; lng: number } | null) => Promise<void>
+  rebuild: () => void
+  arrive: () => void
+  cancel: () => void
+}
+
 function ClientCard({
   c,
+  trip,
+  tripCtl,
+  tripBusyElsewhere,
+  onStartTrip,
   onAdvance,
   onChat,
 }: {
   c: RunnerClientRow
+  trip: TripWithClient | null
+  tripCtl: TripCtl
+  tripBusyElsewhere: boolean
+  onStartTrip: () => void
   onAdvance: (taskId: number) => void
   onChat: () => void
 }) {
@@ -239,6 +339,116 @@ function ClientCard({
         {c.tasks.map((v) => (
           <VisitRow key={v.id} v={v} onAdvance={() => onAdvance(v.id)} />
         ))}
+      </div>
+
+      {/* Live trip for this client */}
+      <TripArea
+        trip={trip}
+        tripCtl={tripCtl}
+        busyElsewhere={tripBusyElsewhere}
+        onStart={onStartTrip}
+      />
+    </div>
+  )
+}
+
+/* ---------- Per-client live trip area (inside the client card) ---------- */
+function TripArea({
+  trip,
+  tripCtl,
+  busyElsewhere,
+  onStart,
+}: {
+  trip: TripWithClient | null
+  tripCtl: TripCtl
+  busyElsewhere: boolean
+  onStart: () => void
+}) {
+  const t = useTranslations('Tracking')
+  const [editDest, setEditDest] = useState(false)
+  const [newDest, setNewDest] = useState('')
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+
+  if (!trip) {
+    return (
+      <div className="border-t border-line p-4">
+        {busyElsewhere ? (
+          <p className="text-center text-[12.5px] text-muted">{t('busyElsewhere')}</p>
+        ) : (
+          <Button variant="outline" size="block" className="gap-1.5 text-accent" onClick={onStart}>
+            <Navigation size={14} /> {t('startTitle')}
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-line bg-accent-bg/30 p-4">
+      <ModeSelector value={trip.mode} onChange={tripCtl.setMode} />
+      <TripCard trip={trip} />
+
+      {trip.offRoute && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-[12.5px] text-amber-700">
+          <span>{t('offRoute')}</span>
+          <button onClick={tripCtl.rebuild} className="shrink-0 font-semibold underline">
+            {t('rebuild')}
+          </button>
+        </div>
+      )}
+
+      {editDest ? (
+        <div className="rounded-lg border border-line bg-surface p-3">
+          <span className="mb-1 block text-[12px] font-medium text-ink-2">{t('destLabel')}</span>
+          <AddressField
+            search={(q) => api.runner.geocode(q).then((r) => r.results)}
+            value={newDest}
+            placeholder={t('destPlaceholder')}
+            onPick={(l, cc) => {
+              setNewDest(l)
+              setCoords(cc)
+            }}
+          />
+          <div className="mt-2 flex gap-2">
+            <Button
+              variant="solid"
+              size="sm"
+              className="flex-1"
+              disabled={!newDest.trim()}
+              onClick={async () => {
+                await tripCtl.setDest(newDest.trim(), coords)
+                setEditDest(false)
+              }}
+            >
+              {t('save')}
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditDest(false)}>
+              {t('back')}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          variant="outline"
+          size="block"
+          className="gap-1.5"
+          onClick={() => {
+            setNewDest(trip.dest.label || '')
+            setCoords(null)
+            setEditDest(true)
+          }}
+        >
+          <Pencil size={12} /> {t('changeDest')}
+        </Button>
+      )}
+
+      <div className="flex gap-2">
+        <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.arrive}>
+          {t('arriveBtn')}
+        </Button>
+        <Button variant="outline" size="block" className="flex-1" onClick={tripCtl.cancel}>
+          {t('cancelBtn')}
+        </Button>
       </div>
     </div>
   )
@@ -376,40 +586,21 @@ function CopyRow({
   )
 }
 
-function TrackingSection({ clients }: { clients: { id: number; name: string }[] }) {
+/* ---------- Phone setup (collapsible) ---------- */
+function PhoneSetupCard({
+  cfg,
+  onRegen,
+}: {
+  cfg: TrackConfig | null
+  onRegen: (deviceId: string) => void
+}) {
   const t = useTranslations('Tracking')
   const { toast } = useToast()
-  const [cfg, setCfg] = useState<TrackConfig | null>(null)
-  const [trip, setTrip] = useState<(TripLive & { client: { id: number; name: string } | null }) | null>(null)
-  const [clientId, setClientId] = useState('')
-  const [dest, setDest] = useState('')
-  // Exact coords when an address was picked from the suggestions (else null →
-  // the backend geocodes the free text as a fallback).
-  const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null)
-  const [origin, setOrigin] = useState('')
-  const [mode, setMode] = useState<TravelMode>('car')
-  const [busy, setBusy] = useState(false)
+  const [open, setOpen] = useState(true)
   const [copied, setCopied] = useState('')
-  // Mid-trip destination change (the route changed on the way).
-  const [editDest, setEditDest] = useState(false)
-  const [newDest, setNewDest] = useState('')
-  const [newDestCoords, setNewDestCoords] = useState<{ lat: number; lng: number } | null>(null)
-  const [savingDest, setSavingDest] = useState(false)
-  // Phone-setup card is collapsible and remembers "done" per device, so it
-  // isn't a wall of instructions every time.
-  const [setupOpen, setSetupOpen] = useState(true)
   useEffect(() => {
-    setSetupOpen(localStorage.getItem('nh_track_setup_done') !== '1')
+    setOpen(localStorage.getItem('nh_track_setup_done') !== '1')
   }, [])
-
-  const loadTrip = () => api.runner.trip().then((r) => setTrip(r.trip)).catch(() => {})
-  useEffect(() => {
-    api.runner.trackConfig().then(setCfg).catch(() => {})
-    loadTrip()
-    const id = window.setInterval(loadTrip, 8000)
-    return () => clearInterval(id)
-  }, [])
-
   async function copy(text: string, which: string) {
     try {
       await navigator.clipboard.writeText(text)
@@ -422,263 +613,246 @@ function TrackingSection({ clients }: { clients: { id: number; name: string }[] 
     if (!window.confirm(t('regenConfirm'))) return
     try {
       const r = await api.runner.regenToken()
-      setCfg((c) => (c ? { ...c, deviceId: r.deviceId } : c))
+      onRegen(r.deviceId)
     } catch {}
   }
+  return (
+    <div className="mt-4 rounded-2xl border border-line bg-card">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-5 py-4 text-left"
+      >
+        <span className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+          <Smartphone size={16} className="text-accent" /> {t('setupTitle')}
+        </span>
+        <ChevronDown size={18} className={cn('shrink-0 text-gray transition-transform', open && 'rotate-180')} />
+      </button>
+      {!open && <p className="-mt-1 px-5 pb-4 text-[12px] leading-snug text-muted">{t('setupCollapsedHint')}</p>}
+      {open && (
+        <div className="px-5 pb-5">
+          <p className="text-[12.5px] leading-snug text-muted">{t('setupIntro')}</p>
+          <ol className="mt-3 flex flex-col gap-1.5 text-[13px] leading-snug text-ink-2">
+            <li>1. {t('installStep')}</li>
+            <li>2. {t('settingsStep')}</li>
+          </ol>
+          <div className="mt-3 flex flex-col gap-2.5">
+            <CopyRow
+              label={t('serverUrlLabel')}
+              value={cfg?.serverUrl || ''}
+              onCopy={() => cfg && copy(cfg.serverUrl, 'url')}
+              copyLabel={copied === 'url' ? t('copied') : t('copy')}
+            />
+            <CopyRow
+              label={t('deviceIdLabel')}
+              value={cfg?.deviceId || ''}
+              onCopy={() => cfg && copy(cfg.deviceId, 'id')}
+              copyLabel={copied === 'id' ? t('copied') : t('copy')}
+            />
+          </div>
+          <p className="mt-2.5 text-[11.5px] text-gray">{t('recommended')}</p>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <button onClick={regen} className="text-[12.5px] text-gray underline underline-offset-2 hover:text-ink">
+              {t('regenToken')}
+            </button>
+            <button
+              onClick={() => {
+                localStorage.setItem('nh_track_setup_done', '1')
+                setOpen(false)
+              }}
+              className="text-[12.5px] font-medium text-accent hover:underline"
+            >
+              {t('setupDone')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ---------- Start-trip modal (per client) with route preview ---------- */
+function StartTripModal({
+  client,
+  onClose,
+  onStarted,
+}: {
+  client: { id: number; name: string }
+  onClose: () => void
+  onStarted: () => void
+}) {
+  const t = useTranslations('Tracking')
+  const { toast } = useToast()
+  const [dest, setDest] = useState('')
+  const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [origin, setOrigin] = useState('')
+  const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [mode, setMode] = useState<TravelMode>('car')
+  const [busy, setBusy] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [preview, setPreview] = useState<RoutePreview | null>(null)
+
+  function useMyLocation() {
+    if (!navigator.geolocation) {
+      toast(t('locateFail'))
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setOriginCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setOrigin(t('myLocation'))
+        setLocating(false)
+      },
+      () => {
+        toast(t('locateFail'))
+        setLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
+  // Live route preview once we have both ends.
+  useEffect(() => {
+    const hasO = !!originCoords || origin.trim().length >= 3
+    const hasD = !!destCoords || dest.trim().length >= 3
+    if (!hasO || !hasD) {
+      setPreview(null)
+      return
+    }
+    let cancelled = false
+    const id = window.setTimeout(() => {
+      api.runner
+        .routePreview({
+          origin_lat: originCoords?.lat,
+          origin_lng: originCoords?.lng,
+          origin_label: originCoords ? undefined : origin.trim(),
+          dest_lat: destCoords?.lat,
+          dest_lng: destCoords?.lng,
+          dest_label: destCoords ? undefined : dest.trim(),
+          mode,
+        })
+        .then((r) => !cancelled && setPreview(r))
+        .catch(() => {})
+    }, 500)
+    return () => {
+      cancelled = true
+      clearTimeout(id)
+    }
+  }, [originCoords, destCoords, origin, dest, mode])
+
   async function start() {
-    if (!clientId) return
-    if (!dest.trim()) {
+    if (!dest.trim() && !destCoords) {
       toast(t('needDest'))
       return
     }
     setBusy(true)
     try {
       const r = await api.runner.startTrip({
-        client_id: Number(clientId),
-        dest_label: dest.trim(),
+        client_id: client.id,
+        dest_label: dest.trim() || undefined,
         dest_lat: destCoords?.lat,
         dest_lng: destCoords?.lng,
-        origin_label: origin.trim() || undefined,
+        origin_label: originCoords ? undefined : origin.trim() || undefined,
+        origin_lat: originCoords?.lat,
+        origin_lng: originCoords?.lng,
         mode,
       })
-      if (!r.geocoded) toast(t('geocodeWarn'))
-      setDest('')
-      setDestCoords(null)
-      setOrigin('')
-      loadTrip()
+      if (!r.geocoded && !destCoords) toast(t('geocodeWarn'))
+      onStarted()
     } catch {
+      toast(t('startFail'))
     } finally {
       setBusy(false)
     }
   }
-  async function switchMode(m: TravelMode) {
-    if (!trip) return
-    setTrip({ ...trip, mode: m }) // optimistic
-    try {
-      const r = await api.runner.setMode(trip.id, m)
-      setTrip((cur) => (cur ? { ...r.trip, client: cur.client } : cur))
-    } catch {
-      loadTrip()
-    }
-  }
-  async function changeDestination() {
-    if (!trip || !newDest.trim()) return
-    setSavingDest(true)
-    try {
-      await api.runner.setDestination(trip.id, {
-        dest_label: newDest.trim(),
-        dest_lat: newDestCoords?.lat,
-        dest_lng: newDestCoords?.lng,
-      })
-      setEditDest(false)
-      setNewDest('')
-      setNewDestCoords(null)
-      loadTrip()
-    } catch {
-    } finally {
-      setSavingDest(false)
-    }
-  }
-  async function arrive() {
-    if (!trip) return
-    await api.runner.arrive(trip.id).catch(() => {})
-    loadTrip()
-  }
-  async function cancel() {
-    if (!trip || !window.confirm(t('cancelConfirm'))) return
-    await api.runner.cancel(trip.id).catch(() => {})
-    loadTrip()
-  }
 
-  const control =
-    'box-border h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink'
+  const previewEstimate = preview?.routeSource === 'approx' || preview?.routeSource === 'line'
 
   return (
-    <div className="mt-7">
-      <div className="eyebrow mb-3">{t('runnerTitle')}</div>
+    <div className="fixed inset-0 z-[9992] flex flex-col bg-paper">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-5 py-4">
+        <div className="min-w-0">
+          <div className="font-display text-[17px] text-ink">{t('startTitle')}</div>
+          <div className="truncate text-[12.5px] text-muted">{t('toClient')}: {client.name}</div>
+        </div>
+        <button onClick={onClose} className="text-gray hover:text-ink" aria-label="close">
+          <X size={20} />
+        </button>
+      </div>
 
-      {trip && trip.status === 'active' ? (
-        <div className="flex flex-col gap-3">
-          {trip.client && (
-            <div className="text-[13px] text-muted">
-              {t('toClient')}: <span className="font-medium text-ink">{trip.client.name}</span>
-            </div>
-          )}
-          <ModeSelector value={trip.mode} onChange={switchMode} />
-          <TripCard trip={trip} />
-
-          {/* Change destination mid-trip (route changed on the way) */}
-          {editDest ? (
-            <div className="rounded-xl border border-line bg-card p-3.5">
-              <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('destLabel')}</span>
-              <AddressField
-                search={(q) => api.runner.geocode(q).then((r) => r.results)}
-                value={newDest}
-                placeholder={t('destPlaceholder')}
-                onPick={(label, coords) => {
-                  setNewDest(label)
-                  setNewDestCoords(coords)
-                }}
-              />
-              <div className="mt-2.5 flex gap-2">
-                <Button
-                  variant="solid"
-                  size="sm"
-                  className="flex-1"
-                  disabled={savingDest || !newDest.trim()}
-                  onClick={changeDestination}
-                >
-                  {t('save')}
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditDest(false)}>
-                  {t('back')}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                setNewDest(trip.dest.label || '')
-                setNewDestCoords(null)
-                setEditDest(true)
+      <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8">
+        <div className="mx-auto flex max-w-[560px] flex-col gap-4">
+          {/* Destination */}
+          <label className="block">
+            <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('destLabel')}</span>
+            <AddressField
+              search={(q) => api.runner.geocode(q).then((r) => r.results)}
+              value={dest}
+              placeholder={t('destPlaceholder')}
+              onPick={(label, coords) => {
+                setDest(label)
+                setDestCoords(coords)
               }}
-              className="flex items-center justify-center gap-1.5 rounded-lg border border-line bg-card py-2 text-[13px] font-medium text-accent transition-colors hover:border-accent/50"
-            >
-              <Pencil size={13} /> {t('changeDest')}
-            </button>
+            />
+          </label>
+
+          {/* Origin + my-location */}
+          <div>
+            <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('originLabel')}</span>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="min-w-0 flex-1">
+                <AddressField
+                  search={(q) => api.runner.geocode(q).then((r) => r.results)}
+                  value={origin}
+                  placeholder={t('originPlaceholder')}
+                  onPick={(label, coords) => {
+                    setOrigin(label)
+                    setOriginCoords(coords)
+                  }}
+                />
+              </div>
+              <Button variant="outline" className="shrink-0 gap-1.5 text-accent" disabled={locating} onClick={useMyLocation}>
+                <Navigation size={14} /> {locating ? t('locating') : t('useMyLocation')}
+              </Button>
+            </div>
+          </div>
+
+          {/* Mode */}
+          <div>
+            <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('modeLabel')}</span>
+            <ModeSelector value={mode} onChange={setMode} />
+            {mode === 'transit' && (
+              <p className="mt-1.5 text-[11.5px] leading-snug text-gray">{t('transitEstimate')}</p>
+            )}
+          </div>
+
+          {/* Route preview */}
+          {preview && preview.route.length > 1 && (
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[12.5px] font-medium text-ink-2">{t('previewLabel')}</span>
+                {preview.eta && (
+                  <span className="text-[13px] font-semibold text-accent">
+                    {t('etaMin', { min: preview.eta.minutes })} · {t('kmLeft', { km: preview.eta.km })}
+                  </span>
+                )}
+              </div>
+              <LiveMap
+                position={null}
+                dest={preview.dest ?? destCoords}
+                route={preview.route}
+                estimate={previewEstimate}
+                height={200}
+              />
+            </div>
           )}
 
-          <div className="rounded-xl border border-line bg-accent-bg/50 px-3.5 py-2.5 text-[12.5px] text-ink-2">
-            {t('trackingOn')}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="solid" size="block" className="flex-1" onClick={arrive}>
-              {t('arriveBtn')}
-            </Button>
-            <Button variant="outline" size="block" className="flex-1" onClick={cancel}>
-              {t('cancelBtn')}
-            </Button>
-          </div>
+          <Button variant="solid" size="block" disabled={busy} onClick={start}>
+            {busy ? t('starting') : t('startBtn')}
+          </Button>
         </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {/* Start a trip — the primary action, on top */}
-          <div className="rounded-2xl border border-line bg-card p-5">
-            <div className="text-[14px] font-semibold text-ink">{t('startTitle')}</div>
-            {clients.length === 0 ? (
-              <p className="mt-2 text-[13px] text-muted">{t('noClients')}</p>
-            ) : (
-              <div className="mt-3 flex flex-col gap-3">
-                <label className="block">
-                  <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('pickClient')}</span>
-                  <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={control}>
-                    <option value="">{t('pickClientPlaceholder')}</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('destLabel')}</span>
-                  <AddressField
-                    search={(q) => api.runner.geocode(q).then((r) => r.results)}
-                    value={dest}
-                    placeholder={t('destPlaceholder')}
-                    onPick={(label, coords) => {
-                      setDest(label)
-                      setDestCoords(coords)
-                    }}
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('originLabel')}</span>
-                  <AddressField
-                    search={(q) => api.runner.geocode(q).then((r) => r.results)}
-                    value={origin}
-                    placeholder={t('originPlaceholder')}
-                    onPick={(label) => setOrigin(label)}
-                  />
-                </label>
-                <div>
-                  <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('modeLabel')}</span>
-                  <ModeSelector value={mode} onChange={setMode} />
-                  {mode === 'transit' && (
-                    <p className="mt-1.5 text-[11.5px] leading-snug text-gray">{t('transitEstimate')}</p>
-                  )}
-                </div>
-                <Button variant="solid" size="block" disabled={busy || !clientId} onClick={start}>
-                  {busy ? t('starting') : t('startBtn')}
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Phone setup — collapsible (remembered once done) */}
-          <div className="rounded-2xl border border-line bg-card">
-            <button
-              type="button"
-              onClick={() => setSetupOpen((v) => !v)}
-              className="flex w-full items-center justify-between gap-2 px-5 py-4 text-left"
-            >
-              <span className="flex items-center gap-2 text-[14px] font-semibold text-ink">
-                <Smartphone size={16} className="text-accent" /> {t('setupTitle')}
-              </span>
-              <ChevronDown
-                size={18}
-                className={cn('shrink-0 text-gray transition-transform', setupOpen && 'rotate-180')}
-              />
-            </button>
-            {!setupOpen && (
-              <p className="-mt-1 px-5 pb-4 text-[12px] leading-snug text-muted">
-                {t('setupCollapsedHint')}
-              </p>
-            )}
-            {setupOpen && (
-              <div className="px-5 pb-5">
-                <p className="text-[12.5px] leading-snug text-muted">{t('setupIntro')}</p>
-                <ol className="mt-3 flex flex-col gap-1.5 text-[13px] leading-snug text-ink-2">
-                  <li>1. {t('installStep')}</li>
-                  <li>2. {t('settingsStep')}</li>
-                </ol>
-                <div className="mt-3 flex flex-col gap-2.5">
-                  <CopyRow
-                    label={t('serverUrlLabel')}
-                    value={cfg?.serverUrl || ''}
-                    onCopy={() => cfg && copy(cfg.serverUrl, 'url')}
-                    copyLabel={copied === 'url' ? t('copied') : t('copy')}
-                  />
-                  <CopyRow
-                    label={t('deviceIdLabel')}
-                    value={cfg?.deviceId || ''}
-                    onCopy={() => cfg && copy(cfg.deviceId, 'id')}
-                    copyLabel={copied === 'id' ? t('copied') : t('copy')}
-                  />
-                </div>
-                <p className="mt-2.5 text-[11.5px] text-gray">{t('recommended')}</p>
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <button
-                    onClick={regen}
-                    className="text-[12.5px] text-gray underline underline-offset-2 hover:text-ink"
-                  >
-                    {t('regenToken')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('nh_track_setup_done', '1')
-                      setSetupOpen(false)
-                    }}
-                    className="text-[12.5px] font-medium text-accent hover:underline"
-                  >
-                    {t('setupDone')}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   )
 }

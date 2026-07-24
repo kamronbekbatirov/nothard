@@ -275,15 +275,21 @@ class Trip(Base):
     mode: Mapped[str] = mapped_column(String(12), default="car")
 
     origin_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # The planned start point — the route is drawn origin→destination ONCE and
+    # kept stable (the live GPS only moves the marker + updates the ETA number).
+    origin_lat: Mapped[float | None] = mapped_column(nullable=True)
+    origin_lng: Mapped[float | None] = mapped_column(nullable=True)
     dest_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     dest_lat: Mapped[float | None] = mapped_column(nullable=True)
     dest_lng: Mapped[float | None] = mapped_column(nullable=True)
 
-    # Cached routing result (recomputed at most every eta_refresh_sec).
-    eta_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    eta_km: Mapped[float | None] = mapped_column(nullable=True)
+    # Planned route (stable) — geometry + which engine produced it.
     route_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
     eta_source: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    route_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Live ETA to the destination — the only thing recomputed as the runner moves.
+    eta_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    eta_km: Mapped[float | None] = mapped_column(nullable=True)
     eta_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -25,7 +25,7 @@ export function TripCard({ trip }: { trip: TripLive }) {
   const waiting = !trip.position
   const ModeIcon = MODE_ICON[trip.mode] ?? MODE_ICON.car
   // "approx"/"line" are estimates (no dedicated router for this mode yet).
-  const isEstimate = !!eta && (eta.source === 'approx' || eta.source === 'line')
+  const isEstimate = trip.routeSource === 'approx' || trip.routeSource === 'line'
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-card">

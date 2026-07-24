@@ -441,17 +441,30 @@ export const api = {
       dest_lat?: number
       dest_lng?: number
       origin_label?: string
+      origin_lat?: number
+      origin_lng?: number
       mode?: TravelMode
     }) =>
       req<{ trip: TripLive; geocoded: boolean }>('/runner/trips/start', {
         method: 'POST',
         body: JSON.stringify(body),
       }),
+    routePreview: (body: {
+      origin_lat?: number
+      origin_lng?: number
+      origin_label?: string
+      dest_lat?: number
+      dest_lng?: number
+      dest_label?: string
+      mode?: TravelMode
+    }) => req<RoutePreview>('/runner/route-preview', { method: 'POST', body: JSON.stringify(body) }),
     setMode: (tripId: number, mode: TravelMode) =>
       req<{ trip: TripLive }>(`/runner/trips/${tripId}/mode`, {
         method: 'POST',
         body: JSON.stringify({ mode }),
       }),
+    rebuildTrip: (tripId: number) =>
+      req<{ trip: TripLive }>(`/runner/trips/${tripId}/rebuild`, { method: 'POST' }),
     setDestination: (tripId: number, body: { dest_label?: string; dest_lat?: number; dest_lng?: number }) =>
       req<{ trip: TripLive; located: boolean }>(`/runner/trips/${tripId}/destination`, {
         method: 'POST',
@@ -467,16 +480,31 @@ export type LatLng = [number, number]
 
 export type TravelMode = 'car' | 'walk' | 'cycle' | 'transit'
 
+export type RouteSource = 'osrm' | 'otp' | 'tfl' | 'approx' | 'line'
+
 export type TripLive = {
   id: number
   status: 'active' | 'arrived' | 'cancelled'
   mode: TravelMode
   runner: { name: string; photoUrl: string | null }
+  origin: { lat: number | null; lng: number | null; label: string | null }
   dest: { lat: number | null; lng: number | null; label: string | null }
   position: { lat: number; lng: number; at: string | null; bearing: number | null; battery: number | null } | null
-  eta: { minutes: number; km: number; source: 'osrm' | 'otp' | 'tfl' | 'approx' | 'line' } | null
+  eta: { minutes: number; km: number } | null
+  // Engine that drew the (stable) route line — dashed when it's an estimate.
+  routeSource: RouteSource | null
   route: LatLng[]
+  // True when the live position strayed far from the planned route → offer rebuild.
+  offRoute: boolean
   startedAt: string | null
+}
+
+export type RoutePreview = {
+  route: LatLng[]
+  routeSource: RouteSource | null
+  eta: { minutes: number; km: number } | null
+  origin?: { lat: number; lng: number }
+  dest?: { lat: number; lng: number }
 }
 
 export type TrackConfig = {

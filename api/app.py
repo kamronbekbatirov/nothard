@@ -2148,17 +2148,10 @@ def create_app() -> Flask:
             select(TripPing).where(TripPing.trip_id == trip_id).order_by(TripPing.id.desc())
         ).scalars().first()
 
-    def refresh_trip_eta(trip: Trip, ping: TripPing | None) -> None:
-        """Recompute the cached route/ETA if it's older than the refresh interval
-        and we have both a current position and a located destination."""
-        if not ping or trip.dest_lat is None or trip.dest_lng is None:
-            return
+    def _compute_route(trip: Trip, from_lat: float, from_lng: float) -> dict:
         cfg = tracking_cfg()
-        now = datetime.utcnow()
-        if trip.eta_at and (now - trip.eta_at).total_seconds() < cfg["refresh_sec"]:
-            return
-        res = routing.route_eta(
-            ping.lat, ping.lng, trip.dest_lat, trip.dest_lng,
+        return routing.route_eta(
+            from_lat, from_lng, trip.dest_lat, trip.dest_lng,
             mode=trip.mode or "car",
             osrm_url=cfg["osrm_url"],
             walk_url=cfg["osrm_walk_url"] or None,
@@ -2167,16 +2160,74 @@ def create_app() -> Flask:
             tfl_key=cfg["tfl_app_key"] or None,
             fallback_kmh=cfg["fallback_kmh"],
         )
-        trip.eta_minutes = res["minutes"]
-        trip.eta_km = res["km"]
+
+    def plan_trip_route(trip: Trip, from_lat: float, from_lng: float) -> None:
+        """Compute the route ONCE from a start point → destination and freeze it.
+        The live GPS afterwards only moves the marker + updates the ETA number, so
+        the drawn line stays stable (no per-ping reshaping / flicker)."""
+        if trip.dest_lat is None or trip.dest_lng is None:
+            return
+        res = _compute_route(trip, from_lat, from_lng)
+        now = datetime.utcnow()
+        trip.origin_lat, trip.origin_lng = from_lat, from_lng
         trip.route_json = res["route"]
         trip.eta_source = res["source"]
+        trip.route_at = now
+        trip.eta_minutes = res["minutes"]
+        trip.eta_km = res["km"]
         trip.eta_at = now
-        SessionLocal.commit()
+
+    def refresh_trip(trip: Trip, ping: TripPing | None) -> None:
+        """Plan the route once, then only refresh the live ETA as the runner moves."""
+        if trip.dest_lat is None or trip.dest_lng is None:
+            return
+        now = datetime.utcnow()
+        # (Re)plan the stable route when it's missing (fresh trip, or invalidated
+        # by a destination/mode change / rebuild that cleared route_json).
+        if not trip.route_json:
+            if trip.origin_lat is not None and trip.origin_lng is not None:
+                plan_trip_route(trip, trip.origin_lat, trip.origin_lng)
+                SessionLocal.commit()
+            elif ping:
+                plan_trip_route(trip, ping.lat, ping.lng)
+                SessionLocal.commit()
+            return
+        # Route is fixed — just recompute the remaining-time number from the live
+        # position (the line is untouched).
+        if ping and (not trip.eta_at
+                     or (now - trip.eta_at).total_seconds() >= tracking_cfg()["refresh_sec"]):
+            res = _compute_route(trip, ping.lat, ping.lng)
+            trip.eta_minutes = res["minutes"]
+            trip.eta_km = res["km"]
+            trip.eta_at = now
+            SessionLocal.commit()
+
+    def _invalidate_route(trip: Trip) -> None:
+        """Drop the planned route so refresh_trip re-plans it from the runner's
+        current position (used after a destination or mode change)."""
+        trip.route_json = None
+        trip.route_at = None
+        trip.origin_lat = None
+        trip.origin_lng = None
+        trip.eta_at = None
+
+    def _off_route(trip: Trip, ping: TripPing | None) -> bool:
+        """True when the live position is far (>400 m) from the planned route — a
+        cue to offer 'rebuild the route from my current position'."""
+        if not ping or not trip.route_json:
+            return False
+        try:
+            d = min(
+                routing.haversine_km(ping.lat, ping.lng, pt[0], pt[1])
+                for pt in trip.route_json
+            )
+        except (TypeError, ValueError, IndexError):
+            return False
+        return d > 0.4
 
     def trip_live_payload(trip: Trip) -> dict:
         ping = latest_ping(trip.id)
-        refresh_trip_eta(trip, ping)
+        refresh_trip(trip, ping)
         runner = SessionLocal.get(User, trip.runner_id)
         pos = None
         if ping:
@@ -2193,13 +2244,19 @@ def create_app() -> Flask:
                 "name": _first_name(runner.name) if runner else "",
                 "photoUrl": runner.photo_url if runner else None,
             },
+            "origin": (
+                {"lat": trip.origin_lat, "lng": trip.origin_lng, "label": trip.origin_label}
+                if trip.origin_lat is not None else {"label": trip.origin_label}
+            ),
             "dest": {"lat": trip.dest_lat, "lng": trip.dest_lng, "label": trip.dest_label},
             "position": pos,
             "eta": (
-                {"minutes": trip.eta_minutes, "km": trip.eta_km, "source": trip.eta_source}
-                if trip.eta_minutes is not None else None
+                {"minutes": trip.eta_minutes, "km": trip.eta_km} if trip.eta_minutes is not None else None
             ),
+            # The drawn line's engine — dashed when it's an estimate (approx/line).
+            "routeSource": trip.eta_source,
             "route": trip.route_json or [],
+            "offRoute": _off_route(trip, ping),
             "startedAt": trip.started_at.isoformat() if trip.started_at else None,
         }
 
@@ -2329,13 +2386,27 @@ def create_app() -> Flask:
                 dest_lat, dest_lng = geo["lat"], geo["lng"]
                 dest_label = dest_label or geo["label"]
         mode = d.get("mode") if d.get("mode") in routing.MODE_SPEED_KMH else "car"
+        # Chosen start point (address or "my location"); geocode a label if needed.
+        origin_label = (d.get("origin_label") or "").strip()
+        origin_lat, origin_lng = d.get("origin_lat"), d.get("origin_lng")
+        if (origin_lat is None or origin_lng is None) and origin_label:
+            geo = routing.geocode(origin_label, nominatim_url=tracking_cfg()["nominatim_url"])
+            if geo:
+                origin_lat, origin_lng = geo["lat"], geo["lng"]
+                origin_label = origin_label or geo["label"]
         trip = Trip(
             client_id=c.id, runner_id=user.id, status="active", mode=mode,
-            origin_label=(d.get("origin_label") or "").strip() or None,
+            origin_label=origin_label or None,
+            origin_lat=float(origin_lat) if origin_lat is not None else None,
+            origin_lng=float(origin_lng) if origin_lng is not None else None,
             dest_label=dest_label or None,
             dest_lat=float(dest_lat) if dest_lat is not None else None,
             dest_lng=float(dest_lng) if dest_lng is not None else None,
         )
+        # Plan the stable route now if we already have a start point (else it's
+        # planned from the runner's first GPS ping).
+        if trip.origin_lat is not None and trip.dest_lat is not None:
+            plan_trip_route(trip, trip.origin_lat, trip.origin_lng)
         SessionLocal.add(trip)
         SessionLocal.commit()
         ensure_track_token(user)
@@ -2366,7 +2437,7 @@ def create_app() -> Flask:
         trip.dest_label = label or trip.dest_label
         if lat is not None and lng is not None:
             trip.dest_lat, trip.dest_lng = float(lat), float(lng)
-        trip.eta_at = None  # force ETA recompute against the new destination
+        _invalidate_route(trip)  # replan to the new destination from the live position
         SessionLocal.commit()
         return jsonify({"trip": trip_live_payload(trip), "located": trip.dest_lat is not None})
 
@@ -2383,9 +2454,62 @@ def create_app() -> Flask:
         if mode not in routing.MODE_SPEED_KMH:
             return jsonify({"error": "bad mode"}), 400
         trip.mode = mode
-        trip.eta_at = None  # force ETA recompute for the new mode
+        _invalidate_route(trip)  # the route depends on the mode → replan
         SessionLocal.commit()
         return jsonify({"trip": trip_live_payload(trip)})
+
+    @app.post("/runner/trips/<int:trip_id>/rebuild")
+    def runner_trip_rebuild(trip_id: int):
+        """Re-plan the route from the runner's CURRENT position (used when they're
+        far from the planned route, e.g. started somewhere else)."""
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        ping = latest_ping(trip.id)
+        if not ping:
+            return jsonify({"error": "no position yet", "code": "no_ping"}), 400
+        plan_trip_route(trip, ping.lat, ping.lng)
+        SessionLocal.commit()
+        return jsonify({"trip": trip_live_payload(trip)})
+
+    @app.post("/runner/route-preview")
+    def runner_route_preview():
+        """Compute a route origin→destination WITHOUT starting a trip, so the
+        runner can see it (Google-Maps style) before committing."""
+        user, err = require_role("runner")
+        if err:
+            return err
+        d = request.get_json(silent=True) or {}
+        cfg = tracking_cfg()
+        o_lat, o_lng = d.get("origin_lat"), d.get("origin_lng")
+        if (o_lat is None or o_lng is None) and (d.get("origin_label") or "").strip():
+            geo = routing.geocode(d["origin_label"].strip(), nominatim_url=cfg["nominatim_url"])
+            if geo:
+                o_lat, o_lng = geo["lat"], geo["lng"]
+        dst_lat, dst_lng = d.get("dest_lat"), d.get("dest_lng")
+        if (dst_lat is None or dst_lng is None) and (d.get("dest_label") or "").strip():
+            geo = routing.geocode(d["dest_label"].strip(), nominatim_url=cfg["nominatim_url"])
+            if geo:
+                dst_lat, dst_lng = geo["lat"], geo["lng"]
+        if o_lat is None or dst_lat is None:
+            return jsonify({"route": [], "eta": None})
+        mode = d.get("mode") if d.get("mode") in routing.MODE_SPEED_KMH else "car"
+        res = routing.route_eta(
+            float(o_lat), float(o_lng), float(dst_lat), float(dst_lng), mode=mode,
+            osrm_url=cfg["osrm_url"], walk_url=cfg["osrm_walk_url"] or None,
+            bike_url=cfg["osrm_bike_url"] or None, otp_url=cfg["otp_url"] or None,
+            tfl_key=cfg["tfl_app_key"] or None, fallback_kmh=cfg["fallback_kmh"],
+        )
+        return jsonify({
+            "route": res["route"],
+            "routeSource": res["source"],
+            "eta": {"minutes": res["minutes"], "km": res["km"]},
+            "origin": {"lat": float(o_lat), "lng": float(o_lng)},
+            "dest": {"lat": float(dst_lat), "lng": float(dst_lng)},
+        })
 
     @app.post("/runner/trips/<int:trip_id>/arrive")
     def runner_trip_arrive(trip_id: int):
@@ -2553,7 +2677,7 @@ def create_app() -> Flask:
         trip.dest_label = label or trip.dest_label
         if lat is not None and lng is not None:
             trip.dest_lat, trip.dest_lng = float(lat), float(lng)
-        trip.eta_at = None
+        _invalidate_route(trip)
         SessionLocal.commit()
         return jsonify({"trip": trip_live_payload(trip), "located": trip.dest_lat is not None})
 
@@ -2569,7 +2693,7 @@ def create_app() -> Flask:
         if d.get("mode") not in routing.MODE_SPEED_KMH:
             return jsonify({"error": "bad mode"}), 400
         trip.mode = d["mode"]
-        trip.eta_at = None
+        _invalidate_route(trip)
         SessionLocal.commit()
         return jsonify({"trip": trip_live_payload(trip)})
 

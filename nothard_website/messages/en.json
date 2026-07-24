@@ -1172,6 +1172,15 @@
     "back": "Back",
     "adminSectionTitle": "Live trip",
     "tflLabel": "TfL API key (transit)",
-    "tflHint": "London transit routing via TfL works without a key. A free key (api-portal.tfl.gov.uk) raises the request limit."
+    "tflHint": "London transit routing via TfL works without a key. A free key (api-portal.tfl.gov.uk) raises the request limit.",
+    "busyElsewhere": "Finish the current trip first",
+    "offRoute": "You're off the route",
+    "rebuild": "Rebuild from my position",
+    "myLocation": "My location",
+    "useMyLocation": "My location",
+    "locating": "Locating…",
+    "locateFail": "Couldn't get your location",
+    "startFail": "Couldn't start the trip",
+    "previewLabel": "Route preview"
   }
 }
