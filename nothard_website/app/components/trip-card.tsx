@@ -19,7 +19,7 @@ const LiveMap = dynamic(() => import('./live-map'), {
  * the destination and the route, plus a headline ETA. Shared by the client
  * cabinet and the read-only family page.
  */
-export function TripCard({ trip }: { trip: TripLive }) {
+export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: boolean }) {
   const t = useTranslations('Tracking')
   const arrived = trip.status === 'arrived'
   const eta = trip.eta
@@ -27,6 +27,9 @@ export function TripCard({ trip }: { trip: TripLive }) {
   const ModeIcon = MODE_ICON[trip.mode] ?? MODE_ICON.car
   // "approx"/"line" are estimates (no dedicated router for this mode yet).
   const isEstimate = trip.routeSource === 'approx' || trip.routeSource === 'line'
+  // `minimal` = the client's view: hide the tech status line, battery, and the
+  // step-by-step transit legs while the runner is coming (the client only wants
+  // to see them once they're travelling together).
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-card">
@@ -61,28 +64,32 @@ export function TripCard({ trip }: { trip: TripLive }) {
         height={arrived ? 200 : 260}
       />
 
-      {/* Transit step-by-step (which line / stations) */}
-      {!arrived && trip.legs.length > 0 && (
+      {/* Transit step-by-step (which line / stations) — hidden in the client's
+          minimal view (they see it later, when travelling to the destination). */}
+      {!arrived && !minimal && trip.legs.length > 0 && (
         <div className="border-t border-line px-4 py-3">
           <div className="mb-2 text-[11.5px] font-medium text-ink-2">{t('howToTravel')}</div>
           <TransitLegs legs={trip.legs} />
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 px-4 py-2.5 text-[12px] text-muted">
-        <span>
-          {arrived
-            ? t('arrivedNote')
-            : waiting
-              ? t('waitingSignal')
-              : isEstimate
-                ? t('estimateNote')
-                : t('liveNote')}
-        </span>
-        {trip.position?.battery != null && (
-          <span className="shrink-0 text-gray">🔋 {trip.position.battery}%</span>
-        )}
-      </div>
+      {/* Tech status + battery — runner/family only, not the client's minimal card. */}
+      {!minimal && (
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 text-[12px] text-muted">
+          <span>
+            {arrived
+              ? t('arrivedNote')
+              : waiting
+                ? t('waitingSignal')
+                : isEstimate
+                  ? t('estimateNote')
+                  : t('liveNote')}
+          </span>
+          {trip.position?.battery != null && (
+            <span className="shrink-0 text-gray">🔋 {trip.position.battery}%</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

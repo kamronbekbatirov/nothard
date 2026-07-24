@@ -12,6 +12,7 @@ import { Avatar } from '@/app/components/avatar'
 import { SettingsModal } from '@/app/components/settings-modal'
 import { DuplicateWarningModal } from '@/app/components/duplicate-warning'
 import { TripCard } from '@/app/components/trip-card'
+import { AddressField } from '@/app/components/address-field'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { useAuth } from '@/app/lib/use-auth'
@@ -250,7 +251,7 @@ export default function ProfilePage() {
       <main className="mx-auto max-w-[1240px] px-5 py-8 sm:px-8">
         {trip && trip.status !== 'cancelled' && (
           <div className="mb-6">
-            <TripCard trip={trip} />
+            <TripCard trip={trip} minimal />
           </div>
         )}
         {data.hasOrders ? (
@@ -735,6 +736,8 @@ function PackageIntakeModal({
   const [arrivalTime, setArrivalTime] = useState('')
   const [airport, setAirport] = useState<string>('')
   const [flight, setFlight] = useState('')
+  const [dropoff, setDropoff] = useState('')
+  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-end justify-center bg-black/50 p-0 backdrop-blur-[2px] sm:items-center sm:p-6">
@@ -779,6 +782,19 @@ function PackageIntakeModal({
             placeholder={t('intake.flightOther')}
           />
 
+          <label className="block">
+            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.dropoff')}</span>
+            <AddressField
+              search={(q) => api.me.geocode(q).then((r) => r.results)}
+              value={dropoff}
+              placeholder={t('intake.dropoffPlaceholder')}
+              onPick={(label, coords) => {
+                setDropoff(label)
+                setDropoffCoords(coords)
+              }}
+            />
+          </label>
+
           <Button
             variant="solid"
             size="block"
@@ -789,6 +805,10 @@ function PackageIntakeModal({
                 arrivalTime,
                 airport,
                 flight: flight.trim(),
+                dropoff: dropoff.trim(),
+                ...(dropoffCoords
+                  ? { dropoffLat: String(dropoffCoords.lat), dropoffLng: String(dropoffCoords.lng) }
+                  : {}),
               })
             }
           >

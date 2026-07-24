@@ -1093,7 +1093,7 @@ def create_app() -> Flask:
                 for o in client_orders(client.id):
                     if o.item_type == "package" and not o.archived:
                         # Carry over arrival details on upgrade if the new order omits them.
-                        for k in ("arrivalDate", "arrivalTime", "airport", "flight"):
+                        for k in ("arrivalDate", "arrivalTime", "airport", "flight", "dropoff", "dropoffLat", "dropoffLng"):
                             if not new_details.get(k) and (o.details or {}).get(k):
                                 new_details[k] = o.details[k]
                         delete_order(o)
@@ -1390,7 +1390,7 @@ def create_app() -> Flask:
         return jsonify(dashboard_payload(user))
 
     # ---- Edit arrival details (client) ------------------------------------
-    ARRIVAL_FIELDS = ("arrivalDate", "arrivalTime", "airport", "flight")
+    ARRIVAL_FIELDS = ("arrivalDate", "arrivalTime", "airport", "flight", "dropoff", "dropoffLat", "dropoffLng")
 
     def mark_airport_meet_active(client, order):
         """Once arrival details exist, move the airport-meet step from 'todo' to
@@ -1990,7 +1990,7 @@ def create_app() -> Flask:
             return jsonify({"error": "no package"}), 404
         d = request.get_json(silent=True) or {}
         details = dict(pkg.details or {})
-        for k in ("arrivalDate", "arrivalTime", "airport", "flight"):
+        for k in ("arrivalDate", "arrivalTime", "airport", "flight", "dropoff", "dropoffLat", "dropoffLng"):
             if k in d:
                 details[k] = (str(d.get(k) or "")).strip()[:120]
         pkg.details = details
@@ -2343,6 +2343,19 @@ def create_app() -> Flask:
     @app.get("/runner/geocode")
     def runner_geocode():
         user, err = require_role("runner")
+        if err:
+            return err
+        q = (request.args.get("q") or "").strip()
+        if len(q) < 3:
+            return jsonify({"results": []})
+        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"])
+        return jsonify({"results": res})
+
+    @app.get("/me/geocode")
+    def my_geocode():
+        """Address autocomplete for the client's arrival intake ('where to take
+        you'). Any signed-in user; results feed the same picker as the runner's."""
+        user, err = require_user()
         if err:
             return err
         q = (request.args.get("q") or "").strip()

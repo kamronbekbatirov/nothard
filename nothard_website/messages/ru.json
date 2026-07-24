@@ -254,7 +254,9 @@
       "budget": "Бюджет, £/мес",
       "area": "Район",
       "address": "Адрес",
-      "nights": "Количество ночей"
+      "nights": "Количество ночей",
+      "airport": "Аэропорт прибытия",
+      "dropoff": "Куда отвезти"
     }
   },
   "Search": {
@@ -602,7 +604,9 @@
       "airportOther": "Введите аэропорт",
       "flightOther": "Введите номер рейса",
       "datePick": "Выберите дату",
-      "timePick": "Выберите время"
+      "timePick": "Выберите время",
+      "dropoff": "Куда отвезти",
+      "dropoffPlaceholder": "Адрес назначения — например, 10 Downing Street"
     },
     "arrival": {
       "title": "Данные о прилёте",
@@ -1182,6 +1186,9 @@
     "locateFail": "Не удалось определить геопозицию",
     "startFail": "Не удалось начать поездку",
     "previewLabel": "Предпросмотр маршрута",
-    "howToTravel": "Как добираться"
+    "howToTravel": "Как добираться",
+    "legWalkTo": "Пешком до {place}",
+    "legWalk": "Пешком",
+    "legLineTo": "{line} до {station}"
   }
 }

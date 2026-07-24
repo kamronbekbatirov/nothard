@@ -106,7 +106,7 @@ export default function SharePage() {
 
             {trip && trip.status !== 'cancelled' && (
               <div className="mt-6">
-                <TripCard trip={trip} />
+                <TripCard trip={trip} minimal />
               </div>
             )}
 

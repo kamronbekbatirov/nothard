@@ -254,7 +254,9 @@
       "budget": "Бюджет, £/ой",
       "area": "Ҳудуд",
       "address": "Манзил",
-      "nights": "Неча кеча"
+      "nights": "Неча кеча",
+      "airport": "Келиш аэропорти",
+      "dropoff": "Қаерга олиб бориш"
     }
   },
   "Search": {
@@ -602,7 +604,9 @@
       "airportOther": "Аэропортни киритинг",
       "flightOther": "Рейс рақамини киритинг",
       "datePick": "Санани танланг",
-      "timePick": "Вақтни танланг"
+      "timePick": "Вақтни танланг",
+      "dropoff": "Қаерга олиб бориш",
+      "dropoffPlaceholder": "Манзил — масалан, 10 Downing Street"
     },
     "arrival": {
       "title": "Учиб келиш маълумотлари",
@@ -1182,6 +1186,9 @@
     "locateFail": "Жойлашувни аниқлаб бўлмади",
     "startFail": "Сафарни бошлаб бўлмади",
     "previewLabel": "Маршрут кўриниши",
-    "howToTravel": "Қандай бориш"
+    "howToTravel": "Қандай бориш",
+    "legWalkTo": "{place} гача пиёда",
+    "legWalk": "Пиёда",
+    "legLineTo": "{line} — {station} гача"
   }
 }

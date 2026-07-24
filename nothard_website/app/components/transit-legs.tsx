@@ -25,12 +25,16 @@ export function TransitLegs({ legs, className }: { legs: TripLeg[]; className?: 
     <ol className={cn('flex flex-col gap-1.5', className)}>
       {legs.map((leg, i) => {
         const { Icon, color } = legStyle(leg.mode)
-        // Prefer TfL's ready-made summary ("Jubilee line to Westminster"); else
-        // build "Line → destination station".
-        const text =
-          leg.summary ||
-          [leg.line, leg.to].filter(Boolean).join(' → ') ||
-          leg.mode
+        // Build a localized instruction from the leg's parts (station/line names
+        // stay as-is — they're proper nouns) instead of TfL's English summary.
+        const isWalk = leg.mode.toLowerCase().includes('walk')
+        const text = isWalk
+          ? leg.to
+            ? t('legWalkTo', { place: leg.to })
+            : t('legWalk')
+          : leg.line && leg.to
+            ? t('legLineTo', { line: leg.line, station: leg.to })
+            : leg.summary || leg.line || leg.mode
         return (
           <li key={i} className="flex items-start gap-2.5">
             <span

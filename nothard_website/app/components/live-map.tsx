@@ -18,7 +18,7 @@ function pin(emoji: string, ring: string) {
     iconAnchor: [17, 17],
   })
 }
-const RUNNER_ICON = pin('🚗', '#2f5d45')
+const RUNNER_ICON = pin('🧍', '#2f5d45')
 const DEST_ICON = pin('🏠', '#c26a3d')
 
 /**

@@ -254,7 +254,9 @@
       "budget": "Byudjet, £/oy",
       "area": "Hudud",
       "address": "Manzil",
-      "nights": "Necha kecha"
+      "nights": "Necha kecha",
+      "airport": "Kelish aeroporti",
+      "dropoff": "Qayerga olib borish"
     }
   },
   "Search": {
@@ -602,7 +604,9 @@
       "airportOther": "Aeroportni kiriting",
       "flightOther": "Reys raqamini kiriting",
       "datePick": "Sanani tanlang",
-      "timePick": "Vaqtni tanlang"
+      "timePick": "Vaqtni tanlang",
+      "dropoff": "Qayerga olib borish",
+      "dropoffPlaceholder": "Manzil — masalan, 10 Downing Street"
     },
     "arrival": {
       "title": "Uchib kelish ma'lumotlari",
@@ -1182,6 +1186,9 @@
     "locateFail": "Joylashuvni aniqlab bo‘lmadi",
     "startFail": "Safarni boshlab bo‘lmadi",
     "previewLabel": "Marshrut ko‘rinishi",
-    "howToTravel": "Qanday borish"
+    "howToTravel": "Qanday borish",
+    "legWalkTo": "{place} gacha piyoda",
+    "legWalk": "Piyoda",
+    "legLineTo": "{line} — {station} gacha"
   }
 }

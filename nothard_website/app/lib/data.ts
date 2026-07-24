@@ -91,11 +91,11 @@ export function coveredServices(pkgId: string | null | undefined, serviceIds: st
 
 export const TEASER_SERVICE_IDS = [
   'airportTransport',
+  'airportTaxi',
   'tempHousing',
   'nhs',
   'bankOnline',
   'lease',
-  'sim',
 ]
 
 export type Pkg = {
@@ -192,16 +192,20 @@ export const SAMPLE_PROPERTIES: Property[] = [
 // Which intake fields each item needs at checkout (only the relevant ones).
 export type CheckoutFieldKey =
   | 'arrivalDate'
+  | 'airport' // which London airport/terminal to meet at (pick from list or type)
   | 'flight'
+  | 'dropoff' // where to take the client after the airport meet (address autocomplete)
   | 'bank'
   | 'budget'
   | 'area'
   | 'address'
   | 'nights'
 
-export const FIELD_TYPE: Record<CheckoutFieldKey, 'date' | 'text' | 'number' | 'bank' | 'area'> = {
+export const FIELD_TYPE: Record<CheckoutFieldKey, 'date' | 'text' | 'number' | 'bank' | 'area' | 'dropoff' | 'airport' | 'flight'> = {
   arrivalDate: 'date',
-  flight: 'text',
+  airport: 'airport',
+  flight: 'flight',
+  dropoff: 'dropoff',
   bank: 'bank',
   budget: 'number',
   area: 'area',
@@ -211,12 +215,12 @@ export const FIELD_TYPE: Record<CheckoutFieldKey, 'date' | 'text' | 'number' | '
 
 export const ITEM_FIELDS: Record<string, CheckoutFieldKey[]> = {
   // packages
-  meet: ['arrivalDate', 'flight'], // arrival package
+  meet: ['arrivalDate', 'flight', 'dropoff'], // arrival package (uses the rich intake modal)
   housing: [], // home search — no airport intake
-  premium: ['arrivalDate', 'flight'],
-  // services
-  airportTransport: ['arrivalDate', 'flight'],
-  airportTaxi: ['arrivalDate', 'flight'],
+  premium: ['arrivalDate', 'flight', 'dropoff'],
+  // services — same arrival intake as "meet" (airport + flight + dropoff)
+  airportTransport: ['arrivalDate', 'airport', 'flight', 'dropoff'],
+  airportTaxi: ['arrivalDate', 'airport', 'flight', 'dropoff'],
   tempHousing: ['arrivalDate', 'nights'],
   neighborhood: ['area'],
   utilities: ['address'],

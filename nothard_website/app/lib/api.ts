@@ -170,6 +170,8 @@ export const api = {
   me: {
     dashboard: () => req<DashboardData>('/me/dashboard'),
     trip: () => req<{ trip: TripLive | null }>('/me/trip'),
+    // Address autocomplete for the arrival intake ("where to take you").
+    geocode: (q: string) => req<{ results: GeoResult[] }>(`/me/geocode?q=${encodeURIComponent(q)}`),
     checkout: (
       items: { type: 'package' | 'service'; id: string }[],
       details?: Record<string, string>

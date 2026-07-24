@@ -7,7 +7,8 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { SiteNav } from '@/app/components/site-nav'
 import { Footer } from '@/app/components/footer'
 import { Button } from '@/app/components/button'
-import { Field, Input } from '@/app/components/field'
+import { Field, Input, PickOrType } from '@/app/components/field'
+import { AddressField } from '@/app/components/address-field'
 import { useToast } from '@/app/components/toast'
 import { useAuth } from '@/app/lib/use-auth'
 import { api } from '@/app/lib/api'
@@ -22,6 +23,8 @@ import {
   FIELD_TYPE,
   packageCovers,
   coveredServices,
+  LONDON_AIRPORT_TERMINALS,
+  LONDON_FLIGHTS,
 } from '@/app/lib/data'
 import { DuplicateWarningModal } from '@/app/components/duplicate-warning'
 import { cn } from '@/app/lib/utils'
@@ -283,6 +286,7 @@ function CheckoutModal({
 }) {
   const t = useTranslations('Checkout')
   const ts = useTranslations('Search')
+  const tpr = useTranslations('Profile') // intake pick-list labels
   const fields = useMemo(() => fieldsForItems(serviceIds), [serviceIds])
   const hasDetails = needName || fields.length > 0
   const [step, setStep] = useState<'details' | 'pay'>(hasDetails ? 'details' : 'pay')
@@ -359,6 +363,53 @@ function CheckoutModal({
                         </option>
                       ))}
                     </select>
+                  </label>
+                )
+              }
+              if (type === 'airport') {
+                return (
+                  <PickOrType
+                    key={f}
+                    label={t(`fields.${f}`)}
+                    options={LONDON_AIRPORT_TERMINALS}
+                    value={details[f] || ''}
+                    onChange={(v) => set(f, v)}
+                    pickLabel={tpr('intake.airportPickList')}
+                    otherLabel={tpr('intake.other')}
+                    placeholder={tpr('intake.airportOther')}
+                  />
+                )
+              }
+              if (type === 'flight') {
+                return (
+                  <PickOrType
+                    key={f}
+                    label={t(`fields.${f}`)}
+                    options={LONDON_FLIGHTS}
+                    value={details[f] || ''}
+                    onChange={(v) => set(f, v)}
+                    pickLabel={tpr('intake.flightPickList')}
+                    otherLabel={tpr('intake.other')}
+                    placeholder={tpr('intake.flightOther')}
+                  />
+                )
+              }
+              if (type === 'dropoff') {
+                return (
+                  <label key={f} className="block">
+                    <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t(`fields.${f}`)}</span>
+                    <AddressField
+                      search={(q) => api.me.geocode(q).then((r) => r.results)}
+                      value={details[f] || ''}
+                      placeholder={tpr('intake.dropoffPlaceholder')}
+                      onPick={(label, coords) => {
+                        set(f, label)
+                        if (coords) {
+                          set('dropoffLat', String(coords.lat))
+                          set('dropoffLng', String(coords.lng))
+                        }
+                      }}
+                    />
                   </label>
                 )
               }
