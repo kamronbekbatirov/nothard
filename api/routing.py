@@ -136,11 +136,13 @@ def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
             route: list = []
             legs: list = []
             for leg in j.get("legs") or []:
+                leg_pts = 0
                 ls = (leg.get("path") or {}).get("lineString")
                 if ls:
                     try:
                         for p in json.loads(ls):  # TfL lineString is [[lat,lng]...]
                             route.append([p[0], p[1]])
+                            leg_pts += 1
                     except (ValueError, TypeError, IndexError):
                         pass
                 # Step-by-step summary (Google-Maps-style): mode, line, stations.
@@ -151,6 +153,14 @@ def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
                     line = opts[0].get("name") or ""
                     ident = (opts[0].get("lineIdentifier") or {})
                     line = ident.get("name") or line
+                # End coordinate of the leg (the station you arrive at) — for the
+                # "next waypoint" map dot and progressive highlighting.
+                to_lat = to_lng = None
+                ap = leg.get("arrivalPoint") or {}
+                if ap.get("lat") is not None and ap.get("lon") is not None:
+                    to_lat, to_lng = ap["lat"], ap["lon"]
+                elif route:
+                    to_lat, to_lng = route[-1][0], route[-1][1]
                 legs.append({
                     "mode": mode_name,                              # walking | tube | bus | elizabeth-line…
                     "line": line,                                   # e.g. "Jubilee", "Elizabeth line"
@@ -158,6 +168,8 @@ def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
                     "from": (leg.get("departurePoint") or {}).get("commonName") or "",
                     "to": (leg.get("arrivalPoint") or {}).get("commonName") or "",
                     "minutes": int(round(leg.get("duration") or 0)),
+                    "points": leg_pts,                              # route points in this leg
+                    "toLat": to_lat, "toLng": to_lng,              # arrival-station coords
                 })
             km = sum(
                 haversine_km(route[i][0], route[i][1], route[i + 1][0], route[i + 1][1])

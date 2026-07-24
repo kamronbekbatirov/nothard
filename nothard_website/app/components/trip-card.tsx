@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { MapPin } from 'lucide-react'
 import { Avatar } from './avatar'
 import { MODE_ICON } from './travel-mode'
-import { TransitLegs } from './transit-legs'
+import { TransitLegs, activeLegIndex } from './transit-legs'
 import type { TripLive } from '@/app/lib/api'
 
 // Leaflet touches `window`, so the map is loaded client-side only.
@@ -46,6 +46,16 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
   const showDestPin = !(minimal && toPickup)
   const subLabel = minimal && toPickup ? null : trip.dest.label
 
+  // Which transit leg is in progress (from the live position along the route),
+  // plus the next-station dot to drop on the map.
+  const showLegs = !arrived && trip.legs.length > 0
+  const active = showLegs ? activeLegIndex(trip.legs, trip.route, trip.position) : -1
+  const activeLeg = active >= 0 ? trip.legs[active] : undefined
+  const waypoint =
+    activeLeg && activeLeg.toLat != null && activeLeg.toLng != null
+      ? { lat: activeLeg.toLat, lng: activeLeg.toLng }
+      : null
+
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-card">
       <div className="flex items-center gap-3 border-b border-line bg-accent-bg/60 px-4 py-3">
@@ -75,16 +85,18 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
         position={trip.position}
         dest={showDestPin ? trip.dest : null}
         route={trip.route}
+        waypoint={waypoint}
         estimate={isEstimate}
         height={arrived ? 200 : 260}
       />
 
-      {/* Transit step-by-step (which line / stations) — hidden in the client's
-          minimal view (they see it later, when travelling to the destination). */}
-      {!arrived && !minimal && trip.legs.length > 0 && (
+      {/* Transit step-by-step (which line / stations), with the active leg
+          highlighted. The backend already hides these from the client in phase 1
+          (legs is empty there), so a non-empty list means it's OK to show. */}
+      {showLegs && (
         <div className="border-t border-line px-4 py-3">
           <div className="mb-2 text-[11.5px] font-medium text-ink-2">{t('howToTravel')}</div>
-          <TransitLegs legs={trip.legs} />
+          <TransitLegs legs={trip.legs} active={active} />
         </div>
       )}
 

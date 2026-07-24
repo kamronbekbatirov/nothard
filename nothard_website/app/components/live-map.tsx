@@ -21,6 +21,15 @@ function pin(emoji: string, ring: string) {
 const RUNNER_ICON = pin('🧍', '#2f5d45')
 const DEST_ICON = pin('🏠', '#c26a3d')
 
+// Small accent dot for the current transit waypoint (next station).
+const WAYPOINT_ICON = L.divIcon({
+  className: '',
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#2f5d45;border:3px solid #fff;
+    box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+})
+
 /**
  * Leaflet renders grey tiles when its container is sized after mount (e.g. the
  * trip card appears in an already-open cabinet). Nudging invalidateSize() after
@@ -64,12 +73,15 @@ export default function LiveMap({
   position,
   dest,
   route,
+  waypoint = null,
   estimate = false,
   height = 260,
 }: {
   position: { lat: number; lng: number } | null
   dest: { lat: number | null; lng: number | null } | null
   route: LatLng[]
+  /** Current transit waypoint (next station) — an accent dot on the route. */
+  waypoint?: { lat: number; lng: number } | null
   /** Dash the line to signal an estimated (not real-router) route. */
   estimate?: boolean
   height?: number
@@ -77,6 +89,7 @@ export default function LiveMap({
   const runnerPt: LatLng | null = position ? [position.lat, position.lng] : null
   const destPt: LatLng | null =
     dest && dest.lat != null && dest.lng != null ? [dest.lat, dest.lng] : null
+  const wayPt: LatLng | null = waypoint ? [waypoint.lat, waypoint.lng] : null
 
   const fitPoints = useMemo(() => {
     const pts: LatLng[] = []
@@ -112,6 +125,7 @@ export default function LiveMap({
             }}
           />
         )}
+        {wayPt && <Marker position={wayPt} icon={WAYPOINT_ICON} />}
         {destPt && <Marker position={destPt} icon={DEST_ICON} />}
         {runnerPt && <Marker position={runnerPt} icon={RUNNER_ICON} />}
         <Resizer />

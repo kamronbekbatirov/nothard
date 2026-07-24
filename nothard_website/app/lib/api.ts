@@ -496,6 +496,9 @@ export type TripLeg = {
   from: string
   to: string
   minutes: number
+  points?: number // route points belonging to this leg (for progress mapping)
+  toLat?: number | null // arrival-station coords (the "next waypoint" dot)
+  toLng?: number | null
 }
 
 export type TripPhase = 'toPickup' | 'toDestination'
