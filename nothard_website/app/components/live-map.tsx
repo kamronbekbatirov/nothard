@@ -64,11 +64,14 @@ export default function LiveMap({
   position,
   dest,
   route,
+  estimate = false,
   height = 260,
 }: {
   position: { lat: number; lng: number } | null
   dest: { lat: number | null; lng: number | null } | null
   route: LatLng[]
+  /** Dash the line to signal an estimated (not real-router) route. */
+  estimate?: boolean
   height?: number
 }) {
   const runnerPt: LatLng | null = position ? [position.lat, position.lng] : null
@@ -85,8 +88,8 @@ export default function LiveMap({
   }, [JSON.stringify(route), JSON.stringify(runnerPt), JSON.stringify(destPt)])
 
   const center: LatLng = runnerPt || destPt || [51.5074, -0.1278] // London fallback
-  // Dashed line signals a straight-line estimate; a solid line is a real route.
-  const isEstimate = route.length <= 2
+  // Dashed = estimated route (no dedicated router for this mode); solid = real.
+  const isEstimate = estimate
 
   return (
     <div style={{ height }} className="overflow-hidden rounded-xl border border-line">

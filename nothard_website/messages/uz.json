@@ -1170,6 +1170,8 @@
     "setupDone": "Tayyor, yashirish",
     "setupCollapsedHint": "Telefon sozlangan — ko‘rsatma uchun bosing",
     "back": "Orqaga",
-    "adminSectionTitle": "Jonli safar"
+    "adminSectionTitle": "Jonli safar",
+    "tflLabel": "TfL API kaliti (transport)",
+    "tflHint": "London transporti marshrutlari TfL orqali kalitsiz ham ishlaydi. Bepul kalit (api-portal.tfl.gov.uk) so‘rov limitini oshiradi."
   }
 }

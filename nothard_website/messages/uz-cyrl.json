@@ -1170,6 +1170,8 @@
     "setupDone": "Тайёр, яшириш",
     "setupCollapsedHint": "Телефон созланган — кўрсатма учун босинг",
     "back": "Орқага",
-    "adminSectionTitle": "Жонли сафар"
+    "adminSectionTitle": "Жонли сафар",
+    "tflLabel": "TfL API калити (транспорт)",
+    "tflHint": "Лондон транспорти маршрутлари TfL орқали калитсиз ҳам ишлайди. Бепул калит (api-portal.tfl.gov.uk) сўров лимитини оширади."
   }
 }

@@ -13,6 +13,7 @@ server is down: the ETA then falls back to a straight-line estimate.
 
 from __future__ import annotations
 
+import json
 import math
 from typing import Optional
 
@@ -22,6 +23,9 @@ import requests
 # `osrm_url` / `nominatim_url` in operator settings to your own instances.
 DEFAULT_OSRM_URL = "https://router.project-osrm.org"
 DEFAULT_NOMINATIM_URL = "https://nominatim.openstreetmap.org"
+# TfL's official Journey Planner — free London public-transport routing, no server
+# to run. Works keyless at low volume; an app key lifts the rate limit.
+DEFAULT_TFL_URL = "https://api.tfl.gov.uk"
 # Straight-line fallback assumes this average city driving speed.
 DEFAULT_FALLBACK_KMH = 25.0
 
@@ -110,6 +114,50 @@ def otp_route(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
     return None
 
 
+def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
+                app_key: Optional[str] = None, base: Optional[str] = None,
+                timeout: float = 8.0) -> Optional[dict]:
+    """Real London public-transport itinerary via the TfL Journey Planner API.
+
+    Returns ``{minutes, km, route, source:'tfl', mode:'transit'}`` for the first
+    journey (walk + tube/bus/rail legs stitched into one line), or None on any
+    error / no journey (e.g. outside London → caller estimates instead). Distance
+    is computed from the geometry (TfL's per-leg `distance` is unreliable for rail).
+    """
+    b = (base or DEFAULT_TFL_URL).rstrip("/")
+    url = f"{b}/Journey/JourneyResults/{from_lat},{from_lng}/to/{to_lat},{to_lng}"
+    params = {"app_key": app_key} if app_key else {}
+    try:
+        resp = requests.get(url, params=params, headers=_UA, timeout=timeout)
+        data = resp.json()
+        journeys = data.get("journeys") or []
+        if journeys:
+            j = journeys[0]
+            route: list = []
+            for leg in j.get("legs") or []:
+                ls = (leg.get("path") or {}).get("lineString")
+                if ls:
+                    try:
+                        for p in json.loads(ls):  # TfL lineString is [[lat,lng]...]
+                            route.append([p[0], p[1]])
+                    except (ValueError, TypeError, IndexError):
+                        pass
+            km = sum(
+                haversine_km(route[i][0], route[i][1], route[i + 1][0], route[i + 1][1])
+                for i in range(len(route) - 1)
+            )
+            return {
+                "minutes": int(round(j.get("duration") or 0)),
+                "km": round(km, 2),
+                "route": route,
+                "source": "tfl",
+                "mode": "transit",
+            }
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        pass
+    return None
+
+
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Great-circle distance in kilometres."""
     r = 6371.0
@@ -134,6 +182,32 @@ def _straight_line(lat1: float, lng1: float, lat2: float, lng2: float,
     }
 
 
+def _osrm_route(base: str, profile: str, from_lat: float, from_lng: float,
+                to_lat: float, to_lng: float, timeout: float = 3.5) -> Optional[dict]:
+    """One OSRM `/route` call → ``{minutes, km, route}`` or None. OSRM wants
+    lon,lat and returns geometry as [[lon,lat]...] which we flip to [[lat,lng]...]."""
+    coords = f"{from_lng},{from_lat};{to_lng},{to_lat}"
+    url = f"{base.rstrip('/')}/route/v1/{profile}/{coords}"
+    try:
+        resp = requests.get(
+            url,
+            params={"overview": "full", "geometries": "geojson", "alternatives": "false"},
+            headers=_UA,
+            timeout=timeout,
+        )
+        data = resp.json()
+        if resp.status_code == 200 and data.get("code") == "Ok" and data.get("routes"):
+            r = data["routes"][0]
+            return {
+                "minutes": int(round(r["duration"] / 60)),
+                "km": round(r["distance"] / 1000, 2),
+                "route": [[c[1], c[0]] for c in r["geometry"]["coordinates"]],
+            }
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        pass
+    return None
+
+
 def route_eta(
     from_lat: float,
     from_lng: float,
@@ -144,69 +218,60 @@ def route_eta(
     walk_url: Optional[str] = None,
     bike_url: Optional[str] = None,
     otp_url: Optional[str] = None,
+    tfl_key: Optional[str] = None,
     fallback_kmh: float = DEFAULT_FALLBACK_KMH,
     timeout: float = 3.5,
 ) -> dict:
     """Route + ETA from one point to another for the given travel `mode`.
 
-    Returns ``{minutes, km, route: [[lat,lng]...], source, mode}`` where ``source``
-    is ``"osrm"`` for a real route or ``"line"`` for the straight-line estimate.
-    Never raises — any routing failure degrades to the estimate.
-
-    Each mode uses its own routing server (one OSRM instance = one profile), so
-    walk/cycle only follow roads when `walk_url`/`bike_url` are configured; transit
-    has no OSRM profile and is always the straight-line estimate for now.
+    Returns ``{minutes, km, route: [[lat,lng]...], source, mode}``. ``source``:
+      * ``"osrm"`` / ``"otp"`` — a REAL route for this mode (solid line).
+      * ``"approx"`` — a road-following line (from the car network) with a
+        mode-speed time estimate, used when this mode has no dedicated router yet.
+      * ``"line"`` — last-resort straight-line estimate.
+    Never raises — every failure degrades to the next-best option.
     """
     if mode not in MODE_SPEED_KMH:
         mode = "car"
     speed = fallback_kmh if (mode == "car" and fallback_kmh) else MODE_SPEED_KMH[mode]
+    car_url = osrm_url or DEFAULT_OSRM_URL
 
-    # Transit is a different engine (OpenTripPlanner + GTFS), not OSRM.
+    # 1) A real route for this exact mode, when we have the right engine/server.
     if mode == "transit":
+        # A self-hosted OTP (if configured) wins; otherwise TfL's free Journey
+        # Planner gives real London tube/bus/rail routing with no server to run.
         if otp_url:
             r = otp_route(from_lat, from_lng, to_lat, to_lng, otp_url)
             if r:
                 return r
-        out = _straight_line(from_lat, from_lng, to_lat, to_lng, speed)
-        out["mode"] = "transit"
-        return out
+        r = tfl_journey(from_lat, from_lng, to_lat, to_lng, app_key=tfl_key)
+        if r:
+            return r
+    else:
+        # One OSRM instance = one profile, so walk/cycle only get a real route
+        # from their own server (never the car server, which would mislabel it).
+        dedicated = {"car": car_url, "walk": walk_url, "cycle": bike_url}[mode]
+        if dedicated:
+            real = _osrm_route(dedicated, MODE_PROFILE[mode], from_lat, from_lng, to_lat, to_lng, timeout)
+            if real:
+                real.update({"source": "osrm", "mode": mode})
+                return real
 
-    # Pick the routing server for this mode. Never route walk/cycle against the
-    # car server — it would return a car route mislabelled as walking.
-    base = None
-    if mode == "car":
-        base = osrm_url or DEFAULT_OSRM_URL
-    elif mode == "walk":
-        base = walk_url
-    elif mode == "cycle":
-        base = bike_url
+    # 2) No dedicated router → draw the car road path as an approximation and
+    #    estimate the time from the mode's average speed over that road distance.
+    if mode != "car":
+        approx = _osrm_route(car_url, "driving", from_lat, from_lng, to_lat, to_lng, timeout)
+        if approx:
+            km = approx["km"]
+            return {
+                "minutes": int(round((km / speed) * 60)) if km > 0 else 0,
+                "km": km,
+                "route": approx["route"],
+                "source": "approx",
+                "mode": mode,
+            }
 
-    if base:
-        coords = f"{from_lng},{from_lat};{to_lng},{to_lat}"
-        profile = MODE_PROFILE.get(mode, "driving")
-        url = f"{base.rstrip('/')}/route/v1/{profile}/{coords}"
-        try:
-            resp = requests.get(
-                url,
-                params={"overview": "full", "geometries": "geojson", "alternatives": "false"},
-                headers=_UA,
-                timeout=timeout,
-            )
-            data = resp.json()
-            if resp.status_code == 200 and data.get("code") == "Ok" and data.get("routes"):
-                r = data["routes"][0]
-                # geometry.coordinates is [[lon,lat], ...] → flip to [[lat,lng], ...]
-                line = [[c[1], c[0]] for c in r["geometry"]["coordinates"]]
-                return {
-                    "minutes": int(round(r["duration"] / 60)),
-                    "km": round(r["distance"] / 1000, 2),
-                    "route": line,
-                    "source": "osrm",
-                    "mode": mode,
-                }
-        except (requests.RequestException, ValueError, KeyError, TypeError):
-            pass
-
+    # 3) Last resort — straight line.
     out = _straight_line(from_lat, from_lng, to_lat, to_lng, speed)
     out["mode"] = mode
     return out

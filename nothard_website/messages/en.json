@@ -1170,6 +1170,8 @@
     "setupDone": "Done, hide",
     "setupCollapsedHint": "Phone is set up — tap to show the instructions",
     "back": "Back",
-    "adminSectionTitle": "Live trip"
+    "adminSectionTitle": "Live trip",
+    "tflLabel": "TfL API key (transit)",
+    "tflHint": "London transit routing via TfL works without a key. A free key (api-portal.tfl.gov.uk) raises the request limit."
   }
 }

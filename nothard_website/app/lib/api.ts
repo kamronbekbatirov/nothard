@@ -474,7 +474,7 @@ export type TripLive = {
   runner: { name: string; photoUrl: string | null }
   dest: { lat: number | null; lng: number | null; label: string | null }
   position: { lat: number; lng: number; at: string | null; bearing: number | null; battery: number | null } | null
-  eta: { minutes: number; km: number; source: 'osrm' | 'line' } | null
+  eta: { minutes: number; km: number; source: 'osrm' | 'otp' | 'tfl' | 'approx' | 'line' } | null
   route: LatLng[]
   startedAt: string | null
 }
@@ -493,6 +493,7 @@ export type TrackingCfg = {
   osrm_walk_url: string
   osrm_bike_url: string
   otp_url: string
+  tfl_app_key: string
   nominatim_url: string
   fallback_kmh: number
   refresh_sec: number

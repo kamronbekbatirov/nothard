@@ -2118,8 +2118,10 @@ def create_app() -> Flask:
             "osrm_walk_url": get_setting("osrm_walk_url", ""),
             "osrm_bike_url": get_setting("osrm_bike_url", ""),
             # OpenTripPlanner GraphQL endpoint for real public-transport routing
-            # (blank → transit falls back to a straight-line estimate).
+            # (blank → transit uses TfL's free Journey Planner instead).
             "otp_url": get_setting("otp_url", ""),
+            # Optional TfL API key — transit works keyless, a key lifts the limit.
+            "tfl_app_key": get_setting("tfl_app_key", ""),
             "nominatim_url": get_setting("nominatim_url", routing.DEFAULT_NOMINATIM_URL),
             "fallback_kmh": _setting_float("tracking_fallback_kmh", routing.DEFAULT_FALLBACK_KMH),
             "refresh_sec": _setting_int("tracking_refresh_sec", 20),
@@ -2162,6 +2164,7 @@ def create_app() -> Flask:
             walk_url=cfg["osrm_walk_url"] or None,
             bike_url=cfg["osrm_bike_url"] or None,
             otp_url=cfg["otp_url"] or None,
+            tfl_key=cfg["tfl_app_key"] or None,
             fallback_kmh=cfg["fallback_kmh"],
         )
         trip.eta_minutes = res["minutes"]
@@ -2456,6 +2459,8 @@ def create_app() -> Flask:
             set_setting("osrm_bike_url", (d.get("osrm_bike_url") or "").strip())
         if "otp_url" in d:
             set_setting("otp_url", (d.get("otp_url") or "").strip())
+        if "tfl_app_key" in d:
+            set_setting("tfl_app_key", (d.get("tfl_app_key") or "").strip())
         if "nominatim_url" in d:
             set_setting("nominatim_url", (d.get("nominatim_url") or "").strip())
         if "fallback_kmh" in d:

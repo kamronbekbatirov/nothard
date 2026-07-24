@@ -2652,6 +2652,10 @@ function TrackingSettings() {
             <Input value={cfg.osrm_bike_url} onChange={(e) => upd({ osrm_bike_url: e.target.value })} placeholder="http://127.0.0.1:5002" />
             <p className="mt-1 text-[12px] leading-snug text-gray">{t('osrmModeHint')}</p>
           </Field>
+          <Field label={t('tflLabel')}>
+            <Input value={cfg.tfl_app_key} onChange={(e) => upd({ tfl_app_key: e.target.value })} placeholder="—" />
+            <p className="mt-1 text-[12px] leading-snug text-gray">{t('tflHint')}</p>
+          </Field>
           <Field label={t('otpLabel')}>
             <Input value={cfg.otp_url} onChange={(e) => upd({ otp_url: e.target.value })} placeholder="https://otp.host/otp/routers/default/index/graphql" />
             <p className="mt-1 text-[12px] leading-snug text-gray">{t('otpHint')}</p>
