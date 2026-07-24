@@ -1189,6 +1189,11 @@
     "howToTravel": "Қандай бориш",
     "legWalkTo": "{place} гача пиёда",
     "legWalk": "Пиёда",
-    "legLineTo": "{line} — {station} гача"
+    "legLineTo": "{line} — {station} гача",
+    "phasePickup": "Мижозни кутиб олишга:",
+    "phaseDest": "Мижозни олиб боради:",
+    "metBtn": "Мижозни кутиб олдим",
+    "clientOnWayPickup": "{name} сизни тез орада кутиб олади",
+    "clientOnWayDest": "Манзил сари йўлдамиз"
   }
 }

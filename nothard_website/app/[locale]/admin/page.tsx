@@ -2727,7 +2727,16 @@ function AdminTripSection({ clientId }: { clientId: number }) {
 
   return (
     <div className="mt-4 rounded-lg border border-accent/25 bg-accent-bg/40 p-3">
-      <div className="mb-2 text-[11px] uppercase tracking-wide text-accent">{t('adminSectionTitle')}</div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[11px] uppercase tracking-wide text-accent">{t('adminSectionTitle')}</span>
+        <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10.5px] font-semibold text-accent">
+          {trip.phase === 'toPickup' ? t('phasePickup') : t('phaseDest')}
+        </span>
+      </div>
+      <div className="mb-2 text-[12px] leading-snug text-ink-2">
+        {trip.pickup.label && <div>✈️ {trip.pickup.label}</div>}
+        {trip.dest.label && <div>🏠 {trip.dest.label}</div>}
+      </div>
       <ModeSelector
         value={trip.mode}
         onChange={(m: TravelMode) => api.admin.setTripMode(trip.id, m).then((r) => setTrip(r.trip)).catch(() => {})}

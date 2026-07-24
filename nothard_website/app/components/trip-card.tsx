@@ -31,6 +31,21 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
   // step-by-step transit legs while the runner is coming (the client only wants
   // to see them once they're travelling together).
 
+  const toPickup = trip.phase === 'toPickup'
+  // The client's phase-1 view frames it as "your host will meet you" (the runner
+  // is coming to the airport); phase 2 is "on the way to your destination".
+  const title = arrived
+    ? t('arrivedTitle')
+    : minimal && toPickup
+      ? t('clientOnWayPickup', { name: trip.runner.name })
+      : minimal
+        ? t('clientOnWayDest')
+        : t('onWayTitle', { name: trip.runner.name })
+  // In the client's phase-1 view, don't pin the final home yet (the route is
+  // hidden too) — just show the host approaching.
+  const showDestPin = !(minimal && toPickup)
+  const subLabel = minimal && toPickup ? null : trip.dest.label
+
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-card">
       <div className="flex items-center gap-3 border-b border-line bg-accent-bg/60 px-4 py-3">
@@ -38,11 +53,11 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[13.5px] font-semibold text-ink">
             <ModeIcon size={15} className="text-accent" />
-            {arrived ? t('arrivedTitle') : t('onWayTitle', { name: trip.runner.name })}
+            {title}
           </div>
-          {trip.dest.label && (
+          {subLabel && (
             <div className="mt-0.5 flex items-center gap-1 truncate text-[12px] text-muted">
-              <MapPin size={12} className="shrink-0" /> {trip.dest.label}
+              <MapPin size={12} className="shrink-0" /> {subLabel}
             </div>
           )}
         </div>
@@ -58,7 +73,7 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
 
       <LiveMap
         position={trip.position}
-        dest={trip.dest}
+        dest={showDestPin ? trip.dest : null}
         route={trip.route}
         estimate={isEstimate}
         height={arrived ? 200 : 260}

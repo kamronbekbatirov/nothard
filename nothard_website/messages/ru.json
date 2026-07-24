@@ -1189,6 +1189,11 @@
     "howToTravel": "Как добираться",
     "legWalkTo": "Пешком до {place}",
     "legWalk": "Пешком",
-    "legLineTo": "{line} до {station}"
+    "legLineTo": "{line} до {station}",
+    "phasePickup": "Едет за клиентом:",
+    "phaseDest": "Везёт клиента:",
+    "metBtn": "Встретил клиента",
+    "clientOnWayPickup": "{name} скоро вас встретит",
+    "clientOnWayDest": "Едем к месту назначения"
   }
 }

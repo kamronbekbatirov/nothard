@@ -2148,11 +2148,19 @@ def create_app() -> Flask:
             select(TripPing).where(TripPing.trip_id == trip_id).order_by(TripPing.id.desc())
         ).scalars().first()
 
+    def _phase_target(trip: Trip):
+        """Where the current phase routes TO: the airport (pickup) while going to
+        collect the client, then the drop-off (dest) once they've met."""
+        if (trip.phase or "toPickup") == "toPickup" and trip.pickup_lat is not None:
+            return trip.pickup_lat, trip.pickup_lng, "car"  # runner alone → car
+        return trip.dest_lat, trip.dest_lng, (trip.mode or "car")
+
     def _compute_route(trip: Trip, from_lat: float, from_lng: float) -> dict:
         cfg = tracking_cfg()
+        to_lat, to_lng, mode = _phase_target(trip)
         return routing.route_eta(
-            from_lat, from_lng, trip.dest_lat, trip.dest_lng,
-            mode=trip.mode or "car",
+            from_lat, from_lng, to_lat, to_lng,
+            mode=mode,
             osrm_url=cfg["osrm_url"],
             walk_url=cfg["osrm_walk_url"] or None,
             bike_url=cfg["osrm_bike_url"] or None,
@@ -2161,11 +2169,15 @@ def create_app() -> Flask:
             fallback_kmh=cfg["fallback_kmh"],
         )
 
+    def _has_target(trip: Trip) -> bool:
+        to_lat, _, _ = _phase_target(trip)
+        return to_lat is not None
+
     def plan_trip_route(trip: Trip, from_lat: float, from_lng: float) -> None:
-        """Compute the route ONCE from a start point → destination and freeze it.
+        """Compute the route ONCE from a start point → phase target and freeze it.
         The live GPS afterwards only moves the marker + updates the ETA number, so
         the drawn line stays stable (no per-ping reshaping / flicker)."""
-        if trip.dest_lat is None or trip.dest_lng is None:
+        if not _has_target(trip):
             return
         res = _compute_route(trip, from_lat, from_lng)
         now = datetime.utcnow()
@@ -2180,7 +2192,7 @@ def create_app() -> Flask:
 
     def refresh_trip(trip: Trip, ping: TripPing | None) -> None:
         """Plan the route once, then only refresh the live ETA as the runner moves."""
-        if trip.dest_lat is None or trip.dest_lng is None:
+        if not _has_target(trip):
             return
         now = datetime.utcnow()
         # (Re)plan the stable route when it's missing (fresh trip, or invalidated
@@ -2226,10 +2238,14 @@ def create_app() -> Flask:
             return False
         return d > 0.4
 
-    def trip_live_payload(trip: Trip) -> dict:
+    def trip_live_payload(trip: Trip, for_client: bool = False) -> dict:
+        """Live trip snapshot. `for_client` hides the phase-1 route/legs: while the
+        runner is still coming to the airport the client only sees 'host on the way
+        + ETA'; the actual travel route/lines appear once they've met (phase 2)."""
         ping = latest_ping(trip.id)
         refresh_trip(trip, ping)
         runner = SessionLocal.get(User, trip.runner_id)
+        phase = trip.phase or "toPickup"
         pos = None
         if ping:
             pos = {
@@ -2237,9 +2253,13 @@ def create_app() -> Flask:
                 "at": ping.recorded_at.isoformat() if ping.recorded_at else None,
                 "bearing": ping.bearing, "battery": ping.battery,
             }
+        # The client sees the route+legs only in phase 2 (travelling together).
+        show_route = (not for_client) or phase == "toDestination"
+        tgt_lat, tgt_lng, _ = _phase_target(trip)
         return {
             "id": trip.id,
             "status": trip.status,
+            "phase": phase,
             "mode": trip.mode or "car",
             "runner": {
                 "name": _first_name(runner.name) if runner else "",
@@ -2249,15 +2269,18 @@ def create_app() -> Flask:
                 {"lat": trip.origin_lat, "lng": trip.origin_lng, "label": trip.origin_label}
                 if trip.origin_lat is not None else {"label": trip.origin_label}
             ),
+            "pickup": {"lat": trip.pickup_lat, "lng": trip.pickup_lng, "label": trip.pickup_label},
             "dest": {"lat": trip.dest_lat, "lng": trip.dest_lng, "label": trip.dest_label},
+            # What the current phase is heading toward (airport, then home).
+            "target": {"lat": tgt_lat, "lng": tgt_lng},
             "position": pos,
             "eta": (
                 {"minutes": trip.eta_minutes, "km": trip.eta_km} if trip.eta_minutes is not None else None
             ),
             # The drawn line's engine — dashed when it's an estimate (approx/line).
             "routeSource": trip.eta_source,
-            "route": trip.route_json or [],
-            "legs": trip.legs_json or [],
+            "route": (trip.route_json or []) if show_route else [],
+            "legs": (trip.legs_json or []) if show_route else [],
             "offRoute": _off_route(trip, ping),
             "startedAt": trip.started_at.isoformat() if trip.started_at else None,
         }
@@ -2398,6 +2421,60 @@ def create_app() -> Flask:
         payload["client"] = {"id": c.id, "name": c.name} if c else None
         return jsonify({"trip": payload})
 
+    # Known coordinates for the London airport terminals (Nominatim can't parse
+    # labels like "Heathrow (LHR) · Terminal 4"). Matched by keyword substrings.
+    AIRPORT_COORDS = [
+        (("heathrow", "terminal 5"), (51.4720, -0.4877)),
+        (("heathrow", "terminal 4"), (51.4592, -0.4466)),
+        (("heathrow", "terminal 3"), (51.4713, -0.4614)),
+        (("heathrow", "terminal 2"), (51.4700, -0.4543)),
+        (("heathrow",), (51.4700, -0.4543)),
+        (("gatwick", "north"), (51.1610, -0.1760)),
+        (("gatwick", "south"), (51.1537, -0.1821)),
+        (("gatwick",), (51.1537, -0.1821)),
+        (("stansted",), (51.8860, 0.2389)),
+        (("luton",), (51.8747, -0.3683)),
+        (("london city", "lcy"), (51.5048, 0.0495)),
+        (("city (lcy)",), (51.5048, 0.0495)),
+        (("southend",), (51.5714, 0.6956)),
+    ]
+
+    def airport_coords(label: str):
+        low = (label or "").lower()
+        for keys, coord in AIRPORT_COORDS:
+            if all(k in low for k in keys):
+                return coord
+        return None
+
+    def client_arrival_info(client_id: int) -> dict:
+        """Derive the pickup (airport) + drop-off + default mode from what the
+        CLIENT saved at checkout, so the runner doesn't re-enter any of it."""
+        info = {"airport": "", "dropoff": "", "dropoff_lat": None, "dropoff_lng": None,
+                "mode": "transit"}
+        has_taxi = has_transport = False
+        details = {}
+        # Arrival details are a single fact about the client's trip — gather them
+        # from any order (active OR archived, e.g. after a package upgrade).
+        for o in client_orders(client_id):
+            if o.item_id == "airportTaxi":
+                has_taxi = True
+            if o.item_id == "airportTransport":
+                has_transport = True
+            dd = o.details or {}
+            for k in ("airport", "dropoff", "dropoffLat", "dropoffLng"):
+                if dd.get(k) and not details.get(k):
+                    details[k] = dd[k]
+        info["airport"] = details.get("airport", "")
+        info["dropoff"] = details.get("dropoff", "")
+        try:
+            info["dropoff_lat"] = float(details["dropoffLat"]) if details.get("dropoffLat") else None
+            info["dropoff_lng"] = float(details["dropoffLng"]) if details.get("dropoffLng") else None
+        except (TypeError, ValueError):
+            pass
+        # Taxi order → car (direct); transport order → transit; else transit.
+        info["mode"] = "car" if has_taxi and not has_transport else "transit"
+        return info
+
     @app.post("/runner/trips/start")
     def runner_trip_start():
         user, err = require_role("runner")
@@ -2412,36 +2489,47 @@ def create_app() -> Flask:
             c = None
         if not c:
             return jsonify({"error": "client not assigned", "code": "no_client"}), 400
-        dest_label = (d.get("dest_label") or "").strip()
-        dest_lat, dest_lng = d.get("dest_lat"), d.get("dest_lng")
-        # Geocode the address when coordinates weren't supplied.
+        cfg = tracking_cfg()
+        arr = client_arrival_info(c.id)
+
+        # Pickup (airport) — the runner doesn't choose it; it's the client's airport.
+        pickup_label = (d.get("pickup_label") or arr["airport"] or "").strip()
+        pickup_lat, pickup_lng = d.get("pickup_lat"), d.get("pickup_lng")
+        if pickup_lat is None or pickup_lng is None:
+            ac = airport_coords(pickup_label)  # known terminals → exact coords
+            if ac:
+                pickup_lat, pickup_lng = ac
+            elif pickup_label:
+                geo = routing.geocode(pickup_label, nominatim_url=cfg["nominatim_url"])
+                if geo:
+                    pickup_lat, pickup_lng = geo["lat"], geo["lng"]
+
+        # Destination (drop-off) — from the client's saved arrival details.
+        dest_label = (d.get("dest_label") or arr["dropoff"] or "").strip()
+        dest_lat = d.get("dest_lat") if d.get("dest_lat") is not None else arr["dropoff_lat"]
+        dest_lng = d.get("dest_lng") if d.get("dest_lng") is not None else arr["dropoff_lng"]
         if (dest_lat is None or dest_lng is None) and dest_label:
-            geo = routing.geocode(dest_label, nominatim_url=tracking_cfg()["nominatim_url"])
+            geo = routing.geocode(dest_label, nominatim_url=cfg["nominatim_url"])
             if geo:
                 dest_lat, dest_lng = geo["lat"], geo["lng"]
-                dest_label = dest_label or geo["label"]
-        mode = d.get("mode") if d.get("mode") in routing.MODE_SPEED_KMH else "car"
-        # Chosen start point (address or "my location"); geocode a label if needed.
-        origin_label = (d.get("origin_label") or "").strip()
-        origin_lat, origin_lng = d.get("origin_lat"), d.get("origin_lng")
-        if (origin_lat is None or origin_lng is None) and origin_label:
-            geo = routing.geocode(origin_label, nominatim_url=tracking_cfg()["nominatim_url"])
-            if geo:
-                origin_lat, origin_lng = geo["lat"], geo["lng"]
-                origin_label = origin_label or geo["label"]
+
+        mode = d.get("mode") if d.get("mode") in routing.MODE_SPEED_KMH else arr["mode"]
+        # Phase 1 only needs a pickup point; if there's none (no airport saved),
+        # fall back to a single-phase trip straight to the destination.
+        has_pickup = pickup_lat is not None and pickup_lng is not None
         trip = Trip(
             client_id=c.id, runner_id=user.id, status="active", mode=mode,
-            origin_label=origin_label or None,
-            origin_lat=float(origin_lat) if origin_lat is not None else None,
-            origin_lng=float(origin_lng) if origin_lng is not None else None,
+            phase="toPickup" if has_pickup else "toDestination",
+            pickup_label=pickup_label or None,
+            pickup_lat=float(pickup_lat) if pickup_lat is not None else None,
+            pickup_lng=float(pickup_lng) if pickup_lng is not None else None,
             dest_label=dest_label or None,
             dest_lat=float(dest_lat) if dest_lat is not None else None,
             dest_lng=float(dest_lng) if dest_lng is not None else None,
         )
-        # Plan the stable route now if we already have a start point (else it's
-        # planned from the runner's first GPS ping).
-        if trip.origin_lat is not None and trip.dest_lat is not None:
-            plan_trip_route(trip, trip.origin_lat, trip.origin_lng)
+        # Plan the first route from the runner's last known position (Traccar), if any.
+        if user.last_lat is not None and user.last_lng is not None and _has_target(trip):
+            plan_trip_route(trip, user.last_lat, user.last_lng)
         SessionLocal.add(trip)
         SessionLocal.commit()
         ensure_track_token(user)
@@ -2547,6 +2635,30 @@ def create_app() -> Flask:
             "dest": {"lat": float(dst_lat), "lng": float(dst_lng)},
         })
 
+    @app.post("/runner/trips/<int:trip_id>/met")
+    def runner_trip_met(trip_id: int):
+        """Runner has met the client at the airport → switch to phase 2 and replan
+        the route from here (the airport) to the drop-off."""
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        trip.phase = "toDestination"
+        _invalidate_route(trip)  # replan pickup→dest from the current position
+        # Replan immediately from the runner's current position (they're at the
+        # airport now) so the client sees the route without waiting for a ping.
+        p = latest_ping(trip.id)
+        if p:
+            plan_trip_route(trip, p.lat, p.lng)
+        elif user.last_lat is not None and user.last_lng is not None:
+            plan_trip_route(trip, user.last_lat, user.last_lng)
+        elif trip.pickup_lat is not None:
+            plan_trip_route(trip, trip.pickup_lat, trip.pickup_lng)
+        SessionLocal.commit()
+        return jsonify({"trip": trip_live_payload(trip)})
+
     @app.post("/runner/trips/<int:trip_id>/arrive")
     def runner_trip_arrive(trip_id: int):
         user, err = require_role("runner")
@@ -2583,7 +2695,7 @@ def create_app() -> Flask:
             select(Client).where(Client.user_id == user.id)
         ).scalar_one_or_none()
         trip = active_trip_for_client(c.id) if c else None
-        return jsonify({"trip": trip_live_payload(trip) if trip else None})
+        return jsonify({"trip": trip_live_payload(trip, for_client=True) if trip else None})
 
     @app.get("/share/<token>/live")
     def public_share_live(token: str):
@@ -2593,7 +2705,7 @@ def create_app() -> Flask:
         if not c or not token:
             return jsonify({"error": "not found"}), 404
         trip = active_trip_for_client(c.id)
-        return jsonify({"trip": trip_live_payload(trip) if trip else None})
+        return jsonify({"trip": trip_live_payload(trip, for_client=True) if trip else None})
 
     # ---- Operator: tracking settings + oversight --------------------------
     @app.get("/admin/settings/tracking")

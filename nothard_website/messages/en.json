@@ -1189,6 +1189,11 @@
     "howToTravel": "How to travel",
     "legWalkTo": "Walk to {place}",
     "legWalk": "Walk",
-    "legLineTo": "{line} to {station}"
+    "legLineTo": "{line} to {station}",
+    "phasePickup": "Going to meet:",
+    "phaseDest": "Taking the client to:",
+    "metBtn": "Met the client",
+    "clientOnWayPickup": "{name} will meet you shortly",
+    "clientOnWayDest": "On the way to your destination"
   }
 }

@@ -1,23 +1,19 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
-import { ChevronDown, MapPin, MessageSquare, Navigation, Pencil, Phone, Smartphone, X } from 'lucide-react'
+import { ChevronDown, MapPin, MessageSquare, Navigation, Pencil, Phone, Smartphone } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Avatar } from '@/app/components/avatar'
 import { ChatModal } from '@/app/components/chat'
-import { Input } from '@/app/components/field'
 import { LangSwitcher } from '@/app/components/lang-switcher'
 import { AddressField } from '@/app/components/address-field'
 import { TripCard } from '@/app/components/trip-card'
-import { TransitLegs } from '@/app/components/transit-legs'
 import { ModeSelector } from '@/app/components/travel-mode'
 import { useToast } from '@/app/components/toast'
 import { useRequireRole } from '@/app/lib/use-require-role'
 import { useTaskLabel } from '@/app/lib/task-label'
-import { getTelegramLocation } from '@/app/lib/telegram'
 import {
   api,
   clearTokens,
@@ -26,18 +22,10 @@ import {
   type RunnerVisitRow,
   type TripLive,
   type TrackConfig,
-  type GeoResult,
   type TravelMode,
-  type RoutePreview,
 } from '@/app/lib/api'
 import { fmtGBP } from '@/app/lib/data'
 import { cn } from '@/app/lib/utils'
-
-// Leaflet touches `window`, so the route-preview map is client-only.
-const LiveMap = dynamic(() => import('@/app/components/live-map'), {
-  ssr: false,
-  loading: () => <div className="h-[180px] animate-pulse rounded-xl border border-line bg-card" />,
-})
 
 export default function RunnerPage() {
   const t = useTranslations('Runner')
@@ -52,7 +40,6 @@ export default function RunnerPage() {
   // live map/route can live inside the matching client's card.
   const [trip, setTrip] = useState<(TripLive & { client: { id: number; name: string } | null }) | null>(null)
   const [cfg, setCfg] = useState<TrackConfig | null>(null)
-  const [startFor, setStartFor] = useState<{ id: number; name: string } | null>(null)
   const tt = useTranslations('Tracking')
   const loadTrip = () => api.runner.trip().then((r) => setTrip(r.trip)).catch(() => {})
   useEffect(() => {
@@ -69,7 +56,31 @@ export default function RunnerPage() {
   }, [ready])
 
   // Trip controls — used by whichever client card holds the active trip.
+  const [startingFor, setStartingFor] = useState<number | null>(null)
   const tripCtl = {
+    // Start a trip for a client — the backend auto-derives pickup (airport),
+    // destination (their drop-off) and mode from what the client booked; the
+    // runner doesn't choose any of it.
+    start: async (clientId: number) => {
+      if (trip) return
+      setStartingFor(clientId)
+      try {
+        await api.runner.startTrip({ client_id: clientId })
+        loadTrip()
+      } catch {
+      } finally {
+        setStartingFor(null)
+      }
+    },
+    met: async () => {
+      if (!trip) return
+      try {
+        const r = await api.runner.met(trip.id)
+        setTrip((c) => (c ? { ...r.trip, client: c.client } : c))
+      } catch {
+        loadTrip()
+      }
+    },
     setMode: async (m: TravelMode) => {
       if (!trip) return
       setTrip({ ...trip, mode: m })
@@ -220,7 +231,8 @@ export default function RunnerPage() {
                 trip={trip?.client?.id === c.id ? trip : null}
                 tripCtl={tripCtl}
                 tripBusyElsewhere={!!trip && trip.client?.id !== c.id}
-                onStartTrip={() => setStartFor({ id: c.id, name: c.name })}
+                starting={startingFor === c.id}
+                onStartTrip={() => tripCtl.start(c.id)}
                 onAdvance={advance}
                 onChat={() => setChatClient(c)}
               />
@@ -246,17 +258,6 @@ export default function RunnerPage() {
           onClose={() => setChatClient(null)}
         />
       )}
-
-      {startFor && (
-        <StartTripModal
-          client={startFor}
-          onClose={() => setStartFor(null)}
-          onStarted={() => {
-            setStartFor(null)
-            loadTrip()
-          }}
-        />
-      )}
     </div>
   )
 }
@@ -274,6 +275,8 @@ function Stat({ value, label, tone }: { value?: number; label: string; tone?: 'a
 
 type TripWithClient = TripLive & { client: { id: number; name: string } | null }
 type TripCtl = {
+  start: (clientId: number) => void
+  met: () => void
   setMode: (m: TravelMode) => void
   setDest: (label: string, coords: { lat: number; lng: number } | null) => Promise<void>
   rebuild: () => void
@@ -286,6 +289,7 @@ function ClientCard({
   trip,
   tripCtl,
   tripBusyElsewhere,
+  starting,
   onStartTrip,
   onAdvance,
   onChat,
@@ -294,6 +298,7 @@ function ClientCard({
   trip: TripWithClient | null
   tripCtl: TripCtl
   tripBusyElsewhere: boolean
+  starting: boolean
   onStartTrip: () => void
   onAdvance: (taskId: number) => void
   onChat: () => void
@@ -348,6 +353,7 @@ function ClientCard({
         trip={trip}
         tripCtl={tripCtl}
         busyElsewhere={tripBusyElsewhere}
+        starting={starting}
         onStart={onStartTrip}
       />
     </div>
@@ -359,11 +365,13 @@ function TripArea({
   trip,
   tripCtl,
   busyElsewhere,
+  starting,
   onStart,
 }: {
   trip: TripWithClient | null
   tripCtl: TripCtl
   busyElsewhere: boolean
+  starting: boolean
   onStart: () => void
 }) {
   const t = useTranslations('Tracking')
@@ -377,16 +385,28 @@ function TripArea({
         {busyElsewhere ? (
           <p className="text-center text-[12.5px] text-muted">{t('busyElsewhere')}</p>
         ) : (
-          <Button variant="outline" size="block" className="gap-1.5 text-accent" onClick={onStart}>
-            <Navigation size={14} /> {t('startTitle')}
+          <Button variant="outline" size="block" className="gap-1.5 text-accent" disabled={starting} onClick={onStart}>
+            <Navigation size={14} /> {starting ? t('starting') : t('startTitle')}
           </Button>
         )}
       </div>
     )
   }
 
+  const toPickup = trip.phase === 'toPickup'
+
   return (
     <div className="flex flex-col gap-3 border-t border-line bg-accent-bg/30 p-4">
+      {/* Phase banner — going to the airport, or taking the client home */}
+      <div className="rounded-lg bg-card px-3 py-2 text-[12.5px] leading-snug">
+        <span className="font-semibold text-accent">
+          {toPickup ? t('phasePickup') : t('phaseDest')}
+        </span>{' '}
+        <span className="text-ink-2">
+          {toPickup ? trip.pickup.label || '—' : trip.dest.label || '—'}
+        </span>
+      </div>
+
       <ModeSelector value={trip.mode} onChange={tripCtl.setMode} />
       <TripCard trip={trip} />
 
@@ -445,9 +465,15 @@ function TripArea({
       )}
 
       <div className="flex gap-2">
-        <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.arrive}>
-          {t('arriveBtn')}
-        </Button>
+        {toPickup ? (
+          <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.met}>
+            {t('metBtn')}
+          </Button>
+        ) : (
+          <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.arrive}>
+            {t('arriveBtn')}
+          </Button>
+        )}
         <Button variant="outline" size="block" className="flex-1" onClick={tripCtl.cancel}>
           {t('cancelBtn')}
         </Button>
@@ -669,213 +695,6 @@ function PhoneSetupCard({
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-/* ---------- Start-trip modal (per client) with route preview ---------- */
-function StartTripModal({
-  client,
-  onClose,
-  onStarted,
-}: {
-  client: { id: number; name: string }
-  onClose: () => void
-  onStarted: () => void
-}) {
-  const t = useTranslations('Tracking')
-  const { toast } = useToast()
-  const [dest, setDest] = useState('')
-  const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null)
-  const [origin, setOrigin] = useState('')
-  const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null)
-  const [mode, setMode] = useState<TravelMode>('car')
-  const [busy, setBusy] = useState(false)
-  const [locating, setLocating] = useState(false)
-  const [preview, setPreview] = useState<RoutePreview | null>(null)
-
-  // "My location" cascade: Telegram Mini App location → Traccar Client's last
-  // position → the browser's geolocation. First one that works wins.
-  async function useMyLocation() {
-    setLocating(true)
-    const apply = (c: { lat: number; lng: number }) => {
-      setOriginCoords(c)
-      setOrigin(t('myLocation'))
-      setLocating(false)
-    }
-    // 1) Telegram Mini App LocationManager (Bot API 8.0+).
-    try {
-      const tg = await getTelegramLocation()
-      if (tg) return apply(tg)
-    } catch {}
-    // 2) Traccar Client — the runner's phone already streams its GPS to us.
-    try {
-      const r = await api.runner.myLocation()
-      if (r.location) return apply({ lat: r.location.lat, lng: r.location.lng })
-    } catch {}
-    // 3) Browser geolocation.
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => apply({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {
-          toast(t('locateFail'))
-          setLocating(false)
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      )
-      return
-    }
-    toast(t('locateFail'))
-    setLocating(false)
-  }
-
-  // Live route preview once we have both ends.
-  useEffect(() => {
-    const hasO = !!originCoords || origin.trim().length >= 3
-    const hasD = !!destCoords || dest.trim().length >= 3
-    if (!hasO || !hasD) {
-      setPreview(null)
-      return
-    }
-    let cancelled = false
-    const id = window.setTimeout(() => {
-      api.runner
-        .routePreview({
-          origin_lat: originCoords?.lat,
-          origin_lng: originCoords?.lng,
-          origin_label: originCoords ? undefined : origin.trim(),
-          dest_lat: destCoords?.lat,
-          dest_lng: destCoords?.lng,
-          dest_label: destCoords ? undefined : dest.trim(),
-          mode,
-        })
-        .then((r) => !cancelled && setPreview(r))
-        .catch(() => {})
-    }, 500)
-    return () => {
-      cancelled = true
-      clearTimeout(id)
-    }
-  }, [originCoords, destCoords, origin, dest, mode])
-
-  async function start() {
-    if (!dest.trim() && !destCoords) {
-      toast(t('needDest'))
-      return
-    }
-    setBusy(true)
-    try {
-      const r = await api.runner.startTrip({
-        client_id: client.id,
-        dest_label: dest.trim() || undefined,
-        dest_lat: destCoords?.lat,
-        dest_lng: destCoords?.lng,
-        origin_label: originCoords ? undefined : origin.trim() || undefined,
-        origin_lat: originCoords?.lat,
-        origin_lng: originCoords?.lng,
-        mode,
-      })
-      if (!r.geocoded && !destCoords) toast(t('geocodeWarn'))
-      onStarted()
-    } catch {
-      toast(t('startFail'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const previewEstimate = preview?.routeSource === 'approx' || preview?.routeSource === 'line'
-
-  return (
-    <div className="fixed inset-0 z-[9992] flex flex-col bg-paper">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-5 py-4">
-        <div className="min-w-0">
-          <div className="font-display text-[17px] text-ink">{t('startTitle')}</div>
-          <div className="truncate text-[12.5px] text-muted">{t('toClient')}: {client.name}</div>
-        </div>
-        <button onClick={onClose} className="text-gray hover:text-ink" aria-label="close">
-          <X size={20} />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8">
-        <div className="mx-auto flex max-w-[560px] flex-col gap-4">
-          {/* Destination */}
-          <label className="block">
-            <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('destLabel')}</span>
-            <AddressField
-              search={(q) => api.runner.geocode(q).then((r) => r.results)}
-              value={dest}
-              placeholder={t('destPlaceholder')}
-              onPick={(label, coords) => {
-                setDest(label)
-                setDestCoords(coords)
-              }}
-            />
-          </label>
-
-          {/* Origin + my-location */}
-          <div>
-            <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('originLabel')}</span>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="min-w-0 flex-1">
-                <AddressField
-                  search={(q) => api.runner.geocode(q).then((r) => r.results)}
-                  value={origin}
-                  placeholder={t('originPlaceholder')}
-                  onPick={(label, coords) => {
-                    setOrigin(label)
-                    setOriginCoords(coords)
-                  }}
-                />
-              </div>
-              <Button variant="outline" className="shrink-0 gap-1.5 text-accent" disabled={locating} onClick={useMyLocation}>
-                <Navigation size={14} /> {locating ? t('locating') : t('useMyLocation')}
-              </Button>
-            </div>
-          </div>
-
-          {/* Mode */}
-          <div>
-            <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('modeLabel')}</span>
-            <ModeSelector value={mode} onChange={setMode} />
-            {mode === 'transit' && (
-              <p className="mt-1.5 text-[11.5px] leading-snug text-gray">{t('transitEstimate')}</p>
-            )}
-          </div>
-
-          {/* Route preview */}
-          {preview && preview.route.length > 1 && (
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[12.5px] font-medium text-ink-2">{t('previewLabel')}</span>
-                {preview.eta && (
-                  <span className="text-[13px] font-semibold text-accent">
-                    {t('etaMin', { min: preview.eta.minutes })} · {t('kmLeft', { km: preview.eta.km })}
-                  </span>
-                )}
-              </div>
-              <LiveMap
-                position={null}
-                dest={preview.dest ?? destCoords}
-                route={preview.route}
-                estimate={previewEstimate}
-                height={200}
-              />
-              {preview.legs.length > 0 && (
-                <div className="mt-3 rounded-lg border border-line bg-card p-3">
-                  <div className="mb-2 text-[12px] font-medium text-ink-2">{t('howToTravel')}</div>
-                  <TransitLegs legs={preview.legs} />
-                </div>
-              )}
-            </div>
-          )}
-
-          <Button variant="solid" size="block" disabled={busy} onClick={start}>
-            {busy ? t('starting') : t('startBtn')}
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }

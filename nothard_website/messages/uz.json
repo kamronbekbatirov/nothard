@@ -1189,6 +1189,11 @@
     "howToTravel": "Qanday borish",
     "legWalkTo": "{place} gacha piyoda",
     "legWalk": "Piyoda",
-    "legLineTo": "{line} — {station} gacha"
+    "legLineTo": "{line} — {station} gacha",
+    "phasePickup": "Mijozni kutib olishga:",
+    "phaseDest": "Mijozni olib boradi:",
+    "metBtn": "Mijozni kutib oldim",
+    "clientOnWayPickup": "{name} sizni tez orada kutib oladi",
+    "clientOnWayDest": "Manzil sari yo‘ldamiz"
   }
 }

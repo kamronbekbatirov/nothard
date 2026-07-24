@@ -474,6 +474,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(body),
       }),
+    // Runner met the client at the airport → advance to phase 2 (to destination).
+    met: (tripId: number) => req<{ trip: TripLive }>(`/runner/trips/${tripId}/met`, { method: 'POST' }),
     arrive: (tripId: number) => req<{ ok: boolean }>(`/runner/trips/${tripId}/arrive`, { method: 'POST' }),
     cancel: (tripId: number) => req<{ ok: boolean }>(`/runner/trips/${tripId}/cancel`, { method: 'POST' }),
   },
@@ -496,13 +498,18 @@ export type TripLeg = {
   minutes: number
 }
 
+export type TripPhase = 'toPickup' | 'toDestination'
+
 export type TripLive = {
   id: number
   status: 'active' | 'arrived' | 'cancelled'
+  phase: TripPhase
   mode: TravelMode
   runner: { name: string; photoUrl: string | null }
   origin: { lat: number | null; lng: number | null; label: string | null }
+  pickup: { lat: number | null; lng: number | null; label: string | null }
   dest: { lat: number | null; lng: number | null; label: string | null }
+  target: { lat: number | null; lng: number | null }
   position: { lat: number; lng: number; at: string | null; bearing: number | null; battery: number | null } | null
   eta: { minutes: number; km: number } | null
   // Engine that drew the (stable) route line — dashed when it's an estimate.

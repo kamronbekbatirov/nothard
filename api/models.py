@@ -276,8 +276,15 @@ class Trip(Base):
     runner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     # active | arrived | cancelled
     status: Mapped[str] = mapped_column(String(16), default="active", index=True)
+    # Journey phase: toPickup (runner → airport) | toDestination (airport → home).
+    phase: Mapped[str] = mapped_column(String(16), default="toPickup")
     # Travel mode for the ETA/route: car | walk | cycle | transit.
     mode: Mapped[str] = mapped_column(String(12), default="car")
+
+    # Pickup point (the airport where the client is met) — phase-1 route target.
+    pickup_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    pickup_lat: Mapped[float | None] = mapped_column(nullable=True)
+    pickup_lng: Mapped[float | None] = mapped_column(nullable=True)
 
     origin_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # The planned start point — the route is drawn origin→destination ONCE and
