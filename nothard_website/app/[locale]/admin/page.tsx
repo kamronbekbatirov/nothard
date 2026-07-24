@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Camera, Paperclip, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
+import { Camera, ChevronDown, Paperclip, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { DateTimeInput, Field, Input, PickOrType } from '@/app/components/field'
+import { AddressField } from '@/app/components/address-field'
+import { TripCard } from '@/app/components/trip-card'
+import { ModeSelector } from '@/app/components/travel-mode'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { PanelLoading } from '../runner/page'
@@ -25,6 +28,10 @@ import {
   type HousingStatus,
   type HousingItem,
   type RunnerDetail,
+  type TrackingCfg,
+  type AdminTrip,
+  type TripLive,
+  type TravelMode,
 } from '@/app/lib/api'
 import { fmtGBP, PACKAGES, SERVICES, LONDON_AIRPORT_TERMINALS, LONDON_FLIGHTS } from '@/app/lib/data'
 import { useTaskLabel } from '@/app/lib/task-label'
@@ -605,6 +612,9 @@ function RunnersView({
         })}
         {runners.length === 0 && <p className="text-[13.5px] text-muted">—</p>}
       </div>
+
+      {/* Global routing/tracking settings live here (rarely touched, no own tab) */}
+      <TrackingSettings />
 
       {openId != null && (
         <RunnerDetailDrawer
@@ -1971,6 +1981,9 @@ function Drawer({
         </div>
       )}
 
+      {/* Live trip — shows only while a runner is driving this client */}
+      <AdminTripSection clientId={client.id} />
+
       {/* Package management: change / upgrade / remove + add service */}
       <div className="mt-4 rounded-lg border border-line bg-card p-3">
         <div className="mb-2 text-[11px] uppercase tracking-wide text-gray">{t('manage.title')}</div>
@@ -2573,6 +2586,191 @@ function ServiceFilesRow({
               </button>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ---------- Live tracking settings + oversight ---------- */
+
+/* ---------- Global routing/tracking settings (rarely touched → collapsed) ---------- */
+function TrackingSettings() {
+  const t = useTranslations('Tracking')
+  const { toast } = useToast()
+  const [cfg, setCfg] = useState<TrackingCfg | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    api.admin.getTracking().then(setCfg).catch(() => {})
+  }, [])
+
+  const upd = (patch: Partial<TrackingCfg>) => setCfg((c) => (c ? { ...c, ...patch } : c))
+  async function save() {
+    if (!cfg) return
+    setSaving(true)
+    try {
+      const r = await api.admin.setTracking(cfg)
+      setCfg(r)
+      toast(t('saved'))
+    } catch {
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-2xl border border-line bg-card">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-5 py-4 text-left"
+      >
+        <span className="font-display text-[16px] text-ink">{t('adminTitle')}</span>
+        <ChevronDown size={18} className={cn('shrink-0 text-gray transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && cfg && (
+        <div className="flex flex-col gap-4 px-5 pb-5">
+          <label className="flex items-center justify-between gap-3">
+            <span className="text-[13.5px] font-medium text-ink-2">{t('enabledLabel')}</span>
+            <input
+              type="checkbox"
+              checked={cfg.enabled}
+              onChange={(e) => upd({ enabled: e.target.checked })}
+              className="h-5 w-5 accent-[color:var(--accent)]"
+            />
+          </label>
+          <Field label={t('osrmLabel')}>
+            <Input value={cfg.osrm_url} onChange={(e) => upd({ osrm_url: e.target.value })} />
+            <p className="mt-1 text-[12px] leading-snug text-gray">{t('osrmHint')}</p>
+          </Field>
+          <Field label={t('osrmWalkLabel')}>
+            <Input value={cfg.osrm_walk_url} onChange={(e) => upd({ osrm_walk_url: e.target.value })} placeholder="http://127.0.0.1:5001" />
+          </Field>
+          <Field label={t('osrmBikeLabel')}>
+            <Input value={cfg.osrm_bike_url} onChange={(e) => upd({ osrm_bike_url: e.target.value })} placeholder="http://127.0.0.1:5002" />
+            <p className="mt-1 text-[12px] leading-snug text-gray">{t('osrmModeHint')}</p>
+          </Field>
+          <Field label={t('otpLabel')}>
+            <Input value={cfg.otp_url} onChange={(e) => upd({ otp_url: e.target.value })} placeholder="https://otp.host/otp/routers/default/index/graphql" />
+            <p className="mt-1 text-[12px] leading-snug text-gray">{t('otpHint')}</p>
+          </Field>
+          <Field label={t('nominatimLabel')}>
+            <Input value={cfg.nominatim_url} onChange={(e) => upd({ nominatim_url: e.target.value })} />
+            <p className="mt-1 text-[12px] leading-snug text-gray">{t('nominatimHint')}</p>
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t('fallbackLabel')}>
+              <Input type="number" value={String(cfg.fallback_kmh)} onChange={(e) => upd({ fallback_kmh: Number(e.target.value) })} />
+            </Field>
+            <Field label={t('refreshLabel')}>
+              <Input type="number" value={String(cfg.refresh_sec)} onChange={(e) => upd({ refresh_sec: Number(e.target.value) })} />
+            </Field>
+          </div>
+          <p className="-mt-1 text-[12px] leading-snug text-gray">{t('fallbackHint')}</p>
+          <Button variant="solid" size="block" disabled={saving} onClick={save}>
+            {t('save')}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ---------- Live trip for one client (shown in their drawer) ---------- */
+function AdminTripSection({ clientId }: { clientId: number }) {
+  const t = useTranslations('Tracking')
+  const [trip, setTrip] = useState<TripLive | null>(null)
+  const [editDest, setEditDest] = useState(false)
+  const [newDest, setNewDest] = useState('')
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const load = () => api.admin.clientTrip(clientId).then((r) => setTrip(r.trip)).catch(() => {})
+  useEffect(() => {
+    load()
+    const id = window.setInterval(load, 8000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId])
+
+  if (!trip || trip.status === 'cancelled') return null
+
+  async function saveDest() {
+    if (!trip || !newDest.trim()) return
+    setBusy(true)
+    try {
+      const r = await api.admin.setTripDestination(trip.id, {
+        dest_label: newDest.trim(),
+        dest_lat: coords?.lat,
+        dest_lng: coords?.lng,
+      })
+      setTrip(r.trip)
+      setEditDest(false)
+      setNewDest('')
+      setCoords(null)
+    } catch {
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function end() {
+    if (!trip || !window.confirm(t('endConfirm'))) return
+    await api.admin.endTrip(trip.id).catch(() => {})
+    load()
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-accent/25 bg-accent-bg/40 p-3">
+      <div className="mb-2 text-[11px] uppercase tracking-wide text-accent">{t('adminSectionTitle')}</div>
+      <ModeSelector
+        value={trip.mode}
+        onChange={(m: TravelMode) => api.admin.setTripMode(trip.id, m).then((r) => setTrip(r.trip)).catch(() => {})}
+      />
+      <div className="mt-2">
+        <TripCard trip={trip} />
+      </div>
+
+      {editDest ? (
+        <div className="mt-2 rounded-lg border border-line bg-card p-3">
+          <span className="mb-1 block text-[12px] font-medium text-ink-2">{t('destLabel')}</span>
+          <AddressField
+            search={(q) => api.admin.geocode(q).then((r) => r.results)}
+            value={newDest}
+            placeholder={t('destPlaceholder')}
+            onPick={(label, c) => {
+              setNewDest(label)
+              setCoords(c)
+            }}
+          />
+          <div className="mt-2 flex gap-2">
+            <Button variant="solid" size="sm" className="flex-1" disabled={busy || !newDest.trim()} onClick={saveDest}>
+              {t('save')}
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditDest(false)}>
+              {t('back')}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={() => {
+              setNewDest(trip.dest.label || '')
+              setCoords(null)
+              setEditDest(true)
+            }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-line bg-card py-2 text-[12.5px] font-medium text-accent hover:border-accent/50"
+          >
+            <Pencil size={12} /> {t('changeDest')}
+          </button>
+          <button
+            onClick={end}
+            className="rounded-lg border border-terracotta/40 px-3 py-2 text-[12.5px] font-medium text-terracotta hover:bg-terracotta-bg"
+          >
+            {t('endTrip')}
+          </button>
         </div>
       )}
     </div>

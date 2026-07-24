@@ -26,6 +26,10 @@ class User(Base):
     # One-time code for linking Telegram from the cabinet via the bot deep-link.
     tg_link_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
+    # Opaque per-runner token used as the Traccar Client "device id": location
+    # pings authenticate by matching this, so no login is needed on the phone.
+    track_token: Mapped[str | None] = mapped_column(String(48), unique=True, nullable=True)
+
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Set once the user accepts the Privacy Policy + Terms after first sign-in.
     terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -250,3 +254,54 @@ class Setting(Base):
 
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     value: Mapped[str] = mapped_column(String(255), default="")
+
+
+class Trip(Base):
+    """A live runner→destination journey (e.g. airport → the client's home).
+
+    While ``status == 'active'`` the runner's phone (Traccar Client) streams
+    location pings and the client + their family watch a live map with ETA. The
+    latest computed route/ETA is cached here so client/family polling doesn't hit
+    the routing server on every request."""
+
+    __tablename__ = "trips"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), index=True)
+    runner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # active | arrived | cancelled
+    status: Mapped[str] = mapped_column(String(16), default="active", index=True)
+    # Travel mode for the ETA/route: car | walk | cycle | transit.
+    mode: Mapped[str] = mapped_column(String(12), default="car")
+
+    origin_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    dest_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    dest_lat: Mapped[float | None] = mapped_column(nullable=True)
+    dest_lng: Mapped[float | None] = mapped_column(nullable=True)
+
+    # Cached routing result (recomputed at most every eta_refresh_sec).
+    eta_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    eta_km: Mapped[float | None] = mapped_column(nullable=True)
+    route_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    eta_source: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    eta_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class TripPing(Base):
+    """One GPS fix reported by the runner's phone during a trip (OsmAnd protocol)."""
+
+    __tablename__ = "trip_pings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    trip_id: Mapped[int] = mapped_column(ForeignKey("trips.id"), index=True)
+    lat: Mapped[float] = mapped_column()
+    lng: Mapped[float] = mapped_column()
+    speed_kmh: Mapped[float | None] = mapped_column(nullable=True)
+    bearing: Mapped[float | None] = mapped_column(nullable=True)
+    accuracy_m: Mapped[float | None] = mapped_column(nullable=True)
+    battery: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

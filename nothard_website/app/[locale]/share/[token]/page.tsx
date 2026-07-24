@@ -7,7 +7,8 @@ import { CheckCircle2 } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { Footer } from '@/app/components/footer'
 import { useTaskLabel } from '@/app/lib/task-label'
-import { api, type SharedRelocation } from '@/app/lib/api'
+import { api, type SharedRelocation, type TripLive } from '@/app/lib/api'
+import { TripCard } from '@/app/components/trip-card'
 import { cn } from '@/app/lib/utils'
 
 export default function SharePage() {
@@ -20,6 +21,7 @@ export default function SharePage() {
 
   const [data, setData] = useState<SharedRelocation | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [trip, setTrip] = useState<TripLive | null>(null)
 
   useEffect(() => {
     if (!token) {
@@ -42,9 +44,15 @@ export default function SharePage() {
         })
     load(true)
     const id = window.setInterval(() => load(false), 7000)
+    // Live trip (host on the way) — polled more often for a smooth map.
+    const loadTrip = () =>
+      api.sharedTrip(token).then((r) => !cancelled && setTrip(r.trip)).catch(() => {})
+    loadTrip()
+    const tid = window.setInterval(loadTrip, 8000)
     return () => {
       cancelled = true
       clearInterval(id)
+      clearInterval(tid)
     }
   }, [token])
 
@@ -93,6 +101,12 @@ export default function SharePage() {
             {data.package && (
               <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-accent-bg px-3 py-1 text-[13px] font-medium text-accent">
                 {t('packageLabel')}: {tp(`${data.package.id}.name` as any)}
+              </div>
+            )}
+
+            {trip && trip.status !== 'cancelled' && (
+              <div className="mt-6">
+                <TripCard trip={trip} />
               </div>
             )}
 

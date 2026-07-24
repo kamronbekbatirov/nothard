@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { LogOut, Settings } from 'lucide-react'
 import { Logo } from './logo'
 import { LangSwitcher } from './lang-switcher'
 import { ThemeToggle } from './theme'
+import { Avatar } from './avatar'
 import { cn } from '@/app/lib/utils'
 
 export type TopMenuItem = { label: string; active?: boolean; onClick?: () => void }
@@ -14,6 +15,7 @@ export function AppTopbar({
   menu,
   name,
   avatarUrl,
+  tgId,
   onLogout,
   onSettings,
   right,
@@ -23,22 +25,14 @@ export function AppTopbar({
   menu?: TopMenuItem[]
   name?: string
   avatarUrl?: string | null
+  /** Telegram user id — gives the fallback Telegram's own gradient colours. */
+  tgId?: string | number | null
   onLogout?: () => void
   onSettings?: () => void
   right?: React.ReactNode
   hideLang?: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  // Fall back to the initials circle if the avatar fails to load (e.g. a Mini App
-  // photo that isn't ready yet) instead of showing a broken "?" image.
-  const [imgFailed, setImgFailed] = useState(false)
-  useEffect(() => setImgFailed(false), [avatarUrl])
-  const initials = (name || 'N')
-    .split(' ')
-    .map((s) => s[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface/90 backdrop-blur-md">
@@ -79,20 +73,7 @@ export function AppTopbar({
           )}
           {name && (
             <div className="flex items-center gap-2">
-              {avatarUrl && !imgFailed ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarUrl}
-                  alt={name}
-                  className="h-8 w-8 rounded-full object-cover"
-                  referrerPolicy="no-referrer"
-                  onError={() => setImgFailed(true)}
-                />
-              ) : (
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-[12px] font-semibold text-white">
-                  {initials}
-                </span>
-              )}
+              <Avatar url={avatarUrl} name={name} tgId={tgId} size={32} />
               <span className="hidden text-[13.5px] font-medium text-ink sm:inline">{name}</span>
             </div>
           )}

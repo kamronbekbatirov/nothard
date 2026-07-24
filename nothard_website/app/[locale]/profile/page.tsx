@@ -2,17 +2,26 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
-import { CheckCircle2, ChevronDown, ExternalLink, History, Home, Paperclip, Plus, Share2, Star, Trash2, X } from 'lucide-react'
+import { Check, CheckCircle2, ChevronDown, ExternalLink, History, Home, Paperclip, Plus, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react'
 import { Link, useRouter } from '@/i18n/navigation'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Logo } from '@/app/components/logo'
-import { DateTimeInput, Input, PickOrType } from '@/app/components/field'
+import { DateTimeInput, Input, PickOrType, TelegramIcon } from '@/app/components/field'
+import { Avatar } from '@/app/components/avatar'
 import { SettingsModal } from '@/app/components/settings-modal'
+import { DuplicateWarningModal } from '@/app/components/duplicate-warning'
+import { TripCard } from '@/app/components/trip-card'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { useAuth } from '@/app/lib/use-auth'
-import { useTelegramChrome } from '@/app/lib/telegram'
+import {
+  useTelegramChrome,
+  getTelegramUser,
+  telegramDisplayName,
+  canRequestContact,
+  requestTelegramContact,
+} from '@/app/lib/telegram'
 import { flushPendingHousing } from '@/app/lib/housing-cart'
 import { useTaskLabel } from '@/app/lib/task-label'
 import {
@@ -24,15 +33,19 @@ import {
   type HousingItem,
   type OrderHistoryItem,
   type PendingReview,
+  type TripLive,
 } from '@/app/lib/api'
 import {
   PACKAGES,
+  SERVICES,
+  SERVICE_STAGES,
   AIRPORT_PACKAGES,
+  packageCovers,
+  coveredServices,
   LONDON_AIRPORT_TERMINALS,
   LONDON_FLIGHTS,
   VIEWING_PRICE,
   fmtGBP,
-  fmtUSD,
   fmtUZS,
 } from '@/app/lib/data'
 import { cn } from '@/app/lib/utils'
@@ -75,6 +88,28 @@ export default function ProfilePage() {
   const [chatWith, setChatWith] = useState<'manager' | 'runner' | null>(null)
   const [buying, setBuying] = useState(false)
   const [intakePkg, setIntakePkg] = useState<string | null>(null)
+  // Services chosen alongside a package — bought together in the same checkout.
+  const [pendingServices, setPendingServices] = useState<string[]>([])
+  // "?pkg=" — a package picked on the landing, preselected in the picker below.
+  const [presetPkg, setPresetPkg] = useState<string | null>(null)
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('pkg')
+    if (p && PACKAGES.some((x) => x.id === p)) setPresetPkg(p)
+  }, [])
+
+  // Live "your host is on the way" trip — polled while the cabinet is open.
+  const [trip, setTrip] = useState<TripLive | null>(null)
+  useEffect(() => {
+    if (!user) return
+    let alive = true
+    const load = () => api.me.trip().then((r) => alive && setTrip(r.trip)).catch(() => {})
+    load()
+    const id = window.setInterval(load, 8000)
+    return () => {
+      alive = false
+      clearInterval(id)
+    }
+  }, [user])
 
   useEffect(() => {
     // Only bounce to /login once we're sure there's no session. If a token was
@@ -106,21 +141,36 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  // Packages with an airport pickup ask arrival details first; others buy directly.
-  function buyPackage(id: string) {
-    if (AIRPORT_PACKAGES.has(id)) {
-      setIntakePkg(id)
+  /**
+   * Buy a package and any extra services as ONE order — the backend checkout
+   * already accepts mixed items, so there's no need to pay twice. Packages with
+   * an airport pickup collect arrival details first (the services ride along).
+   */
+  function buySelection(pkgId: string | null, serviceIds: string[] = []) {
+    if (pkgId && AIRPORT_PACKAGES.has(pkgId)) {
+      setPendingServices(serviceIds)
+      setIntakePkg(pkgId)
     } else {
-      void confirmPackage(id, {})
+      void confirmSelection(pkgId, serviceIds, {})
     }
   }
 
-  async function confirmPackage(id: string, details: Record<string, string>) {
+  async function confirmSelection(
+    pkgId: string | null,
+    serviceIds: string[],
+    details: Record<string, string>
+  ) {
+    const items = [
+      ...(pkgId ? [{ type: 'package' as const, id: pkgId }] : []),
+      ...serviceIds.map((id) => ({ type: 'service' as const, id })),
+    ]
+    if (!items.length) return
     setBuying(true)
     try {
-      const d = await api.me.checkout([{ type: 'package', id }], details)
+      const d = await api.me.checkout(items, details)
       setData(d)
       setIntakePkg(null)
+      setPendingServices([])
       toast(t('purchasedToast'))
     } catch {
     } finally {
@@ -128,10 +178,33 @@ export default function ProfilePage() {
     }
   }
 
+  // The populated cabinet's "add / upgrade package" buttons buy a single package.
+  function buyPackage(id: string) {
+    buySelection(id, [])
+  }
+
   function logout() {
     void api.logout() // revoke this device's session server-side (best-effort)
     clearTokens()
+    // Inside the Mini App the landing silently resumes the Telegram session on
+    // open; mark it as already-resumed so an explicit logout actually sticks
+    // instead of signing them straight back in.
+    try {
+      sessionStorage.setItem('nh_mini_resumed', '1')
+    } catch {}
     window.location.href = '/login'
+  }
+
+  /** Declining the terms cancels the registration and removes the fresh account. */
+  async function declineTerms() {
+    try {
+      await api.me.declineTerms()
+    } catch {}
+    clearTokens()
+    try {
+      sessionStorage.setItem('nh_mini_resumed', '1')
+    } catch {}
+    window.location.href = '/'
   }
 
   if (loading || !user) {
@@ -144,7 +217,10 @@ export default function ProfilePage() {
   if (!user.termsAccepted) {
     return (
       <ConsentGate
-        onLogout={inTelegram ? undefined : logout}
+        user={user}
+        inTelegram={inTelegram}
+        onLogout={logout}
+        onDecline={declineTerms}
         onAccept={async () => {
           try {
             await api.me.acceptTerms()
@@ -166,21 +242,28 @@ export default function ProfilePage() {
       <AppTopbar
         name={user.name}
         avatarUrl={user.photo_url}
+        tgId={user.telegram_id}
         onSettings={() => setSettingsOpen(true)}
-        onLogout={inTelegram ? undefined : logout}
+        onLogout={logout}
       />
 
       <main className="mx-auto max-w-[1240px] px-5 py-8 sm:px-8">
+        {trip && trip.status !== 'cancelled' && (
+          <div className="mb-6">
+            <TripCard trip={trip} />
+          </div>
+        )}
         {data.hasOrders ? (
           <PopulatedCabinet
             data={data}
             onChat={(who = 'manager') => setChatWith(who)}
             onBuy={buyPackage}
+            onCheckout={buySelection}
             buying={buying}
             onRefresh={refresh}
           />
         ) : (
-          <EmptyCabinet onBuy={buyPackage} buying={buying} />
+          <EmptyCabinet onCheckout={buySelection} buying={buying} initialPkg={presetPkg} />
         )}
       </main>
 
@@ -234,7 +317,7 @@ export default function ProfilePage() {
           pkgId={intakePkg}
           busy={buying}
           onClose={() => setIntakePkg(null)}
-          onConfirm={(details) => confirmPackage(intakePkg, details)}
+          onConfirm={(details) => confirmSelection(intakePkg, pendingServices, details)}
         />
       )}
 
@@ -260,73 +343,272 @@ export default function ProfilePage() {
 }
 
 /* ---------- Consent gate (first sign-in) ---------- */
-function ConsentGate({ onAccept, onLogout }: { onAccept: () => void; onLogout?: () => void }) {
+/**
+ * First-run onboarding: welcome (greets them by their Telegram name + avatar) →
+ * name (prefilled from Telegram, editable) → phone (typed, or pulled from
+ * Telegram via requestContact). Terms are accepted on the LAST step, so
+ * `!user.termsAccepted` keeps this mounted for the whole wizard.
+ */
+function ConsentGate({
+  user,
+  inTelegram,
+  onAccept,
+  onLogout,
+  onDecline,
+}: {
+  user: {
+    name: string
+    phone?: string | null
+    photo_url?: string | null
+    telegram_id?: string | null
+  }
+  inTelegram: boolean
+  onAccept: () => Promise<void> | void
+  onLogout?: () => void
+  /** Refuse the terms — cancels the registration and deletes the new account. */
+  onDecline: () => void
+}) {
   const t = useTranslations('Consent')
+  const [step, setStep] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [confirmDecline, setConfirmDecline] = useState(false)
+
+  // Prefer what Telegram tells us, fall back to the saved account name.
+  const tgName = inTelegram ? telegramDisplayName() : ''
+  const tgUser = inTelegram ? getTelegramUser() : null
+  const [name, setName] = useState((user.name || tgName || '').trim())
+  const [phone, setPhone] = useState(user.phone || '')
+  const [waitingPhone, setWaitingPhone] = useState(false)
+  const [phoneNote, setPhoneNote] = useState('')
+
+  const avatarUrl = user.photo_url || tgUser?.photo_url || null
+  const greetName = (name || tgName || '').split(' ')[0]
+
+  /**
+   * "Take from Telegram": the native prompt only tells us whether the user
+   * agreed — Telegram sends the actual number to the BOT — so once they agree we
+   * poll the profile until the bot has stored it.
+   */
+  async function takePhoneFromTelegram() {
+    setPhoneNote('')
+    const shared = await requestTelegramContact()
+    if (!shared) {
+      setPhoneNote(t('phone.declined'))
+      return
+    }
+    setWaitingPhone(true)
+    for (let i = 0; i < 15; i++) {
+      await new Promise((r) => setTimeout(r, 1200))
+      try {
+        const me = await api.whoami()
+        if (me.phone) {
+          setPhone(me.phone)
+          setWaitingPhone(false)
+          return
+        }
+      } catch {}
+    }
+    setWaitingPhone(false)
+    setPhoneNote(t('phone.timeout'))
+  }
+
+  async function finish() {
+    setBusy(true)
+    try {
+      await api.me.updateProfile({ name: name.trim(), phone: phone.trim() })
+    } catch {}
+    await onAccept()
+  }
+
+  const steps = [t('steps.0'), t('steps.1'), t('steps.2')]
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-5 py-10">
       <div className="w-full max-w-[420px]">
         <div className="overflow-hidden rounded-[22px] border border-line bg-card shadow-card">
-          {/* Hero — wordmark logo + welcome */}
+          {/* Hero — avatar + a personal greeting when we know who they are */}
           <div className="bg-accent-bg px-7 pb-7 pt-9 text-center">
-            <span className="mx-auto inline-flex items-center rounded-full bg-card px-4 py-2 shadow-sm">
-              <Logo asLink={false} size={22} />
-            </span>
-            <h1 className="mt-4 font-display text-[26px] text-ink">{t('title')}</h1>
+            {avatarUrl || greetName ? (
+              <Avatar
+                url={avatarUrl}
+                name={name || tgName || greetName}
+                tgId={tgUser?.id ?? user.telegram_id}
+                size={64}
+                className="mx-auto shadow-sm"
+              />
+            ) : (
+              <span className="mx-auto inline-flex items-center rounded-full bg-card px-4 py-2 shadow-sm">
+                <Logo asLink={false} size={22} />
+              </span>
+            )}
+            <h1 className="mt-4 font-display text-[26px] leading-tight text-ink">
+              {greetName ? t('hello', { name: greetName }) : t('title')}
+            </h1>
             <p className="mx-auto mt-1.5 max-w-[34ch] text-[14px] leading-relaxed text-muted">
-              {t('subtitle')}
+              {step === 0 ? t('subtitle') : steps[step]}
             </p>
+            {tgUser?.username && step === 0 && (
+              <p className="mt-1 text-[12.5px] text-gray">@{tgUser.username}</p>
+            )}
           </div>
 
-          {/* What we do */}
-          <div className="px-7 py-6">
-            <ul className="flex flex-col gap-3.5">
-              {[0, 1, 2].map((i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <CheckCircle2 size={19} className="mt-px shrink-0 text-accent" />
-                  <span className="text-[14px] leading-snug text-ink-2">{t(`points.${i}` as any)}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Progress dots */}
+          <div className="flex justify-center gap-1.5 pt-5">
+            {steps.map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'h-1.5 rounded-full transition-all',
+                  i === step ? 'w-5 bg-accent' : 'w-1.5 bg-line'
+                )}
+              />
+            ))}
+          </div>
 
-            {/* Legal — full-width rows so long titles don't overflow */}
-            <div className="mt-6 flex flex-col gap-2">
-              <Link
-                href="/privacy"
-                className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-[13.5px] font-medium text-accent transition-colors hover:border-accent/40"
-              >
-                {t('privacy')} <span aria-hidden>→</span>
-              </Link>
-              <Link
-                href="/terms"
-                className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-[13.5px] font-medium text-accent transition-colors hover:border-accent/40"
-              >
-                {t('terms')} <span aria-hidden>→</span>
-              </Link>
-            </div>
+          <div className="px-7 pb-6 pt-4">
+            {step === 0 && (
+              <>
+                <ul className="flex flex-col gap-3.5">
+                  {[0, 1, 2].map((i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <CheckCircle2 size={19} className="mt-px shrink-0 text-accent" />
+                      <span className="text-[14px] leading-snug text-ink-2">
+                        {t(`points.${i}` as any)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
 
-            <Button
-              variant="solid"
-              size="block"
-              className="mt-5"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true)
-                await onAccept()
-              }}
-            >
-              {t('accept')}
-            </Button>
-            <p className="mx-auto mt-3 max-w-[38ch] text-center text-[12px] leading-relaxed text-gray">
-              {t('agree')}
-            </p>
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                className="mx-auto mt-3 block text-[13px] text-gray hover:text-ink"
-              >
-                {t('decline')}
-              </button>
+                {/* Legal — full-width rows so long titles don't overflow */}
+                <div className="mt-6 flex flex-col gap-2">
+                  <Link
+                    href="/privacy"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-[13.5px] font-medium text-accent transition-colors hover:border-accent/40"
+                  >
+                    {t('privacy')} <span aria-hidden>→</span>
+                  </Link>
+                  <Link
+                    href="/terms"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-[13.5px] font-medium text-accent transition-colors hover:border-accent/40"
+                  >
+                    {t('terms')} <span aria-hidden>→</span>
+                  </Link>
+                </div>
+
+                <Button variant="solid" size="block" className="mt-5" onClick={() => setStep(1)}>
+                  {t('continue')}
+                </Button>
+                <p className="mx-auto mt-3 max-w-[38ch] text-center text-[12px] leading-relaxed text-gray">
+                  {t('agree')}
+                </p>
+                {/* Declining cancels the registration — confirm, it deletes the
+                    freshly-created account. */}
+                {confirmDecline ? (
+                  <div className="mt-4 rounded-lg border border-line bg-surface p-3.5">
+                    <p className="text-center text-[13px] leading-snug text-ink-2">
+                      {t('declineConfirm')}
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setConfirmDecline(false)}
+                      >
+                        {t('back')}
+                      </Button>
+                      <Button
+                        variant="solid"
+                        size="sm"
+                        className="flex-1"
+                        onClick={onDecline}
+                      >
+                        {t('declineYes')}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDecline(true)}
+                    className="mx-auto mt-3 block text-[13px] text-gray hover:text-ink"
+                  >
+                    {t('decline')}
+                  </button>
+                )}
+              </>
+            )}
+
+            {step === 1 && (
+              <>
+                <label className="mb-1.5 block text-[13px] font-medium text-ink-2">
+                  {t('name.label')}
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('name.placeholder')}
+                  autoFocus
+                />
+                <p className="mt-2 text-[12.5px] leading-snug text-gray">{t('name.hint')}</p>
+                <Button
+                  variant="solid"
+                  size="block"
+                  className="mt-5"
+                  disabled={!name.trim()}
+                  onClick={() => setStep(2)}
+                >
+                  {t('continue')}
+                </Button>
+                <button
+                  onClick={() => setStep(0)}
+                  className="mx-auto mt-3 block text-[13px] text-gray hover:text-ink"
+                >
+                  {t('back')}
+                </button>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <label className="mb-1.5 block text-[13px] font-medium text-ink-2">
+                  {t('phone.label')}
+                </label>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+998 90 123 45 67"
+                  inputMode="tel"
+                />
+                {inTelegram && canRequestContact() && (
+                  <Button
+                    variant="outline"
+                    size="block"
+                    className="mt-2.5 gap-2 text-accent"
+                    disabled={waitingPhone}
+                    onClick={takePhoneFromTelegram}
+                  >
+                    <TelegramIcon /> {waitingPhone ? t('phone.waiting') : t('phone.fromTelegram')}
+                  </Button>
+                )}
+                <p className="mt-2 text-[12.5px] leading-snug text-gray">
+                  {phoneNote || t('phone.hint')}
+                </p>
+                <Button
+                  variant="solid"
+                  size="block"
+                  className="mt-5"
+                  disabled={busy}
+                  onClick={finish}
+                >
+                  {t('finish')}
+                </Button>
+                <button
+                  onClick={() => setStep(1)}
+                  className="mx-auto mt-3 block text-[13px] text-gray hover:text-ink"
+                >
+                  {t('back')}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -519,39 +801,42 @@ function PackageIntakeModal({
 }
 
 /* ---------- Inline purchase (rail; shown when no active package) ---------- */
-function PurchasePanel({ onBuy, buying }: { onBuy: (id: string) => void; buying: boolean }) {
+function PurchasePanel({
+  onCheckout,
+  buying,
+  ownedServices = [],
+}: {
+  onCheckout: (pkgId: string | null, serviceIds: string[]) => void
+  buying: boolean
+  /** Services the client already paid for separately. */
+  ownedServices?: string[]
+}) {
   const t = useTranslations('Profile')
-  const tp = useTranslations('Packages')
+  // One button opens the full onboarding-style picker (packages + services) in a
+  // sheet — no more cramped inline list / separate detour to /services.
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   return (
-    <div className="rounded-xl border border-line bg-card p-5">
-      <div className="eyebrow mb-3">{t('buyPackageTitle')}</div>
-      <div className="flex flex-col gap-2">
-        {PACKAGES.map((pkg) => (
-          <button
-            key={pkg.id}
-            onClick={() => onBuy(pkg.id)}
-            disabled={buying}
-            className="nd-chip flex items-center justify-between rounded-lg border border-line bg-surface px-3.5 py-2.5 text-left hover:border-accent disabled:opacity-50"
-          >
-            <span className="min-w-0">
-              <span className="block truncate text-[13.5px] font-semibold text-ink">
-                {tp(`${pkg.id}.name`)}
-              </span>
-              {pkg.popular && <span className="text-[11px] font-medium text-accent">★ {t('popularHint')}</span>}
-            </span>
-            <span className="ml-2 shrink-0 font-display text-[16px] text-accent">{fmtGBP(pkg.gbp)}</span>
-          </button>
-        ))}
-      </div>
+    <div className="rounded-xl border border-line bg-card p-5 text-center">
+      <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-accent-bg">
+        <ShoppingBag size={20} className="text-accent" />
+      </span>
+      <div className="mt-3 font-display text-[17px] text-ink">{t('buyPackageTitle')}</div>
+      <p className="mx-auto mt-1 max-w-[34ch] text-[12.5px] leading-snug text-muted">
+        {t('buyServiceHint')}
+      </p>
+      <Button variant="solid" size="block" className="mt-4" disabled={buying} onClick={() => setSheetOpen(true)}>
+        {t('pick.sheetTitle')}
+      </Button>
 
-      <div className="mt-4 border-t border-line pt-4">
-        <div className="eyebrow mb-2">{t('buyServiceTitle')}</div>
-        <p className="mb-3 text-[12.5px] leading-snug text-muted">{t('buyServiceHint')}</p>
-        <Button asChild variant="outline" size="block">
-          <Link href="/services">{t('emptyBrowseServices')}</Link>
-        </Button>
-      </div>
+      {sheetOpen && (
+        <PurchaseSheet
+          buying={buying}
+          ownedServices={ownedServices}
+          onCheckout={onCheckout}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -855,83 +1140,343 @@ function HousingSection({ items, onRefresh }: { items: HousingItem[]; onRefresh:
   )
 }
 
-/* ---------- Empty (first-time) ---------- */
-function PackageGrid({ onBuy, buying }: { onBuy: (id: string) => void; buying: boolean }) {
+/* ---------- Package + services picker ---------- */
+/**
+ * The shared "choose a package and/or services" UI. A package and any extra
+ * services are chosen together and paid for in ONE checkout. Used both as the
+ * first-run empty cabinet (`barMode="fixed"`, full page) and inside the
+ * re-purchase sheet opened from the populated cabinet (`barMode="inline"`).
+ * `ownedServices` are shown as already-active and can't be re-picked.
+ */
+function PackagePicker({
+  onCheckout,
+  buying,
+  initialPkg,
+  ownedServices = [],
+  heading,
+  barMode = 'fixed',
+}: {
+  onCheckout: (pkgId: string | null, serviceIds: string[]) => void
+  buying: boolean
+  initialPkg?: string | null
+  ownedServices?: string[]
+  heading?: React.ReactNode
+  barMode?: 'fixed' | 'inline'
+}) {
   const t = useTranslations('Profile')
   const tp = useTranslations('Packages')
+  const ts = useTranslations('Services')
   const tl = useTranslations('Landing')
+  const td = useTranslations('Duplicate')
+  const [pkg, setPkg] = useState<string | null>(initialPkg ?? null)
+  const [services, setServices] = useState<string[]>([])
+  const [warnDupes, setWarnDupes] = useState(false)
+  // The landing's "?pkg=" arrives after mount (read from the URL in an effect).
+  useEffect(() => {
+    if (initialPkg) setPkg(initialPkg)
+  }, [initialPkg])
+
+  // Services the chosen package already covers — warned about, never blocked.
+  const dupes = coveredServices(pkg, services)
+
+  function submit() {
+    if (dupes.length) setWarnDupes(true)
+    else onCheckout(pkg, services)
+  }
+
+  const toggleService = (id: string) =>
+    setServices((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+
+  const pkgPrice = pkg ? (PACKAGES.find((p) => p.id === pkg)?.gbp ?? 0) : 0
+  const svcPrice = services.reduce(
+    (sum, id) => sum + (SERVICES.find((s) => s.id === id)?.price ?? 0),
+    0
+  )
+  const total = pkgPrice + svcPrice
+  const nothingPicked = !pkg && services.length === 0
+
   return (
-    <div className="grid items-start gap-4 md:grid-cols-3">
-      {PACKAGES.map((pkg) => {
-        const popular = !!pkg.popular
-        const features = Array.from({ length: pkg.featureCount }, (_, i) => tp(`${pkg.id}.features.${i}`))
-        return (
-          <div
-            key={pkg.id}
-            className={cn(
-              'relative rounded-xl border p-6',
-              popular ? 'border-accent bg-accent text-[#eef2ee]' : 'border-line bg-card'
-            )}
-          >
-            {popular && (
-              <span className="absolute -top-3 left-6 rounded-full bg-surface px-[11px] py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-accent">
-                {tl('popular')}
-              </span>
-            )}
-            <div className={cn('font-display text-[22px]', popular ? 'text-white' : 'text-ink')}>
-              {tp(`${pkg.id}.name`)}
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className={cn('font-display text-[34px]', popular ? 'text-white' : 'text-ink')}>
-                {fmtGBP(pkg.gbp)}
-              </span>
-              <span className={cn('text-[13px]', popular ? 'opacity-75' : 'text-gray')}>/ {fmtUSD(pkg.gbp)}</span>
-            </div>
-            <div className={cn('mb-5 mt-0.5 text-[12.5px]', popular ? 'opacity-75' : 'text-gray')}>
-              {fmtUZS(pkg.gbp)}
-            </div>
-            <div className="mb-5 flex flex-col gap-2.5">
-              {features.map((f, i) => (
-                <div key={i} className={cn('flex gap-2 text-[13px]', popular ? 'opacity-95' : 'text-ink-2')}>
-                  <span className={cn('font-bold', popular ? 'text-white' : 'text-accent')}>✓</span>
-                  {f}
+    <div className={cn('mx-auto max-w-[1000px]', barMode === 'fixed' ? 'pb-44' : 'pb-4')}>
+      {heading}
+
+      {/* ---- Step 1 — pick a package (or skip straight to services) ---- */}
+      <div className="mt-10">
+        <div className="mb-4 flex items-baseline gap-2.5">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[12px] font-bold text-white">
+            1
+          </span>
+          <h2 className="font-display text-[19px] text-ink">{t('pick.packagesTitle')}</h2>
+        </div>
+
+        <div className="grid items-stretch gap-4 md:grid-cols-3">
+          {PACKAGES.map((p) => {
+            const selected = pkg === p.id
+            const features = Array.from({ length: p.featureCount }, (_, i) =>
+              tp(`${p.id}.features.${i}`)
+            )
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPkg(selected ? null : p.id)}
+                className={cn(
+                  'relative flex flex-col rounded-xl border p-5 text-left transition-all',
+                  selected
+                    ? 'border-accent bg-accent-bg ring-2 ring-accent'
+                    : 'border-line bg-card hover:border-accent/40'
+                )}
+              >
+                {p.popular && !selected && (
+                  <span className="absolute -top-2.5 left-5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+                    {tl('popular')}
+                  </span>
+                )}
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-display text-[19px] text-ink">{tp(`${p.id}.name`)}</span>
+                  <span
+                    className={cn(
+                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
+                      selected ? 'border-accent bg-accent' : 'border-line bg-surface'
+                    )}
+                  >
+                    {selected && <Check size={13} strokeWidth={3.5} className="text-white" />}
+                  </span>
                 </div>
-              ))}
+                <div className="mt-2 font-display text-[27px] text-ink">{fmtGBP(p.gbp)}</div>
+                <div className="text-[12px] text-gray">{fmtUZS(p.gbp)}</div>
+                <div className="mt-3 flex flex-col gap-1.5">
+                  {features.map((f, i) => (
+                    <span key={i} className="flex gap-1.5 text-[12.5px] leading-snug text-ink-2">
+                      <span className="font-bold text-accent">✓</span>
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-3 text-center text-[13px] text-gray">{t('pick.packagesHint')}</p>
+      </div>
+
+      {/* ---- Step 2 — optional extra services ---- */}
+      <div className="mt-10">
+        <div className="mb-4 flex items-baseline gap-2.5">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[12px] font-bold text-white">
+            2
+          </span>
+          <h2 className="font-display text-[19px] text-ink">{t('pick.servicesTitle')}</h2>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {SERVICE_STAGES.map((stage) => {
+            const list = SERVICES.filter((s) => s.stage === stage)
+            if (!list.length) return null
+            return (
+              <div key={stage}>
+                <div className="eyebrow mb-2.5">{ts(`stages.${stage}`)}</div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {list.map((s) => {
+                    const owned = ownedServices.includes(s.id)
+                    const on = services.includes(s.id)
+                    const included = packageCovers(pkg, s.id)
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        disabled={owned}
+                        onClick={() => toggleService(s.id)}
+                        className={cn(
+                          'flex items-start gap-3 rounded-lg border p-3.5 text-left transition-colors',
+                          owned
+                            ? 'cursor-default border-line bg-card opacity-55'
+                            : on && included
+                              ? 'border-amber-500/60 bg-amber-500/10'
+                              : on
+                                ? 'border-accent bg-accent-bg'
+                                : included
+                                  ? 'border-line bg-card opacity-60 hover:border-accent/40'
+                                  : 'border-line bg-card hover:border-accent/40'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border',
+                            on || owned ? 'border-accent bg-accent' : 'border-line bg-surface'
+                          )}
+                        >
+                          {(on || owned) && <Check size={12} strokeWidth={3.5} className="text-white" />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-baseline justify-between gap-2">
+                            <span className="text-[13.5px] font-medium text-ink">
+                              {ts(`items.${s.id}.name`)}
+                            </span>
+                            <span className="shrink-0 text-[13px] font-semibold text-accent">
+                              {fmtGBP(s.price)}
+                            </span>
+                          </span>
+                          {owned ? (
+                            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-accent/12 px-2 py-0.5 text-[11px] font-medium text-accent">
+                              {t('pick.owned')}
+                            </span>
+                          ) : included ? (
+                            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                              {td('inPackage')}
+                            </span>
+                          ) : (
+                            <span className="mt-0.5 block text-[12.5px] leading-snug text-muted">
+                              {ts(`items.${s.id}.desc`)}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ---- Floating total + single checkout ----
+          Lifted off the bottom edge (safe-area + margin) so it stays comfortably
+          reachable and doesn't collide with phone/Telegram bottom bars. */}
+      <div
+        className={cn(
+          barMode === 'fixed'
+            ? 'pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] pt-2'
+            : 'sticky bottom-3 z-40 pt-3'
+        )}
+      >
+        <div
+          className={cn(
+            'mx-auto max-w-[1000px] rounded-2xl border border-line bg-surface/95 shadow-card backdrop-blur',
+            barMode === 'fixed' && 'pointer-events-auto'
+          )}
+        >
+          {dupes.length > 0 && (
+            <div className="flex items-start gap-2 border-b border-line px-5 py-2.5 text-[12.5px] leading-snug text-amber-700">
+              <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+              {td('body', { pkg: pkg ? tp(`${pkg}.name`) : '' })}
             </div>
-            <Button
-              variant={popular ? 'white' : 'outline'}
-              size="block"
-              disabled={buying}
-              className={cn(popular && 'font-bold text-accent')}
-              onClick={() => onBuy(pkg.id)}
-            >
-              {t('emptyChoosePackage')}
+          )}
+          <div className="flex items-center gap-4 px-5 py-3">
+            <div className="min-w-0 flex-1">
+              {nothingPicked ? (
+                <div className="text-[13px] text-muted">{t('pick.nothing')}</div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {pkg && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-accent/12 px-2.5 py-1 text-[12px] font-semibold text-accent">
+                      {tp(`${pkg}.name`)}
+                      <span className="font-normal opacity-70">{fmtGBP(pkgPrice)}</span>
+                    </span>
+                  )}
+                  {services.length > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-ink/[.06] px-2.5 py-1 text-[12px] font-medium text-ink-2">
+                      {t('pick.servicesCount', { count: services.length })}
+                      <span className="opacity-70">{fmtGBP(svcPrice)}</span>
+                    </span>
+                  )}
+                </div>
+              )}
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-[11.5px] uppercase tracking-wide text-gray">{t('pick.total')}</span>
+                <span className="font-display text-[21px] leading-none text-ink">{fmtGBP(total)}</span>
+              </div>
+            </div>
+            <Button variant="solid" disabled={buying || nothingPicked} onClick={submit}>
+              {t('pick.checkout')}
             </Button>
           </div>
-        )
-      })}
+        </div>
+      </div>
+
+      {warnDupes && (
+        <DuplicateWarningModal
+          pkgName={pkg ? tp(`${pkg}.name`) : ''}
+          serviceNames={dupes.map((id) => ts(`items.${id}.name`))}
+          onCancel={() => {
+            // "Remove extras" — drop just the duplicated ones, keep the rest.
+            setServices((s) => s.filter((id) => !dupes.includes(id)))
+            setWarnDupes(false)
+          }}
+          onProceed={() => {
+            setWarnDupes(false)
+            onCheckout(pkg, services)
+          }}
+        />
+      )}
     </div>
   )
 }
 
-function EmptyCabinet({ onBuy, buying }: { onBuy: (id: string) => void; buying: boolean }) {
+/* ---------- Empty (first-time) cabinet — the picker with a welcome heading ---------- */
+function EmptyCabinet({
+  onCheckout,
+  buying,
+  initialPkg,
+}: {
+  onCheckout: (pkgId: string | null, serviceIds: string[]) => void
+  buying: boolean
+  initialPkg?: string | null
+}) {
   const t = useTranslations('Profile')
-
   return (
-    <div className="mx-auto max-w-[1000px]">
-      <div className="text-center">
-        <h1 className="font-display text-[30px] text-ink sm:text-[36px]">{t('emptyTitle')}</h1>
-        <p className="mx-auto mt-3 max-w-[52ch] text-[15px] leading-relaxed text-muted">{t('emptyText')}</p>
-      </div>
+    <PackagePicker
+      onCheckout={onCheckout}
+      buying={buying}
+      initialPkg={initialPkg}
+      heading={
+        <div className="text-center">
+          <h1 className="font-display text-[30px] text-ink sm:text-[36px]">{t('emptyTitle')}</h1>
+          <p className="mx-auto mt-3 max-w-[52ch] text-[15px] leading-relaxed text-muted">
+            {t('emptyText')}
+          </p>
+        </div>
+      }
+    />
+  )
+}
 
-      <div className="mt-9">
-        <PackageGrid onBuy={onBuy} buying={buying} />
+/* ---------- Re-purchase sheet — the same picker in a full-screen overlay ---------- */
+/**
+ * Opened from the populated cabinet's "buy a package or service" button so a
+ * returning client gets the exact same picker they saw during onboarding,
+ * instead of a cramped inline list. `ownedServices` are shown as already-active.
+ */
+function PurchaseSheet({
+  onCheckout,
+  buying,
+  ownedServices,
+  onClose,
+}: {
+  onCheckout: (pkgId: string | null, serviceIds: string[]) => void
+  buying: boolean
+  ownedServices: string[]
+  onClose: () => void
+}) {
+  const t = useTranslations('Profile')
+  return (
+    <div className="fixed inset-0 z-[9990] flex flex-col bg-paper">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-5 py-4 sm:px-8">
+        <h2 className="font-display text-[18px] text-ink">{t('pick.sheetTitle')}</h2>
+        <button onClick={onClose} className="text-gray hover:text-ink" aria-label="close">
+          <X size={20} />
+        </button>
       </div>
-
-      <div className="mt-8 text-center">
-        <Link href="/services" className="text-[14px] font-semibold text-accent hover:underline">
-          {t('emptyBrowseServices')} →
-        </Link>
+      <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+        <PackagePicker
+          barMode="inline"
+          buying={buying}
+          ownedServices={ownedServices}
+          onCheckout={(pkgId, serviceIds) => {
+            onClose()
+            onCheckout(pkgId, serviceIds)
+          }}
+        />
       </div>
     </div>
   )
@@ -1129,12 +1674,14 @@ function PopulatedCabinet({
   data,
   onChat,
   onBuy,
+  onCheckout,
   buying,
   onRefresh,
 }: {
   data: DashboardData
   onChat: (who?: 'manager' | 'runner') => void
   onBuy: (id: string) => void
+  onCheckout: (pkgId: string | null, serviceIds: string[]) => void
   buying: boolean
   onRefresh: () => void
 }) {
@@ -1219,7 +1766,11 @@ function PopulatedCabinet({
           </div>
         ) : (
           /* No active package → buy a new one right here (no redirect) */
-          <PurchasePanel onBuy={onBuy} buying={buying} />
+          <PurchasePanel
+            onCheckout={onCheckout}
+            buying={buying}
+            ownedServices={data.services.map((s) => s.id)}
+          />
         )}
 
         {/* Extra services (rail) — only alongside a package */}

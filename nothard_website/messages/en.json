@@ -515,7 +515,9 @@
       "sessionsRevokeOthers": "Sign out all other devices",
       "sessionsEmpty": "No active sessions",
       "sessionsSignedOutOthers": "Signed out of other devices",
-      "language": "Language"
+      "language": "Language",
+      "phone": "Phone number",
+      "phoneSaved": "Phone number saved"
     },
     "managerPending": "A manager will be assigned soon",
     "serviceInProgress": "In progress",
@@ -640,6 +642,17 @@
     "meetSign": {
       "title": "Meeting you at arrivals",
       "body": "Our greeter will be waiting at the exit with a “nothard” sign — you’ll recognise them right away."
+    },
+    "pick": {
+      "packagesTitle": "Choose a package",
+      "packagesHint": "Tap again to deselect — you can also take individual services only.",
+      "servicesTitle": "Add services — optional",
+      "nothing": "Nothing selected",
+      "checkout": "Check out",
+      "servicesCount": "{count, plural, one {# service} other {# services}}",
+      "sheetTitle": "Buy a package or service",
+      "total": "Total",
+      "owned": "Already active"
     }
   },
   "Admin": {
@@ -651,7 +664,8 @@
       "payments": "Payments",
       "team": "Team",
       "reviews": "Reviews",
-      "listings": "Listings"
+      "listings": "Listings",
+      "tracking": "Tracking"
     },
     "kpi": {
       "activeClients": "Active clients",
@@ -1018,14 +1032,38 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "accept": "Accept & continue",
-    "decline": "Log out",
+    "decline": "I don't accept the terms",
     "subtitle": "We help you move to London — from the airport welcome to settling in.",
     "points": {
       "0": "Meeting you at the airport and a soft first day",
       "1": "Home search and accompanied viewings",
       "2": "Documents, a bank account and the NHS"
     },
-    "agree": "By tapping “Accept & continue” you agree to our Privacy Policy and Terms of Service."
+    "agree": "By tapping “Accept & continue” you agree to our Privacy Policy and Terms of Service.",
+    "hello": "Hi, {name}!",
+    "continue": "Continue",
+    "back": "Back",
+    "finish": "Done",
+    "steps": {
+      "0": "A quick word on how we help",
+      "1": "What should we call you?",
+      "2": "How can we reach you?"
+    },
+    "name": {
+      "label": "Your name",
+      "placeholder": "For example, Kamron",
+      "hint": "Taken from Telegram — change it if you'd prefer another name."
+    },
+    "phone": {
+      "label": "Phone number",
+      "hint": "Your manager needs it to reach you when you arrive.",
+      "fromTelegram": "Take from Telegram",
+      "waiting": "Waiting for the number…",
+      "declined": "You didn't share the number — you can type it in instead.",
+      "timeout": "The number hasn't arrived yet. Please type it in."
+    },
+    "declineConfirm": "Cancel registration? The account will be deleted — you can sign up again any time.",
+    "declineYes": "Yes, cancel"
   },
   "SharePage": {
     "heading": "{name}’s move to London",
@@ -1043,5 +1081,95 @@
     "inProgress": "In progress",
     "pending": "Pending",
     "cta": "Learn about Nothard"
+  },
+  "Duplicate": {
+    "title": "Already included in the package",
+    "inPackage": "In the package",
+    "body": "You've picked services that the “{pkg}” package already includes. There's no need to pay for them separately.",
+    "hint": "Remove the extras — or continue anyway if you want them on top.",
+    "remove": "Remove extras",
+    "proceed": "Continue anyway",
+    "cancel": "Cancel",
+    "ownedBody": "The “{pkg}” package already includes services you bought separately. There's no need to pay for them twice."
+  },
+  "Tracking": {
+    "onWayTitle": "{name} is on the way",
+    "arrivedTitle": "You've arrived",
+    "etaMin": "≈{min} min",
+    "kmLeft": "{km} km left",
+    "liveNote": "Live location · updates automatically",
+    "estimateNote": "Approximate travel-time estimate",
+    "waitingSignal": "Waiting for your host's GPS signal…",
+    "arrivedNote": "Trip finished",
+    "runnerTitle": "Live trip tracking",
+    "setupTitle": "Phone setup",
+    "setupIntro": "Set up the Traccar Client app once — it streams your location during a trip. Free and open-source.",
+    "installStep": "Install the free “Traccar Client” app from the App Store.",
+    "serverUrlLabel": "Server URL",
+    "deviceIdLabel": "Device identifier",
+    "settingsStep": "In the app pick the OsmAnd protocol, 30 sec frequency and 50 m distance, then paste the server URL and identifier above.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "regenToken": "Reset identifier",
+    "regenConfirm": "Reset? The old identifier stops working — you'll need to update it in the app.",
+    "recommended": "Recommended: OsmAnd protocol · 30 sec interval · 50 m distance",
+    "startTitle": "Start a trip",
+    "pickClient": "Client",
+    "pickClientPlaceholder": "Choose a client",
+    "destLabel": "Destination address",
+    "destPlaceholder": "e.g. 10 Downing Street, London",
+    "originLabel": "From (optional)",
+    "originPlaceholder": "e.g. Heathrow T2",
+    "startBtn": "Start & enable tracking",
+    "starting": "Starting…",
+    "noClients": "No clients are assigned to you yet.",
+    "needDest": "Enter a destination address.",
+    "geocodeWarn": "Couldn't locate the address on the map — ETA appears once it's resolved. You can continue.",
+    "activeTitle": "Active trip",
+    "toClient": "For",
+    "arriveBtn": "Arrived",
+    "cancelBtn": "Cancel trip",
+    "cancelConfirm": "Cancel the trip? Location sharing will stop.",
+    "trackingOn": "Tracking is on — your location is shared with the client and their family.",
+    "adminTitle": "Live tracking",
+    "enabledLabel": "Tracking enabled",
+    "osrmLabel": "OSRM routing server",
+    "osrmHint": "For accurate road ETA. Defaults to the public demo server (not for production).",
+    "nominatimLabel": "Nominatim geocoder",
+    "nominatimHint": "Turns the destination address into coordinates.",
+    "fallbackLabel": "Fallback average speed (km/h)",
+    "fallbackHint": "Used when the routing server is unavailable — ETA is estimated in a straight line.",
+    "refreshLabel": "ETA refresh interval (sec)",
+    "save": "Save",
+    "saved": "Saved",
+    "activeTripsTitle": "Active trips",
+    "noActiveTrips": "No active trips right now.",
+    "colClient": "Client",
+    "colRunner": "Host",
+    "colEta": "ETA",
+    "colLastPing": "Last signal",
+    "endTrip": "End",
+    "endConfirm": "Force-end this trip?",
+    "minShort": "{min} min",
+    "searching": "Searching…",
+    "noResults": "Nothing found — refine the address",
+    "mode": {
+      "car": "Car",
+      "transit": "Transit",
+      "walk": "Walk",
+      "cycle": "Cycle"
+    },
+    "modeLabel": "How are you traveling",
+    "transitEstimate": "Transit — rough estimate (straight-line route)",
+    "osrmWalkLabel": "OSRM server (walking)",
+    "osrmBikeLabel": "OSRM server (cycling)",
+    "osrmModeHint": "A separate OSRM built with the foot/bike profile. Blank → that mode uses a straight-line estimate.",
+    "otpLabel": "OpenTripPlanner (transit)",
+    "otpHint": "OTP GraphQL endpoint for train/bus routing (TfL data). Blank → transit uses a straight-line estimate.",
+    "changeDest": "Change destination",
+    "setupDone": "Done, hide",
+    "setupCollapsedHint": "Phone is set up — tap to show the instructions",
+    "back": "Back",
+    "adminSectionTitle": "Live trip"
   }
 }

@@ -136,6 +136,8 @@ export const api = {
   listingDetail: (id: number) => req<ListingDetail>(`/listings/${id}`),
   // Public read-only relocation snapshot (shared with family). No auth.
   sharedRelocation: (token: string) => req<SharedRelocation>(`/share/${token}`),
+  // Public live-trip view for the family share page. No auth.
+  sharedTrip: (token: string) => req<{ trip: TripLive | null }>(`/share/${token}/live`),
   // Public OpenGraph preview for a pasted listing URL (photo/title/price).
   ogPreview: (url: string) =>
     req<{ photo?: string; title?: string; description?: string; price?: number }>(
@@ -167,6 +169,7 @@ export const api = {
   },
   me: {
     dashboard: () => req<DashboardData>('/me/dashboard'),
+    trip: () => req<{ trip: TripLive | null }>('/me/trip'),
     checkout: (
       items: { type: 'package' | 'service'; id: string }[],
       details?: Record<string, string>
@@ -179,8 +182,14 @@ export const api = {
       req<{ ok: boolean }>('/me/password', { method: 'POST', body: JSON.stringify({ old, new: next }) }),
     updateName: (name: string) =>
       req<User>('/me/update', { method: 'POST', body: JSON.stringify({ name }) }),
+    // Onboarding: save name and/or phone. Omitted keys are left untouched.
+    updateProfile: (fields: { name?: string; phone?: string }) =>
+      req<User>('/me/update', { method: 'POST', body: JSON.stringify(fields) }),
     deleteAccount: () => req<{ ok: boolean }>('/me', { method: 'DELETE' }),
     acceptTerms: () => req<User>('/me/accept-terms', { method: 'POST' }),
+    // Declining cancels a registration that was never completed: the backend
+    // deletes the fresh account (refuses if terms were accepted or orders exist).
+    declineTerms: () => req<{ ok: boolean }>('/me/decline-terms', { method: 'POST' }),
     setLocale: (locale: string) =>
       req<User>('/me/locale', { method: 'POST', body: JSON.stringify({ locale }) }),
     emailStart: (email: string) =>
@@ -235,6 +244,22 @@ export const api = {
 
   admin: {
     overview: () => req<AdminOverview>('/admin/overview'),
+    // ---- live tracking settings + oversight ----
+    getTracking: () => req<TrackingCfg>('/admin/settings/tracking'),
+    setTracking: (body: Partial<TrackingCfg>) =>
+      req<TrackingCfg>('/admin/settings/tracking', { method: 'POST', body: JSON.stringify(body) }),
+    activeTrips: () => req<{ trips: AdminTrip[] }>('/admin/trips'),
+    endTrip: (tripId: number) => req<{ ok: boolean }>(`/admin/trips/${tripId}/end`, { method: 'POST' }),
+    // Per-client live trip shown in the client drawer (+ operator editing).
+    geocode: (q: string) => req<{ results: GeoResult[] }>(`/admin/geocode?q=${encodeURIComponent(q)}`),
+    clientTrip: (clientId: number) => req<{ trip: TripLive | null }>(`/admin/clients/${clientId}/trip`),
+    setTripDestination: (tripId: number, body: { dest_label?: string; dest_lat?: number; dest_lng?: number }) =>
+      req<{ trip: TripLive; located: boolean }>(`/admin/trips/${tripId}/destination`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    setTripMode: (tripId: number, mode: TravelMode) =>
+      req<{ trip: TripLive }>(`/admin/trips/${tripId}/mode`, { method: 'POST', body: JSON.stringify({ mode }) }),
     // undefined → key omitted (backend auto-assigns); null → explicit clear; number → set
     assignRunner: (clientId: number, runnerId?: number | null) =>
       req<AdminClient>(`/admin/clients/${clientId}/assign-runner`, {
@@ -404,7 +429,84 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ body }),
       }),
+    // ---- live tracking ----
+    geocode: (q: string) =>
+      req<{ results: GeoResult[] }>(`/runner/geocode?q=${encodeURIComponent(q)}`),
+    trackConfig: () => req<TrackConfig>('/runner/track-config'),
+    regenToken: () => req<{ deviceId: string }>('/runner/track-token/regenerate', { method: 'POST' }),
+    trip: () => req<{ trip: (TripLive & { client: { id: number; name: string } | null }) | null }>('/runner/trip'),
+    startTrip: (body: {
+      client_id: number
+      dest_label?: string
+      dest_lat?: number
+      dest_lng?: number
+      origin_label?: string
+      mode?: TravelMode
+    }) =>
+      req<{ trip: TripLive; geocoded: boolean }>('/runner/trips/start', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    setMode: (tripId: number, mode: TravelMode) =>
+      req<{ trip: TripLive }>(`/runner/trips/${tripId}/mode`, {
+        method: 'POST',
+        body: JSON.stringify({ mode }),
+      }),
+    setDestination: (tripId: number, body: { dest_label?: string; dest_lat?: number; dest_lng?: number }) =>
+      req<{ trip: TripLive; located: boolean }>(`/runner/trips/${tripId}/destination`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    arrive: (tripId: number) => req<{ ok: boolean }>(`/runner/trips/${tripId}/arrive`, { method: 'POST' }),
+    cancel: (tripId: number) => req<{ ok: boolean }>(`/runner/trips/${tripId}/cancel`, { method: 'POST' }),
   },
+}
+
+// ---- live tracking types --------------------------------------------------
+export type LatLng = [number, number]
+
+export type TravelMode = 'car' | 'walk' | 'cycle' | 'transit'
+
+export type TripLive = {
+  id: number
+  status: 'active' | 'arrived' | 'cancelled'
+  mode: TravelMode
+  runner: { name: string; photoUrl: string | null }
+  dest: { lat: number | null; lng: number | null; label: string | null }
+  position: { lat: number; lng: number; at: string | null; bearing: number | null; battery: number | null } | null
+  eta: { minutes: number; km: number; source: 'osrm' | 'line' } | null
+  route: LatLng[]
+  startedAt: string | null
+}
+
+export type TrackConfig = {
+  serverUrl: string
+  deviceId: string
+  recommended: { intervalSec: number; distanceM: number; protocol: string }
+}
+
+export type GeoResult = { label: string; lat: number; lng: number }
+
+export type TrackingCfg = {
+  enabled: boolean
+  osrm_url: string
+  osrm_walk_url: string
+  osrm_bike_url: string
+  otp_url: string
+  nominatim_url: string
+  fallback_kmh: number
+  refresh_sec: number
+}
+
+export type AdminTrip = {
+  id: number
+  client: string
+  runner: string
+  destLabel: string | null
+  eta: number | null
+  km: number | null
+  lastPingAt: string | null
+  startedAt: string | null
 }
 
 // ---- panel/cabinet response types -----------------------------------------

@@ -515,7 +515,9 @@
       "sessionsRevokeOthers": "Boshqa barcha qurilmalardan chiqish",
       "sessionsEmpty": "Faol seanslar yo'q",
       "sessionsSignedOutOthers": "Boshqa qurilmalardan chiqildi",
-      "language": "Til"
+      "language": "Til",
+      "phone": "Telefon raqami",
+      "phoneSaved": "Telefon raqami saqlandi"
     },
     "managerPending": "Menejer tez orada tayinlanadi",
     "serviceInProgress": "Jarayonda",
@@ -640,6 +642,17 @@
     "meetSign": {
       "title": "Sizni qanday kutib olamiz",
       "body": "Xodimimiz chiqishda «nothard» taxtachasi bilan kutib turadi — uni darhol tanib olasiz."
+    },
+    "pick": {
+      "packagesTitle": "Paketni tanlang",
+      "packagesHint": "Bekor qilish uchun yana bosing — faqat alohida xizmatlarni ham olsangiz bo'ladi.",
+      "servicesTitle": "Xizmatlar qo'shing — ixtiyoriy",
+      "nothing": "Hech narsa tanlanmadi",
+      "checkout": "Rasmiylashtirish",
+      "servicesCount": "{count, plural, other {# ta xizmat}}",
+      "sheetTitle": "Paket yoki xizmat sotib olish",
+      "total": "Jami",
+      "owned": "Allaqachon faol"
     }
   },
   "Admin": {
@@ -651,7 +664,8 @@
       "payments": "To‘lovlar",
       "team": "Jamoa",
       "reviews": "Sharhlar",
-      "listings": "E'lonlar"
+      "listings": "E'lonlar",
+      "tracking": "Kuzatuv"
     },
     "kpi": {
       "activeClients": "Faol mijozlar",
@@ -1018,14 +1032,38 @@
     "privacy": "Maxfiylik siyosati",
     "terms": "Foydalanish shartlari",
     "accept": "Qabul qilaman",
-    "decline": "Chiqish",
+    "decline": "Shartlarni qabul qilmayman",
     "subtitle": "Londonga ko‘chishda yordam beramiz — aeroportda kutib olishdan joylashuvgacha.",
     "points": {
       "0": "Aeroportda kutib olish va yumshoq birinchi kun",
       "1": "Uy qidirish va hamrohlikdagi ko‘riklar",
       "2": "Hujjatlar, bank hisobi va NHS"
     },
-    "agree": "«Qabul qilaman va davom etaman» tugmasini bosib, siz maxfiylik siyosati va shartlarga rozilik bildirasiz."
+    "agree": "«Qabul qilaman va davom etaman» tugmasini bosib, siz maxfiylik siyosati va shartlarga rozilik bildirasiz.",
+    "hello": "Salom, {name}!",
+    "continue": "Davom etish",
+    "back": "Orqaga",
+    "finish": "Tayyor",
+    "steps": {
+      "0": "Qanday yordam berishimiz haqida qisqacha",
+      "1": "Sizga qanday murojaat qilaylik?",
+      "2": "Siz bilan qanday bog'lanaylik?"
+    },
+    "name": {
+      "label": "Ismingiz",
+      "placeholder": "Masalan, Kamron",
+      "hint": "Telegram'dan olindi — boshqa ism xohlasangiz, o'zgartiring."
+    },
+    "phone": {
+      "label": "Telefon raqami",
+      "hint": "Kelganingizda menejer bog'lanishi uchun kerak.",
+      "fromTelegram": "Telegram'dan olish",
+      "waiting": "Raqam kutilmoqda…",
+      "declined": "Raqamni ulashmadingiz — uni qo'lda kiritsangiz bo'ladi.",
+      "timeout": "Raqam hali kelmadi. Iltimos, qo'lda kiriting."
+    },
+    "declineConfirm": "Ro'yxatdan o'tish bekor qilinsinmi? Hisob o'chiriladi — istalgan vaqtda qayta ro'yxatdan o'tsangiz bo'ladi.",
+    "declineYes": "Ha, bekor qilish"
   },
   "SharePage": {
     "heading": "{name}ning Londonga ko‘chishi",
@@ -1043,5 +1081,95 @@
     "inProgress": "Jarayonda",
     "pending": "Kutilmoqda",
     "cta": "Nothard haqida"
+  },
+  "Duplicate": {
+    "title": "Bu paketga allaqachon kiritilgan",
+    "inPackage": "Paketda bor",
+    "body": "Siz “{pkg}” paketiga allaqachon kiritilgan xizmatlarni tanladingiz. Ular uchun alohida to'lash shart emas.",
+    "hint": "Ortiqchasini olib tashlang — yoki qo'shimcha xohlasangiz, davom eting.",
+    "remove": "Ortiqchasini olib tashlash",
+    "proceed": "Baribir rasmiylashtirish",
+    "cancel": "Bekor qilish",
+    "ownedBody": "“{pkg}” paketi siz alohida rasmiylashtirgan xizmatlarni allaqachon o'z ichiga oladi. Ular uchun qayta to'lash shart emas."
+  },
+  "Tracking": {
+    "onWayTitle": "{name} sizga yo‘lda",
+    "arrivedTitle": "Yetib keldingiz",
+    "etaMin": "≈{min} daq",
+    "kmLeft": "{km} km qoldi",
+    "liveNote": "Jonli geolokatsiya · avtomatik yangilanadi",
+    "estimateNote": "Taxminiy yo‘l vaqti",
+    "waitingSignal": "Hamrohning GPS signali kutilmoqda…",
+    "arrivedNote": "Safar tugadi",
+    "runnerTitle": "Safarni jonli kuzatish",
+    "setupTitle": "Telefonni sozlash",
+    "setupIntro": "Traccar Client ilovasini bir marta sozlang — safar davomida geolokatsiyangizni uzatadi. Bepul va ochiq kodli.",
+    "installStep": "App Store’dan bepul «Traccar Client» ilovasini o‘rnating.",
+    "serverUrlLabel": "Server manzili (Server URL)",
+    "deviceIdLabel": "Identifikator (Device identifier)",
+    "settingsStep": "Ilovada OsmAnd protokolini, 30 soniya va 50 m masofani tanlang, yuqoridagi manzil va identifikatorni joylang.",
+    "copy": "Nusxa olish",
+    "copied": "Nusxalandi",
+    "regenToken": "Identifikatorni tiklash",
+    "regenConfirm": "Tiklansinmi? Eski identifikator ishlamay qoladi — ilovada yangilash kerak.",
+    "recommended": "Tavsiya: OsmAnd protokoli · 30 soniya · 50 m",
+    "startTitle": "Safarni boshlash",
+    "pickClient": "Mijoz",
+    "pickClientPlaceholder": "Mijozni tanlang",
+    "destLabel": "Manzil (borish joyi)",
+    "destPlaceholder": "Masalan, 10 Downing Street, London",
+    "originLabel": "Qayerdan (ixtiyoriy)",
+    "originPlaceholder": "Masalan, Heathrow T2",
+    "startBtn": "Boshlash va kuzatuvni yoqish",
+    "starting": "Boshlanmoqda…",
+    "noClients": "Sizga hali mijoz biriktirilmagan.",
+    "needDest": "Borish manzilini kiriting.",
+    "geocodeWarn": "Manzil xaritada topilmadi — aniqlangach ETA paydo bo‘ladi. Davom etsangiz bo‘ladi.",
+    "activeTitle": "Faol safar",
+    "toClient": "Mijozga",
+    "arriveBtn": "Yetib keldim",
+    "cancelBtn": "Safarni bekor qilish",
+    "cancelConfirm": "Safar bekor qilinsinmi? Geolokatsiya uzatish to‘xtaydi.",
+    "trackingOn": "Kuzatuv yoqilgan — geolokatsiya mijoz va uning yaqinlariga uzatilmoqda.",
+    "adminTitle": "Jonli kuzatuv",
+    "enabledLabel": "Kuzatuv yoqilgan",
+    "osrmLabel": "OSRM marshrut serveri",
+    "osrmHint": "Yo‘l bo‘yicha aniq ETA uchun. Standart — ommaviy demo-server (produksiya uchun emas).",
+    "nominatimLabel": "Nominatim geokoderi",
+    "nominatimHint": "Manzilni koordinatalarga aylantiradi.",
+    "fallbackLabel": "Baholash uchun o‘rtacha tezlik (km/soat)",
+    "fallbackHint": "Marshrut serveri ishlamasa ishlatiladi — ETA to‘g‘ri chiziq bo‘yicha hisoblanadi.",
+    "refreshLabel": "ETA qayta hisoblash oralig‘i (son.)",
+    "save": "Saqlash",
+    "saved": "Saqlandi",
+    "activeTripsTitle": "Faol safarlar",
+    "noActiveTrips": "Hozir faol safar yo‘q.",
+    "colClient": "Mijoz",
+    "colRunner": "Hamroh",
+    "colEta": "ETA",
+    "colLastPing": "Oxirgi signal",
+    "endTrip": "Yakunlash",
+    "endConfirm": "Safar majburan yakunlansinmi?",
+    "minShort": "{min} daq",
+    "searching": "Manzil qidirilmoqda…",
+    "noResults": "Hech narsa topilmadi — manzilni aniqlashtiring",
+    "mode": {
+      "car": "Mashina",
+      "transit": "Transport",
+      "walk": "Piyoda",
+      "cycle": "Velosiped"
+    },
+    "modeLabel": "Qanday borasiz",
+    "transitEstimate": "Transport — taxminiy baho (to‘g‘ri chiziq)",
+    "osrmWalkLabel": "OSRM server (piyoda)",
+    "osrmBikeLabel": "OSRM server (velosiped)",
+    "osrmModeHint": "foot/bike profilli alohida OSRM. Bo‘sh → bu rejim to‘g‘ri chiziq bo‘yicha hisoblanadi.",
+    "otpLabel": "OpenTripPlanner (transport)",
+    "otpHint": "Poyezd/avtobus marshruti uchun OTP GraphQL manzili (TfL ma'lumotlari). Bo‘sh → transport to‘g‘ri chiziq bo‘yicha hisoblanadi.",
+    "changeDest": "Manzilni o‘zgartirish",
+    "setupDone": "Tayyor, yashirish",
+    "setupCollapsedHint": "Telefon sozlangan — ko‘rsatma uchun bosing",
+    "back": "Orqaga",
+    "adminSectionTitle": "Jonli safar"
   }
 }

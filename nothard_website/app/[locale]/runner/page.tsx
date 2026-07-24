@@ -1,16 +1,31 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { MapPin, MessageSquare, Phone } from 'lucide-react'
+import { ChevronDown, MapPin, MessageSquare, Pencil, Phone, Smartphone } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Avatar } from '@/app/components/avatar'
 import { ChatModal } from '@/app/components/chat'
+import { Input } from '@/app/components/field'
+import { LangSwitcher } from '@/app/components/lang-switcher'
+import { AddressField } from '@/app/components/address-field'
+import { TripCard } from '@/app/components/trip-card'
+import { ModeSelector } from '@/app/components/travel-mode'
 import { useToast } from '@/app/components/toast'
 import { useRequireRole } from '@/app/lib/use-require-role'
 import { useTaskLabel } from '@/app/lib/task-label'
-import { api, clearTokens, type RunnerDashboard, type RunnerClientRow, type RunnerVisitRow } from '@/app/lib/api'
+import {
+  api,
+  clearTokens,
+  type RunnerDashboard,
+  type RunnerClientRow,
+  type RunnerVisitRow,
+  type TripLive,
+  type TrackConfig,
+  type GeoResult,
+  type TravelMode,
+} from '@/app/lib/api'
 import { fmtGBP } from '@/app/lib/data'
 import { cn } from '@/app/lib/utils'
 
@@ -71,7 +86,16 @@ export default function RunnerPage() {
       />
 
       <main className="mx-auto max-w-[680px] px-4 py-6 sm:px-6">
-        <p className="text-[14px] text-muted">{t('greeting', { name: data?.name || user?.name || '' })}</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="min-w-0 truncate text-[14px] text-muted">
+            {t('greeting', { name: data?.name || user?.name || '' })}
+          </p>
+          {/* The topbar hides the language switcher on mobile; the runner panel is
+              phone-first, so surface it here too. */}
+          <div className="shrink-0">
+            <LangSwitcher />
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="mt-3 grid grid-cols-4 gap-2.5">
@@ -101,6 +125,9 @@ export default function RunnerPage() {
             </div>
           </div>
         )}
+
+        {/* Live tracking — phone setup + start/stop a trip */}
+        <TrackingSection clients={(data?.clients ?? []).map((c) => ({ id: c.id, name: c.name }))} />
 
         {/* Active work — clients with pending visits */}
         <div className="mt-7">
@@ -319,5 +346,339 @@ function fmtDateTime(iso: string): string {
 export function PanelLoading() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper text-[15px] text-muted">…</div>
+  )
+}
+
+/* ---------- Live tracking: phone setup + trip control ---------- */
+function CopyRow({
+  label,
+  value,
+  onCopy,
+  copyLabel,
+}: {
+  label: string
+  value: string
+  onCopy: () => void
+  copyLabel: string
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-[11.5px] font-medium uppercase tracking-wide text-gray">{label}</div>
+      <div className="flex items-stretch gap-2">
+        <code className="min-w-0 flex-1 truncate rounded-lg border border-line bg-surface px-3 py-2 text-[12.5px] text-ink">
+          {value || '—'}
+        </code>
+        <Button variant="outline" size="sm" onClick={onCopy} disabled={!value}>
+          {copyLabel}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function TrackingSection({ clients }: { clients: { id: number; name: string }[] }) {
+  const t = useTranslations('Tracking')
+  const { toast } = useToast()
+  const [cfg, setCfg] = useState<TrackConfig | null>(null)
+  const [trip, setTrip] = useState<(TripLive & { client: { id: number; name: string } | null }) | null>(null)
+  const [clientId, setClientId] = useState('')
+  const [dest, setDest] = useState('')
+  // Exact coords when an address was picked from the suggestions (else null →
+  // the backend geocodes the free text as a fallback).
+  const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [origin, setOrigin] = useState('')
+  const [mode, setMode] = useState<TravelMode>('car')
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState('')
+  // Mid-trip destination change (the route changed on the way).
+  const [editDest, setEditDest] = useState(false)
+  const [newDest, setNewDest] = useState('')
+  const [newDestCoords, setNewDestCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [savingDest, setSavingDest] = useState(false)
+  // Phone-setup card is collapsible and remembers "done" per device, so it
+  // isn't a wall of instructions every time.
+  const [setupOpen, setSetupOpen] = useState(true)
+  useEffect(() => {
+    setSetupOpen(localStorage.getItem('nh_track_setup_done') !== '1')
+  }, [])
+
+  const loadTrip = () => api.runner.trip().then((r) => setTrip(r.trip)).catch(() => {})
+  useEffect(() => {
+    api.runner.trackConfig().then(setCfg).catch(() => {})
+    loadTrip()
+    const id = window.setInterval(loadTrip, 8000)
+    return () => clearInterval(id)
+  }, [])
+
+  async function copy(text: string, which: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(which)
+      toast(t('copied'))
+      setTimeout(() => setCopied(''), 1500)
+    } catch {}
+  }
+  async function regen() {
+    if (!window.confirm(t('regenConfirm'))) return
+    try {
+      const r = await api.runner.regenToken()
+      setCfg((c) => (c ? { ...c, deviceId: r.deviceId } : c))
+    } catch {}
+  }
+  async function start() {
+    if (!clientId) return
+    if (!dest.trim()) {
+      toast(t('needDest'))
+      return
+    }
+    setBusy(true)
+    try {
+      const r = await api.runner.startTrip({
+        client_id: Number(clientId),
+        dest_label: dest.trim(),
+        dest_lat: destCoords?.lat,
+        dest_lng: destCoords?.lng,
+        origin_label: origin.trim() || undefined,
+        mode,
+      })
+      if (!r.geocoded) toast(t('geocodeWarn'))
+      setDest('')
+      setDestCoords(null)
+      setOrigin('')
+      loadTrip()
+    } catch {
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function switchMode(m: TravelMode) {
+    if (!trip) return
+    setTrip({ ...trip, mode: m }) // optimistic
+    try {
+      const r = await api.runner.setMode(trip.id, m)
+      setTrip((cur) => (cur ? { ...r.trip, client: cur.client } : cur))
+    } catch {
+      loadTrip()
+    }
+  }
+  async function changeDestination() {
+    if (!trip || !newDest.trim()) return
+    setSavingDest(true)
+    try {
+      await api.runner.setDestination(trip.id, {
+        dest_label: newDest.trim(),
+        dest_lat: newDestCoords?.lat,
+        dest_lng: newDestCoords?.lng,
+      })
+      setEditDest(false)
+      setNewDest('')
+      setNewDestCoords(null)
+      loadTrip()
+    } catch {
+    } finally {
+      setSavingDest(false)
+    }
+  }
+  async function arrive() {
+    if (!trip) return
+    await api.runner.arrive(trip.id).catch(() => {})
+    loadTrip()
+  }
+  async function cancel() {
+    if (!trip || !window.confirm(t('cancelConfirm'))) return
+    await api.runner.cancel(trip.id).catch(() => {})
+    loadTrip()
+  }
+
+  const control =
+    'box-border h-11 w-full min-w-0 rounded-md border border-line bg-card px-3 text-[15px] text-ink'
+
+  return (
+    <div className="mt-7">
+      <div className="eyebrow mb-3">{t('runnerTitle')}</div>
+
+      {trip && trip.status === 'active' ? (
+        <div className="flex flex-col gap-3">
+          {trip.client && (
+            <div className="text-[13px] text-muted">
+              {t('toClient')}: <span className="font-medium text-ink">{trip.client.name}</span>
+            </div>
+          )}
+          <ModeSelector value={trip.mode} onChange={switchMode} />
+          <TripCard trip={trip} />
+
+          {/* Change destination mid-trip (route changed on the way) */}
+          {editDest ? (
+            <div className="rounded-xl border border-line bg-card p-3.5">
+              <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('destLabel')}</span>
+              <AddressField
+                search={(q) => api.runner.geocode(q).then((r) => r.results)}
+                value={newDest}
+                placeholder={t('destPlaceholder')}
+                onPick={(label, coords) => {
+                  setNewDest(label)
+                  setNewDestCoords(coords)
+                }}
+              />
+              <div className="mt-2.5 flex gap-2">
+                <Button
+                  variant="solid"
+                  size="sm"
+                  className="flex-1"
+                  disabled={savingDest || !newDest.trim()}
+                  onClick={changeDestination}
+                >
+                  {t('save')}
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => setEditDest(false)}>
+                  {t('back')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setNewDest(trip.dest.label || '')
+                setNewDestCoords(null)
+                setEditDest(true)
+              }}
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-line bg-card py-2 text-[13px] font-medium text-accent transition-colors hover:border-accent/50"
+            >
+              <Pencil size={13} /> {t('changeDest')}
+            </button>
+          )}
+
+          <div className="rounded-xl border border-line bg-accent-bg/50 px-3.5 py-2.5 text-[12.5px] text-ink-2">
+            {t('trackingOn')}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="solid" size="block" className="flex-1" onClick={arrive}>
+              {t('arriveBtn')}
+            </Button>
+            <Button variant="outline" size="block" className="flex-1" onClick={cancel}>
+              {t('cancelBtn')}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {/* Start a trip — the primary action, on top */}
+          <div className="rounded-2xl border border-line bg-card p-5">
+            <div className="text-[14px] font-semibold text-ink">{t('startTitle')}</div>
+            {clients.length === 0 ? (
+              <p className="mt-2 text-[13px] text-muted">{t('noClients')}</p>
+            ) : (
+              <div className="mt-3 flex flex-col gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('pickClient')}</span>
+                  <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={control}>
+                    <option value="">{t('pickClientPlaceholder')}</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('destLabel')}</span>
+                  <AddressField
+                    search={(q) => api.runner.geocode(q).then((r) => r.results)}
+                    value={dest}
+                    placeholder={t('destPlaceholder')}
+                    onPick={(label, coords) => {
+                      setDest(label)
+                      setDestCoords(coords)
+                    }}
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('originLabel')}</span>
+                  <AddressField
+                    search={(q) => api.runner.geocode(q).then((r) => r.results)}
+                    value={origin}
+                    placeholder={t('originPlaceholder')}
+                    onPick={(label) => setOrigin(label)}
+                  />
+                </label>
+                <div>
+                  <span className="mb-1 block text-[12.5px] font-medium text-ink-2">{t('modeLabel')}</span>
+                  <ModeSelector value={mode} onChange={setMode} />
+                  {mode === 'transit' && (
+                    <p className="mt-1.5 text-[11.5px] leading-snug text-gray">{t('transitEstimate')}</p>
+                  )}
+                </div>
+                <Button variant="solid" size="block" disabled={busy || !clientId} onClick={start}>
+                  {busy ? t('starting') : t('startBtn')}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Phone setup — collapsible (remembered once done) */}
+          <div className="rounded-2xl border border-line bg-card">
+            <button
+              type="button"
+              onClick={() => setSetupOpen((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 px-5 py-4 text-left"
+            >
+              <span className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+                <Smartphone size={16} className="text-accent" /> {t('setupTitle')}
+              </span>
+              <ChevronDown
+                size={18}
+                className={cn('shrink-0 text-gray transition-transform', setupOpen && 'rotate-180')}
+              />
+            </button>
+            {!setupOpen && (
+              <p className="-mt-1 px-5 pb-4 text-[12px] leading-snug text-muted">
+                {t('setupCollapsedHint')}
+              </p>
+            )}
+            {setupOpen && (
+              <div className="px-5 pb-5">
+                <p className="text-[12.5px] leading-snug text-muted">{t('setupIntro')}</p>
+                <ol className="mt-3 flex flex-col gap-1.5 text-[13px] leading-snug text-ink-2">
+                  <li>1. {t('installStep')}</li>
+                  <li>2. {t('settingsStep')}</li>
+                </ol>
+                <div className="mt-3 flex flex-col gap-2.5">
+                  <CopyRow
+                    label={t('serverUrlLabel')}
+                    value={cfg?.serverUrl || ''}
+                    onCopy={() => cfg && copy(cfg.serverUrl, 'url')}
+                    copyLabel={copied === 'url' ? t('copied') : t('copy')}
+                  />
+                  <CopyRow
+                    label={t('deviceIdLabel')}
+                    value={cfg?.deviceId || ''}
+                    onCopy={() => cfg && copy(cfg.deviceId, 'id')}
+                    copyLabel={copied === 'id' ? t('copied') : t('copy')}
+                  />
+                </div>
+                <p className="mt-2.5 text-[11.5px] text-gray">{t('recommended')}</p>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <button
+                    onClick={regen}
+                    className="text-[12.5px] text-gray underline underline-offset-2 hover:text-ink"
+                  >
+                    {t('regenToken')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('nh_track_setup_done', '1')
+                      setSetupOpen(false)
+                    }}
+                    className="text-[12.5px] font-medium text-accent hover:underline"
+                  >
+                    {t('setupDone')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

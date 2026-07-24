@@ -47,6 +47,12 @@ TEMPLATES = {
         "uz": "🚶 Sizga hamroh tayinlandi: {name}.",
         "uz-cyrl": "🚶 Сизга ҳамроҳ тайинланди: {name}.",
     },
+    "trip_started": {
+        "ru": "🚕 {name} выехал(а) к вам. Следите за поездкой и временем прибытия в кабинете.",
+        "en": "🚕 {name} is on the way. Follow the ride and arrival time in your cabinet.",
+        "uz": "🚕 {name} yo‘lga chiqdi. Safar va yetib borish vaqtini kabinetda kuzating.",
+        "uz-cyrl": "🚕 {name} йўлга чиқди. Сафар ва етиб бориш вақтини кабинетда кузатинг.",
+    },
     "task_done": {
         "ru": "✅ Ещё один шаг вашего переезда выполнен.",
         "en": "✅ Another step of your relocation is done.",

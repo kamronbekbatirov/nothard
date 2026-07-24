@@ -18,7 +18,9 @@ from db import SessionLocal, init_db
 from models import (
     User, Client, Order, Task, Listing, Message, Review,
     HousingItem, HousingMedia, Attachment, Session, Setting,
+    Trip, TripPing,
 )
+import routing
 from catalog import (
     SERVICE_PRICE,
     VIEWING_PRICE,
@@ -1147,6 +1149,11 @@ def create_app() -> Flask:
             c = SessionLocal.execute(select(Client).where(Client.user_id == user.id)).scalar_one_or_none()
             if c:
                 c.name = user.name
+        # Phone is optional here: onboarding lets the user type it by hand, while
+        # "take from Telegram" fills it bot-side (see bot.py `_save_contact_phone`).
+        if "phone" in data:
+            phone = (data.get("phone") or "").strip()
+            user.phone = phone[:64] or None
         SessionLocal.commit()
         return jsonify(user.to_public())
 
@@ -1156,6 +1163,36 @@ def create_app() -> Flask:
         if err:
             return err
         c = SessionLocal.execute(select(Client).where(Client.user_id == user.id)).scalar_one_or_none()
+        if c:
+            _purge_client(c.id)
+            SessionLocal.delete(c)
+        _delete_user_sessions(user.id)
+        SessionLocal.delete(user)
+        SessionLocal.commit()
+        return jsonify({"ok": True})
+
+    @app.post("/me/decline-terms")
+    def my_decline_terms():
+        """Cancel a registration the user never completed.
+
+        Inside the Mini App the account is created the moment they tap "continue
+        with Telegram" (the signed initData IS the login), so declining the terms
+        has to actually remove that fresh account — otherwise every person who
+        backs out leaves a ghost record behind.
+
+        Deliberately refuses to touch an established account: it only deletes
+        when the terms were NEVER accepted and nothing has been ordered.
+        """
+        user, err = require_user()
+        if err:
+            return err
+        if user.terms_accepted_at:
+            return jsonify({"error": "terms already accepted", "code": "accepted"}), 400
+        c = SessionLocal.execute(
+            select(Client).where(Client.user_id == user.id)
+        ).scalar_one_or_none()
+        if c and client_orders(c.id):
+            return jsonify({"error": "account has orders", "code": "has_orders"}), 400
         if c:
             _purge_client(c.id)
             SessionLocal.delete(c)
@@ -2057,6 +2094,479 @@ def create_app() -> Flask:
         set_setting("runner_visit_fee", str(fee))
         SessionLocal.commit()
         return jsonify({"fee": fee})
+
+    # ==== Live runner tracking (Traccar Client → OSRM ETA) =================
+    def _setting_float(key: str, default: float) -> float:
+        try:
+            return float(get_setting(key, str(default)))
+        except (TypeError, ValueError):
+            return default
+
+    def _setting_int(key: str, default: int) -> int:
+        try:
+            return int(get_setting(key, str(default)))
+        except (TypeError, ValueError):
+            return default
+
+    def tracking_cfg() -> dict:
+        """Operator-tunable routing/tracking settings (with sensible defaults)."""
+        return {
+            "enabled": get_setting("tracking_enabled", "1") != "0",
+            "osrm_url": get_setting("osrm_url", routing.DEFAULT_OSRM_URL),
+            # Optional dedicated OSRM instances for the walking / cycling profiles
+            # (blank → those modes fall back to a straight-line estimate).
+            "osrm_walk_url": get_setting("osrm_walk_url", ""),
+            "osrm_bike_url": get_setting("osrm_bike_url", ""),
+            # OpenTripPlanner GraphQL endpoint for real public-transport routing
+            # (blank → transit falls back to a straight-line estimate).
+            "otp_url": get_setting("otp_url", ""),
+            "nominatim_url": get_setting("nominatim_url", routing.DEFAULT_NOMINATIM_URL),
+            "fallback_kmh": _setting_float("tracking_fallback_kmh", routing.DEFAULT_FALLBACK_KMH),
+            "refresh_sec": _setting_int("tracking_refresh_sec", 20),
+        }
+
+    def ensure_track_token(runner: User) -> str:
+        if not runner.track_token:
+            runner.track_token = secrets.token_urlsafe(18)[:24]
+            SessionLocal.commit()
+        return runner.track_token
+
+    def active_trip_for_runner(runner_id: int) -> Trip | None:
+        return SessionLocal.execute(
+            select(Trip).where(Trip.runner_id == runner_id, Trip.status == "active")
+        ).scalars().first()
+
+    def active_trip_for_client(client_id: int) -> Trip | None:
+        return SessionLocal.execute(
+            select(Trip).where(Trip.client_id == client_id, Trip.status == "active")
+        ).scalars().first()
+
+    def latest_ping(trip_id: int) -> TripPing | None:
+        return SessionLocal.execute(
+            select(TripPing).where(TripPing.trip_id == trip_id).order_by(TripPing.id.desc())
+        ).scalars().first()
+
+    def refresh_trip_eta(trip: Trip, ping: TripPing | None) -> None:
+        """Recompute the cached route/ETA if it's older than the refresh interval
+        and we have both a current position and a located destination."""
+        if not ping or trip.dest_lat is None or trip.dest_lng is None:
+            return
+        cfg = tracking_cfg()
+        now = datetime.utcnow()
+        if trip.eta_at and (now - trip.eta_at).total_seconds() < cfg["refresh_sec"]:
+            return
+        res = routing.route_eta(
+            ping.lat, ping.lng, trip.dest_lat, trip.dest_lng,
+            mode=trip.mode or "car",
+            osrm_url=cfg["osrm_url"],
+            walk_url=cfg["osrm_walk_url"] or None,
+            bike_url=cfg["osrm_bike_url"] or None,
+            otp_url=cfg["otp_url"] or None,
+            fallback_kmh=cfg["fallback_kmh"],
+        )
+        trip.eta_minutes = res["minutes"]
+        trip.eta_km = res["km"]
+        trip.route_json = res["route"]
+        trip.eta_source = res["source"]
+        trip.eta_at = now
+        SessionLocal.commit()
+
+    def trip_live_payload(trip: Trip) -> dict:
+        ping = latest_ping(trip.id)
+        refresh_trip_eta(trip, ping)
+        runner = SessionLocal.get(User, trip.runner_id)
+        pos = None
+        if ping:
+            pos = {
+                "lat": ping.lat, "lng": ping.lng,
+                "at": ping.recorded_at.isoformat() if ping.recorded_at else None,
+                "bearing": ping.bearing, "battery": ping.battery,
+            }
+        return {
+            "id": trip.id,
+            "status": trip.status,
+            "mode": trip.mode or "car",
+            "runner": {
+                "name": _first_name(runner.name) if runner else "",
+                "photoUrl": runner.photo_url if runner else None,
+            },
+            "dest": {"lat": trip.dest_lat, "lng": trip.dest_lng, "label": trip.dest_label},
+            "position": pos,
+            "eta": (
+                {"minutes": trip.eta_minutes, "km": trip.eta_km, "source": trip.eta_source}
+                if trip.eta_minutes is not None else None
+            ),
+            "route": trip.route_json or [],
+            "startedAt": trip.started_at.isoformat() if trip.started_at else None,
+        }
+
+    # ---- Traccar Client ingest (OsmAnd protocol) --------------------------
+    @app.route("/track", methods=["GET", "POST"], strict_slashes=False)
+    def traccar_ingest():
+        """Location endpoint the runner's Traccar Client posts to. Auth is the
+        device ``id`` == the runner's ``track_token`` (no login on the phone).
+        Always 200s for known-but-idle/unknown devices so the app never builds a
+        retry backlog; a ping is only stored while the runner has an active trip."""
+        v = request.values
+        token = (v.get("id") or "").strip()
+        if not token:
+            return ("id required", 400)
+        runner = SessionLocal.execute(
+            select(User).where(User.track_token == token)
+        ).scalars().first()
+        if not runner:
+            return ("", 200)
+        trip = active_trip_for_runner(runner.id)
+        if not trip:
+            return ("", 200)
+        try:
+            lat = float(v.get("lat"))
+            lng = float(v.get("lon") if v.get("lon") is not None else v.get("lng"))
+        except (TypeError, ValueError):
+            return ("bad coords", 400)
+
+        def _f(x):
+            try:
+                return float(x)
+            except (TypeError, ValueError):
+                return None
+
+        rec = datetime.utcnow()
+        ts = v.get("timestamp")
+        if ts:
+            try:
+                rec = datetime.utcfromtimestamp(float(ts))
+            except (TypeError, ValueError, OSError, OverflowError):
+                try:
+                    rec = datetime.fromisoformat(str(ts).replace("Z", "+00:00")).replace(tzinfo=None)
+                except ValueError:
+                    rec = datetime.utcnow()
+        batt = None
+        if v.get("batt") not in (None, ""):
+            try:
+                batt = int(float(v.get("batt")))
+            except (TypeError, ValueError):
+                batt = None
+        ping = TripPing(
+            trip_id=trip.id, lat=lat, lng=lng,
+            speed_kmh=_f(v.get("speed")), bearing=_f(v.get("bearing")),
+            accuracy_m=_f(v.get("accuracy")), battery=batt, recorded_at=rec,
+        )
+        SessionLocal.add(ping)
+        SessionLocal.commit()
+        refresh_trip_eta(trip, ping)
+        return ("", 200)
+
+    # ---- Runner: trip control + phone setup -------------------------------
+    @app.get("/runner/geocode")
+    def runner_geocode():
+        user, err = require_role("runner")
+        if err:
+            return err
+        q = (request.args.get("q") or "").strip()
+        if len(q) < 3:
+            return jsonify({"results": []})
+        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"])
+        return jsonify({"results": res})
+
+    @app.get("/runner/track-config")
+    def runner_track_config():
+        user, err = require_role("runner")
+        if err:
+            return err
+        token = ensure_track_token(user)
+        return jsonify({
+            "serverUrl": f"{settings.FRONTEND_BASE_URL}/api/track",
+            "deviceId": token,
+            "recommended": {"intervalSec": 30, "distanceM": 50, "protocol": "OsmAnd"},
+        })
+
+    @app.post("/runner/track-token/regenerate")
+    def runner_regen_token():
+        user, err = require_role("runner")
+        if err:
+            return err
+        user.track_token = secrets.token_urlsafe(18)[:24]
+        SessionLocal.commit()
+        return jsonify({"deviceId": user.track_token})
+
+    @app.get("/runner/trip")
+    def runner_get_trip():
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = active_trip_for_runner(user.id)
+        if not trip:
+            return jsonify({"trip": None})
+        c = SessionLocal.get(Client, trip.client_id)
+        payload = trip_live_payload(trip)
+        payload["client"] = {"id": c.id, "name": c.name} if c else None
+        return jsonify({"trip": payload})
+
+    @app.post("/runner/trips/start")
+    def runner_trip_start():
+        user, err = require_role("runner")
+        if err:
+            return err
+        if active_trip_for_runner(user.id):
+            return jsonify({"error": "trip already active", "code": "active"}), 400
+        d = request.get_json(silent=True) or {}
+        try:
+            c = _runner_client(user, int(d.get("client_id") or 0))
+        except (TypeError, ValueError):
+            c = None
+        if not c:
+            return jsonify({"error": "client not assigned", "code": "no_client"}), 400
+        dest_label = (d.get("dest_label") or "").strip()
+        dest_lat, dest_lng = d.get("dest_lat"), d.get("dest_lng")
+        # Geocode the address when coordinates weren't supplied.
+        if (dest_lat is None or dest_lng is None) and dest_label:
+            geo = routing.geocode(dest_label, nominatim_url=tracking_cfg()["nominatim_url"])
+            if geo:
+                dest_lat, dest_lng = geo["lat"], geo["lng"]
+                dest_label = dest_label or geo["label"]
+        mode = d.get("mode") if d.get("mode") in routing.MODE_SPEED_KMH else "car"
+        trip = Trip(
+            client_id=c.id, runner_id=user.id, status="active", mode=mode,
+            origin_label=(d.get("origin_label") or "").strip() or None,
+            dest_label=dest_label or None,
+            dest_lat=float(dest_lat) if dest_lat is not None else None,
+            dest_lng=float(dest_lng) if dest_lng is not None else None,
+        )
+        SessionLocal.add(trip)
+        SessionLocal.commit()
+        ensure_track_token(user)
+        cu = SessionLocal.get(User, c.user_id) if c.user_id else None
+        if cu:
+            try:
+                notify.send(cu, "trip_started", name=_first_name(user.name) or "Сопровождающий")
+            except Exception:
+                pass
+        return jsonify({"trip": trip_live_payload(trip), "geocoded": dest_lat is not None})
+
+    @app.post("/runner/trips/<int:trip_id>/destination")
+    def runner_trip_set_dest(trip_id: int):
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        d = request.get_json(silent=True) or {}
+        label = (d.get("dest_label") or "").strip()
+        lat, lng = d.get("dest_lat"), d.get("dest_lng")
+        if (lat is None or lng is None) and label:
+            geo = routing.geocode(label, nominatim_url=tracking_cfg()["nominatim_url"])
+            if geo:
+                lat, lng = geo["lat"], geo["lng"]
+                label = label or geo["label"]
+        trip.dest_label = label or trip.dest_label
+        if lat is not None and lng is not None:
+            trip.dest_lat, trip.dest_lng = float(lat), float(lng)
+        trip.eta_at = None  # force ETA recompute against the new destination
+        SessionLocal.commit()
+        return jsonify({"trip": trip_live_payload(trip), "located": trip.dest_lat is not None})
+
+    @app.post("/runner/trips/<int:trip_id>/mode")
+    def runner_trip_set_mode(trip_id: int):
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        d = request.get_json(silent=True) or {}
+        mode = d.get("mode")
+        if mode not in routing.MODE_SPEED_KMH:
+            return jsonify({"error": "bad mode"}), 400
+        trip.mode = mode
+        trip.eta_at = None  # force ETA recompute for the new mode
+        SessionLocal.commit()
+        return jsonify({"trip": trip_live_payload(trip)})
+
+    @app.post("/runner/trips/<int:trip_id>/arrive")
+    def runner_trip_arrive(trip_id: int):
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        trip.status = "arrived"
+        trip.ended_at = datetime.utcnow()
+        SessionLocal.commit()
+        return jsonify({"ok": True})
+
+    @app.post("/runner/trips/<int:trip_id>/cancel")
+    def runner_trip_cancel(trip_id: int):
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        trip.status = "cancelled"
+        trip.ended_at = datetime.utcnow()
+        SessionLocal.commit()
+        return jsonify({"ok": True})
+
+    # ---- Client + family live views ---------------------------------------
+    @app.get("/me/trip")
+    def my_trip():
+        user, err = require_user()
+        if err:
+            return err
+        c = SessionLocal.execute(
+            select(Client).where(Client.user_id == user.id)
+        ).scalar_one_or_none()
+        trip = active_trip_for_client(c.id) if c else None
+        return jsonify({"trip": trip_live_payload(trip) if trip else None})
+
+    @app.get("/share/<token>/live")
+    def public_share_live(token: str):
+        c = SessionLocal.execute(
+            select(Client).where(Client.share_token == token)
+        ).scalar_one_or_none()
+        if not c or not token:
+            return jsonify({"error": "not found"}), 404
+        trip = active_trip_for_client(c.id)
+        return jsonify({"trip": trip_live_payload(trip) if trip else None})
+
+    # ---- Operator: tracking settings + oversight --------------------------
+    @app.get("/admin/settings/tracking")
+    def admin_get_tracking():
+        user, err = require_role("operator")
+        if err:
+            return err
+        return jsonify(tracking_cfg())
+
+    @app.post("/admin/settings/tracking")
+    def admin_set_tracking():
+        user, err = require_role("operator")
+        if err:
+            return err
+        d = request.get_json(silent=True) or {}
+        if "enabled" in d:
+            set_setting("tracking_enabled", "1" if d.get("enabled") else "0")
+        if "osrm_url" in d:
+            set_setting("osrm_url", (d.get("osrm_url") or "").strip())
+        if "osrm_walk_url" in d:
+            set_setting("osrm_walk_url", (d.get("osrm_walk_url") or "").strip())
+        if "osrm_bike_url" in d:
+            set_setting("osrm_bike_url", (d.get("osrm_bike_url") or "").strip())
+        if "otp_url" in d:
+            set_setting("otp_url", (d.get("otp_url") or "").strip())
+        if "nominatim_url" in d:
+            set_setting("nominatim_url", (d.get("nominatim_url") or "").strip())
+        if "fallback_kmh" in d:
+            try:
+                set_setting("tracking_fallback_kmh", str(max(1.0, float(d["fallback_kmh"]))))
+            except (TypeError, ValueError):
+                pass
+        if "refresh_sec" in d:
+            try:
+                set_setting("tracking_refresh_sec", str(max(5, int(d["refresh_sec"]))))
+            except (TypeError, ValueError):
+                pass
+        SessionLocal.commit()
+        return jsonify(tracking_cfg())
+
+    @app.get("/admin/trips")
+    def admin_active_trips():
+        user, err = require_role("operator")
+        if err:
+            return err
+        rows = SessionLocal.execute(
+            select(Trip).where(Trip.status == "active").order_by(Trip.id.desc())
+        ).scalars().all()
+        out = []
+        for tr in rows:
+            c = SessionLocal.get(Client, tr.client_id)
+            r = SessionLocal.get(User, tr.runner_id)
+            p = latest_ping(tr.id)
+            out.append({
+                "id": tr.id,
+                "client": (c.name if c else ""),
+                "runner": (r.name if r else ""),
+                "destLabel": tr.dest_label,
+                "eta": tr.eta_minutes,
+                "km": tr.eta_km,
+                "lastPingAt": (p.recorded_at.isoformat() if p and p.recorded_at else None),
+                "startedAt": (tr.started_at.isoformat() if tr.started_at else None),
+            })
+        return jsonify({"trips": out})
+
+    @app.post("/admin/trips/<int:trip_id>/end")
+    def admin_end_trip(trip_id: int):
+        user, err = require_role("operator")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip:
+            return jsonify({"error": "not found"}), 404
+        trip.status = "cancelled"
+        trip.ended_at = datetime.utcnow()
+        SessionLocal.commit()
+        return jsonify({"ok": True})
+
+    # ---- Operator: per-client live trip (shown in the client drawer) ------
+    @app.get("/admin/geocode")
+    def admin_geocode():
+        user, err = require_role("operator")
+        if err:
+            return err
+        q = (request.args.get("q") or "").strip()
+        if len(q) < 3:
+            return jsonify({"results": []})
+        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"])
+        return jsonify({"results": res})
+
+    @app.get("/admin/clients/<int:client_id>/trip")
+    def admin_client_trip(client_id: int):
+        user, err = require_role("operator")
+        if err:
+            return err
+        trip = active_trip_for_client(client_id)
+        return jsonify({"trip": trip_live_payload(trip) if trip else None})
+
+    @app.post("/admin/trips/<int:trip_id>/destination")
+    def admin_trip_set_dest(trip_id: int):
+        user, err = require_role("operator")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip:
+            return jsonify({"error": "not found"}), 404
+        d = request.get_json(silent=True) or {}
+        label = (d.get("dest_label") or "").strip()
+        lat, lng = d.get("dest_lat"), d.get("dest_lng")
+        if (lat is None or lng is None) and label:
+            geo = routing.geocode(label, nominatim_url=tracking_cfg()["nominatim_url"])
+            if geo:
+                lat, lng = geo["lat"], geo["lng"]
+                label = label or geo["label"]
+        trip.dest_label = label or trip.dest_label
+        if lat is not None and lng is not None:
+            trip.dest_lat, trip.dest_lng = float(lat), float(lng)
+        trip.eta_at = None
+        SessionLocal.commit()
+        return jsonify({"trip": trip_live_payload(trip), "located": trip.dest_lat is not None})
+
+    @app.post("/admin/trips/<int:trip_id>/mode")
+    def admin_trip_set_mode(trip_id: int):
+        user, err = require_role("operator")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip:
+            return jsonify({"error": "not found"}), 404
+        d = request.get_json(silent=True) or {}
+        if d.get("mode") not in routing.MODE_SPEED_KMH:
+            return jsonify({"error": "bad mode"}), 400
+        trip.mode = d["mode"]
+        trip.eta_at = None
+        SessionLocal.commit()
+        return jsonify({"trip": trip_live_payload(trip)})
 
     # ---- Runner detail + payouts (operator) -------------------------------
     @app.get("/admin/runners/<int:runner_id>")
