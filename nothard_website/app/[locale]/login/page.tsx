@@ -35,6 +35,8 @@ export default function LoginPage() {
 
   async function signInWithTelegram() {
     setTgBusy(true)
+    // Inside the Mini App the signed initData IS the authorization, so exchange
+    // it directly. OIDC's "authorize" prompt can't work here (Telegram-in-Telegram).
     if (await loginWithTelegram()) {
       router.replace('/profile')
     } else {

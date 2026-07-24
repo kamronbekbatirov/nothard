@@ -136,7 +136,7 @@ export function DateTimeInput({
         onBlur={() => setFocused(false)}
         aria-label={placeholder}
         className={cn(
-          'absolute inset-0 h-full w-full cursor-pointer bg-transparent text-ink outline-none',
+          'nh-native-dt absolute inset-0 h-full w-full cursor-pointer bg-transparent text-ink outline-none',
           pad,
           focused ? 'opacity-100' : 'opacity-0'
         )}

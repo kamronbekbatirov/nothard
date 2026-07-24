@@ -20,7 +20,10 @@ import {
   fmtUZS,
   fieldsForItems,
   FIELD_TYPE,
+  packageCovers,
+  coveredServices,
 } from '@/app/lib/data'
+import { DuplicateWarningModal } from '@/app/components/duplicate-warning'
 import { cn } from '@/app/lib/utils'
 
 export default function ServicesPage() {
@@ -28,12 +31,28 @@ export default function ServicesPage() {
   const tc = useTranslations('Cart')
   const tco = useTranslations('Checkout')
   const tcommon = useTranslations('Common')
+  const tp = useTranslations('Packages')
+  const td = useTranslations('Duplicate')
   const { toast } = useToast()
   const router = useRouter()
   const { user } = useAuth()
 
   const [cart, setCart] = useState<Set<string>>(new Set())
   const [checkout, setCheckout] = useState(false)
+  // The client's active package — services it already covers are flagged so
+  // nobody pays twice for the same thing.
+  const [activePkg, setActivePkg] = useState<string | null>(null)
+  const [warnDupes, setWarnDupes] = useState(false)
+  useEffect(() => {
+    if (!user) {
+      setActivePkg(null)
+      return
+    }
+    api.me
+      .dashboard()
+      .then((d) => setActivePkg(d.package?.id ?? null))
+      .catch(() => {})
+  }, [user])
 
   // Pre-select a service when arriving from a landing-page tile (/services?add=<id>).
   useEffect(() => {
@@ -52,6 +71,7 @@ export default function ServicesPage() {
     [cart]
   )
   const total = items.reduce((s, i) => s + i.price, 0)
+  const dupes = coveredServices(activePkg, items.map((i) => i.id))
 
   function toggle(id: string) {
     setCart((s) => {
@@ -118,6 +138,11 @@ export default function ServicesPage() {
                             <div className="mt-1 text-[12.5px] leading-snug text-muted">
                               {t(`items.${svc.id}.desc`)}
                             </div>
+                            {packageCovers(activePkg, svc.id) && (
+                              <span className="mt-2 mr-1.5 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-amber-700">
+                                {td('inPackage')}
+                              </span>
+                            )}
                             {svc.online && (
                               <span className="mt-2 inline-block rounded-full bg-accent-bg px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-accent">
                                 {tcommon('online')}
@@ -195,7 +220,11 @@ export default function ServicesPage() {
                 size="block"
                 className="mt-4"
                 disabled={items.length === 0}
-                onClick={() => (user ? setCheckout(true) : router.push('/register'))}
+                onClick={() => {
+                  if (!user) return router.push('/register')
+                  if (dupes.length) setWarnDupes(true)
+                  else setCheckout(true)
+                }}
               >
                 {tc('checkout')}
               </Button>
@@ -205,6 +234,21 @@ export default function ServicesPage() {
         </div>
       </main>
       <Footer />
+
+      {warnDupes && (
+        <DuplicateWarningModal
+          pkgName={activePkg ? tp(`${activePkg}.name`) : ''}
+          serviceNames={dupes.map((id) => t(`items.${id}.name`))}
+          onCancel={() => {
+            setCart((c) => new Set(Array.from(c).filter((id) => !dupes.includes(id))))
+            setWarnDupes(false)
+          }}
+          onProceed={() => {
+            setWarnDupes(false)
+            setCheckout(true)
+          }}
+        />
+      )}
 
       {checkout && (
         <CheckoutModal

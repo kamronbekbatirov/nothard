@@ -39,6 +39,13 @@ TEXTS = {
         "Откройте кабинет на сайте и запросите привязку заново."
     ),
     "already": "Вы уже вошли. Откройте кабинет кнопкой ниже.",
+    "phone_saved": (
+        "✅ Номер телефона сохранён — он появится в анкете автоматически.\n\n"
+        "Можно возвращаться в кабинет."
+    ),
+    "phone_bad": (
+        "Не удалось сохранить номер. Откройте кабинет и введите его вручную."
+    ),
 }
 
 
@@ -96,6 +103,33 @@ def _link_account(code: str, frm: dict) -> bool:
     return True
 
 
+def _save_contact_phone(contact: dict, frm: dict) -> bool:
+    """Store a phone number shared from the Mini App's ``requestContact()``.
+
+    Telegram hands the shared contact to the BOT (never to the Mini App itself),
+    so this is where the number actually lands. Only trust it when the contact is
+    the sender's OWN card — ``contact.user_id`` must match the sender — otherwise
+    anyone could forward someone else's contact and overwrite their phone.
+    """
+    sender = frm.get("id")
+    owner = contact.get("user_id")
+    phone = (contact.get("phone_number") or "").strip()
+    if not phone or sender is None or owner is None or str(owner) != str(sender):
+        return False
+    if not phone.startswith("+"):
+        phone = "+" + phone
+    user = SessionLocal.execute(
+        select(User).where(User.telegram_id == str(sender))
+    ).scalar_one_or_none()
+    if not user:
+        SessionLocal.remove()
+        return False
+    user.phone = phone[:64]
+    SessionLocal.commit()
+    SessionLocal.remove()
+    return True
+
+
 def handle_update(update: dict):
     message = update.get("message")
     if not message:
@@ -104,6 +138,13 @@ def handle_update(update: dict):
     frm = message.get("from", {})
     text = (message.get("text") or "").strip()
     if chat_id is None:
+        return
+
+    # Phone shared from the Mini App onboarding ("take from Telegram").
+    contact = message.get("contact")
+    if contact:
+        ok = _save_contact_phone(contact, frm)
+        send_message(chat_id, TEXTS["phone_saved"] if ok else TEXTS["phone_bad"], _launch_markup())
         return
 
     if text.startswith("/start"):

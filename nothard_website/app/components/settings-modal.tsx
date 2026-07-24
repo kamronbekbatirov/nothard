@@ -8,6 +8,7 @@ import { Field, Input, PasswordInput, TelegramIcon } from './field'
 import { LangSwitcher } from './lang-switcher'
 import { useToast } from './toast'
 import { api, type DeviceSession, type User } from '@/app/lib/api'
+import { canRequestContact, requestTelegramContact } from '@/app/lib/telegram'
 
 export function SettingsModal({
   user,
@@ -29,8 +30,11 @@ export function SettingsModal({
   const t = useTranslations('Profile')
   const ta = useTranslations('Auth')
   const tc = useTranslations('Common')
+  const tcon = useTranslations('Consent')
   const { toast } = useToast()
   const [name, setName] = useState(user.name)
+  const [phone, setPhone] = useState(user.phone || '')
+  const [phoneWait, setPhoneWait] = useState(false)
   const [oldPw, setOldPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [pwErr, setPwErr] = useState('')
@@ -123,6 +127,41 @@ export function SettingsModal({
     } catch {}
   }
 
+  async function savePhone(e: React.FormEvent) {
+    e.preventDefault()
+    if (phone.trim() === (user.phone || '')) return
+    try {
+      await api.me.updateProfile({ phone: phone.trim() })
+      window.dispatchEvent(new Event('nh-auth'))
+      toast(t('settings.phoneSaved'))
+      onChanged()
+    } catch {}
+  }
+
+  /**
+   * "Take from Telegram" — the native prompt only reports consent; Telegram
+   * sends the number to the BOT, so poll the profile until it lands.
+   */
+  async function phoneFromTelegram() {
+    if (!(await requestTelegramContact())) return
+    setPhoneWait(true)
+    for (let i = 0; i < 15; i++) {
+      await new Promise((r) => setTimeout(r, 1200))
+      try {
+        const me = await api.whoami()
+        if (me.phone) {
+          setPhone(me.phone)
+          setPhoneWait(false)
+          window.dispatchEvent(new Event('nh-auth'))
+          toast(t('settings.phoneSaved'))
+          onChanged()
+          return
+        }
+      } catch {}
+    }
+    setPhoneWait(false)
+  }
+
   async function savePassword(e: React.FormEvent) {
     e.preventDefault()
     setPwErr('')
@@ -195,13 +234,49 @@ export function SettingsModal({
                   </Button>
                 </div>
               </Field>
-              {user.email && (
-                <div className="flex justify-between rounded-lg border border-line bg-card px-4 py-2.5 text-[14px]">
-                  <span className="text-muted">{ta('email')}</span>
-                  <span className="font-medium text-ink">{user.email}</span>
+            </form>
+
+            {/* Phone — editable, or pulled from Telegram inside the Mini App */}
+            <form onSubmit={savePhone} className="mt-3 flex flex-col gap-2">
+              <Field label={t('settings.phone')}>
+                <div className="flex gap-2">
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+998 90 123 45 67"
+                    inputMode="tel"
+                  />
+                  <Button
+                    type="submit"
+                    variant="solid"
+                    size="sm"
+                    disabled={phone.trim() === (user.phone || '')}
+                  >
+                    {t('settings.save')}
+                  </Button>
                 </div>
+              </Field>
+              {inTelegram && canRequestContact() && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="block"
+                  className="gap-2 text-accent"
+                  disabled={phoneWait}
+                  onClick={phoneFromTelegram}
+                >
+                  <TelegramIcon />
+                  {phoneWait ? tcon('phone.waiting') : tcon('phone.fromTelegram')}
+                </Button>
               )}
             </form>
+
+            {user.email && (
+              <div className="mt-3 flex justify-between rounded-lg border border-line bg-card px-4 py-2.5 text-[14px]">
+                <span className="text-muted">{ta('email')}</span>
+                <span className="font-medium text-ink">{user.email}</span>
+              </div>
+            )}
           </section>
 
           {/* Language */}

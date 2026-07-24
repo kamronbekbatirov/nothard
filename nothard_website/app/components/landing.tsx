@@ -79,6 +79,8 @@ export default function Landing() {
 
   async function signInWithTelegram() {
     setTgBusy(true)
+    // Inside the Mini App the signed initData IS the authorization, so exchange
+    // it directly. OIDC's "authorize" prompt can't work here (Telegram-in-Telegram).
     if (await loginWithTelegram()) {
       router.replace('/profile')
     } else {
@@ -87,19 +89,15 @@ export default function Landing() {
     }
   }
 
-  async function choosePackage(id: string) {
+  function choosePackage(id: string) {
     if (!user) {
       router.push('/register')
       return
     }
+    // Don't charge straight from the landing: open the cabinet picker with this
+    // package preselected so extra services can be added and paid for in one go.
     setBuying(id)
-    try {
-      await api.me.checkout([{ type: 'package', id }])
-      toast(tprof('purchasedToast'))
-      router.push('/profile')
-    } catch {
-      setBuying(null)
-    }
+    router.push(`/profile?pkg=${id}`)
   }
 
   // While resuming a returning user's session inside Telegram, show a spinner

@@ -50,6 +50,45 @@ export function serviceById(id: string) {
 }
 
 // Teaser on the landing page — six highlighted services.
+/**
+ * Which standalone services each package ALREADY covers. Used to warn (never to
+ * block) when someone adds a service their package includes, so nobody pays
+ * twice for the same thing. Derived from the package feature lists:
+ *   meet     — airport meet + luggage + SIM + Oyster + ride home
+ *   housing  — temp stay + tenancy check (matching/viewings are part of it)
+ *   premium  — everything in meet + housing, plus bank, NHS, utilities,
+ *              moving and 7-day support
+ */
+export const PACKAGE_INCLUDED_SERVICES: Record<string, string[]> = {
+  meet: ['airportTransport', 'airportTaxi', 'sim', 'oyster'],
+  housing: ['tempHousing', 'lease'],
+  premium: [
+    'airportTransport',
+    'airportTaxi',
+    'sim',
+    'oyster',
+    'tempHousing',
+    'lease',
+    'bankOnline',
+    'nhs',
+    'utilities',
+    'moving',
+    'support7',
+  ],
+}
+
+/** True when `pkgId` already includes `serviceId`. */
+export function packageCovers(pkgId: string | null | undefined, serviceId: string): boolean {
+  if (!pkgId) return false
+  return (PACKAGE_INCLUDED_SERVICES[pkgId] ?? []).includes(serviceId)
+}
+
+/** The subset of `serviceIds` that `pkgId` already covers. */
+export function coveredServices(pkgId: string | null | undefined, serviceIds: string[]): string[] {
+  if (!pkgId) return []
+  return serviceIds.filter((id) => packageCovers(pkgId, id))
+}
+
 export const TEASER_SERVICE_IDS = [
   'airportTransport',
   'tempHousing',

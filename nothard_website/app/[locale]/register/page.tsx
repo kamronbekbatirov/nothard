@@ -23,6 +23,9 @@ export default function RegisterPage() {
 
   async function signInWithTelegram() {
     setTgBusy(true)
+    // Inside the Mini App the signed initData IS the authorization — Telegram
+    // already granted access by launching us — so exchange it directly. OIDC's
+    // "authorize" prompt can't work here (it can't re-open Telegram over itself).
     if (await loginWithTelegram()) {
       router.replace('/profile')
     } else {

@@ -139,6 +139,13 @@
     outline-offset: 1px;
     border-color: rgb(var(--accent));
   }
+  /* DateTimeInput draws its own green border on the wrapper, so the revealed
+     native control must NOT add a second, offset outline on top (it renders 1px
+     outside the box and looks "longer than the field"). */
+  input.nh-native-dt:focus {
+    outline: none;
+    outline-offset: 0;
+  }
   ::selection {
     background: rgb(var(--accent) / 0.18);
   }

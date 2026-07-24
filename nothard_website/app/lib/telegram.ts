@@ -3,8 +3,18 @@
 import { useEffect } from 'react'
 import { api, setTokens } from './api'
 
+export type TelegramUser = {
+  id?: number
+  first_name?: string
+  last_name?: string
+  username?: string
+  photo_url?: string
+}
+
 type TG = {
   initData?: string
+  initDataUnsafe?: { user?: TelegramUser }
+  requestContact?: (cb: (result: unknown) => void) => void
   ready?: () => void
   expand?: () => void
   colorScheme?: string
@@ -76,6 +86,65 @@ export async function loginWithTelegram(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * The Telegram profile of whoever opened the Mini App (first/last name, username,
+ * avatar). Comes from `initDataUnsafe` — fine for PREFILLING the UI, never for
+ * trusting server-side; the signed `initData` is what the backend verifies.
+ */
+export function getTelegramUser(): TelegramUser | null {
+  return getTelegram()?.initDataUnsafe?.user ?? null
+}
+
+/** A display name built from the Telegram profile ("First Last", else @username). */
+export function telegramDisplayName(): string {
+  const u = getTelegramUser()
+  if (!u) return ''
+  const full = [u.first_name, u.last_name].filter(Boolean).join(' ').trim()
+  return full || u.username || ''
+}
+
+/** requestContact needs Bot API 6.9+; hide the button on older clients. */
+export function canRequestContact(): boolean {
+  const tg = getTelegram()
+  return !!tg?.requestContact && (tg.isVersionAtLeast?.('6.9') ?? false)
+}
+
+/**
+ * Shows Telegram's native "share your phone number" prompt (Bot API 6.9+).
+ * Telegram delivers the number to the BOT as a contact message — it is NEVER
+ * returned to the Mini App — so this only resolves whether the user agreed.
+ * The caller must then poll the profile for the number the bot saved
+ * (see `_save_contact_phone` in api/bot.py).
+ */
+export function requestTelegramContact(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const tg = getTelegram()
+    if (!tg?.requestContact) return resolve(false)
+    let settled = false
+    const done = (ok: boolean) => {
+      if (!settled) {
+        settled = true
+        resolve(ok)
+      }
+    }
+    try {
+      tg.requestContact((result: unknown) => {
+        // Older clients pass a boolean, newer ones an object with `status`.
+        const ok =
+          result === true ||
+          (typeof result === 'object' &&
+            result !== null &&
+            (result as { status?: string }).status === 'sent')
+        done(ok)
+      })
+    } catch {
+      done(false)
+    }
+    // Some clients never fire the callback when dismissed — don't hang forever.
+    setTimeout(() => done(false), 90_000)
+  })
 }
 
 /**
