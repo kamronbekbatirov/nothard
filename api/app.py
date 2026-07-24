@@ -412,12 +412,29 @@ def create_app() -> Flask:
 
     def _purge_client(client_id: int):
         """Delete every row that references a client, before removing the client."""
+        # Trip pings reference trips → delete them first, then the trips.
+        trip_ids = SessionLocal.execute(
+            select(Trip.id).where(Trip.client_id == client_id)
+        ).scalars().all()
+        if trip_ids:
+            SessionLocal.execute(TripPing.__table__.delete().where(TripPing.trip_id.in_(trip_ids)))
+            SessionLocal.execute(Trip.__table__.delete().where(Trip.client_id == client_id))
         for model in (HousingMedia, Attachment, HousingItem, Review, Message, Task, Order):
             SessionLocal.execute(model.__table__.delete().where(model.client_id == client_id))
 
     def _delete_user_sessions(user_id: int):
         """Remove a user's sessions (FK to users) before the user is deleted."""
         SessionLocal.execute(Session.__table__.delete().where(Session.user_id == user_id))
+
+    def _purge_user_trips(user_id: int):
+        """Delete trips a user drove as runner (FK to users) + their pings, so the
+        user can be removed. (Client-side trips are handled by _purge_client.)"""
+        trip_ids = SessionLocal.execute(
+            select(Trip.id).where(Trip.runner_id == user_id)
+        ).scalars().all()
+        if trip_ids:
+            SessionLocal.execute(TripPing.__table__.delete().where(TripPing.trip_id.in_(trip_ids)))
+            SessionLocal.execute(Trip.__table__.delete().where(Trip.runner_id == user_id))
 
     def _revoke_user_sessions(user_id: int):
         """Invalidate all of a user's active sessions (e.g. on deactivation)."""
@@ -1166,6 +1183,7 @@ def create_app() -> Flask:
         if c:
             _purge_client(c.id)
             SessionLocal.delete(c)
+        _purge_user_trips(user.id)
         _delete_user_sessions(user.id)
         SessionLocal.delete(user)
         SessionLocal.commit()
@@ -1196,6 +1214,7 @@ def create_app() -> Flask:
         if c:
             _purge_client(c.id)
             SessionLocal.delete(c)
+        _purge_user_trips(user.id)
         _delete_user_sessions(user.id)
         SessionLocal.delete(user)
         SessionLocal.commit()
@@ -3037,6 +3056,7 @@ def create_app() -> Flask:
             _purge_client(cl.id)
             SessionLocal.delete(cl)
         SessionLocal.execute(Listing.__table__.delete().where(Listing.agency_id == uid))
+        _purge_user_trips(uid)
         _delete_user_sessions(uid)
         SessionLocal.delete(u)
         SessionLocal.commit()
@@ -3056,6 +3076,7 @@ def create_app() -> Flask:
         if uid and uid != user.id:
             u = SessionLocal.get(User, uid)
             if u:
+                _purge_user_trips(uid)
                 _delete_user_sessions(uid)
                 SessionLocal.delete(u)
         SessionLocal.commit()
