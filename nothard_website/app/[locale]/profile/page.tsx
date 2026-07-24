@@ -41,6 +41,7 @@ import {
   SERVICES,
   SERVICE_STAGES,
   AIRPORT_PACKAGES,
+  AIRPORT_SERVICES,
   packageCovers,
   coveredServices,
   LONDON_AIRPORT_TERMINALS,
@@ -88,9 +89,9 @@ export default function ProfilePage() {
   // Which chat thread is open — with the manager or the field companion (runner).
   const [chatWith, setChatWith] = useState<'manager' | 'runner' | null>(null)
   const [buying, setBuying] = useState(false)
-  const [intakePkg, setIntakePkg] = useState<string | null>(null)
-  // Services chosen alongside a package — bought together in the same checkout.
-  const [pendingServices, setPendingServices] = useState<string[]>([])
+  // Arrival-details intake for an airport meet (a package OR a standalone
+  // transport/taxi service). Holds the whole selection so it checks out together.
+  const [intake, setIntake] = useState<{ pkgId: string | null; services: string[] } | null>(null)
   // "?pkg=" — a package picked on the landing, preselected in the picker below.
   const [presetPkg, setPresetPkg] = useState<string | null>(null)
   useEffect(() => {
@@ -148,9 +149,13 @@ export default function ProfilePage() {
    * an airport pickup collect arrival details first (the services ride along).
    */
   function buySelection(pkgId: string | null, serviceIds: string[] = []) {
-    if (pkgId && AIRPORT_PACKAGES.has(pkgId)) {
-      setPendingServices(serviceIds)
-      setIntakePkg(pkgId)
+    // Ask for arrival details when the selection includes an airport meet —
+    // whether it's an airport PACKAGE or a standalone transport/taxi SERVICE.
+    const needsArrival =
+      (pkgId != null && AIRPORT_PACKAGES.has(pkgId)) ||
+      serviceIds.some((s) => AIRPORT_SERVICES.has(s))
+    if (needsArrival) {
+      setIntake({ pkgId, services: serviceIds })
     } else {
       void confirmSelection(pkgId, serviceIds, {})
     }
@@ -170,8 +175,7 @@ export default function ProfilePage() {
     try {
       const d = await api.me.checkout(items, details)
       setData(d)
-      setIntakePkg(null)
-      setPendingServices([])
+      setIntake(null)
       toast(t('purchasedToast'))
     } catch {
     } finally {
@@ -313,12 +317,13 @@ export default function ProfilePage() {
         />
       )}
 
-      {intakePkg && (
+      {intake && (
         <PackageIntakeModal
-          pkgId={intakePkg}
+          pkgId={intake.pkgId}
+          serviceIds={intake.services}
           busy={buying}
-          onClose={() => setIntakePkg(null)}
-          onConfirm={(details) => confirmSelection(intakePkg, pendingServices, details)}
+          onClose={() => setIntake(null)}
+          onConfirm={(details) => confirmSelection(intake.pkgId, intake.services, details)}
         />
       )}
 
@@ -721,17 +726,27 @@ function ReviewModal({
 /* ---------- Package intake (arrival details for airport pickup) ---------- */
 function PackageIntakeModal({
   pkgId,
+  serviceIds = [],
   busy,
   onClose,
   onConfirm,
 }: {
-  pkgId: string
+  pkgId: string | null
+  serviceIds?: string[]
   busy: boolean
   onClose: () => void
   onConfirm: (details: Record<string, string>) => void
 }) {
   const t = useTranslations('Profile')
   const tp = useTranslations('Packages')
+  const ts = useTranslations('Services')
+  // Name the thing being bought: the package, else the airport service.
+  const airportSvc = serviceIds.find((s) => AIRPORT_SERVICES.has(s))
+  const itemLabel = pkgId
+    ? tp(`${pkgId}.name` as any)
+    : airportSvc
+      ? ts(`items.${airportSvc}.name` as any)
+      : ''
   const [arrivalDate, setArrivalDate] = useState('')
   const [arrivalTime, setArrivalTime] = useState('')
   const [airport, setAirport] = useState<string>('')
@@ -750,7 +765,7 @@ function PackageIntakeModal({
         </div>
         <div className="flex flex-col gap-4 p-6">
           <p className="-mt-1 text-[13.5px] leading-snug text-muted">
-            {t('intake.subtitle', { pkg: tp(`${pkgId}.name` as any) })}
+            {t('intake.subtitle', { pkg: itemLabel })}
           </p>
 
           <label className="block">

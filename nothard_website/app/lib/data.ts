@@ -150,6 +150,9 @@ export const LONDON_FLIGHTS = [
 // Packages that include an airport pickup → ask arrival details at checkout.
 // "Housing" has no pickup (a home seeker may already be in London).
 export const AIRPORT_PACKAGES = new Set(['meet', 'premium'])
+// Standalone services that also need the airport-arrival intake (date/airport/
+// flight/drop-off), so buying one on its own asks the same questions as the package.
+export const AIRPORT_SERVICES = new Set(['airportTransport', 'airportTaxi'])
 
 // 9-step relocation path shown in the client cabinet.
 export const CABINET_STEPS = [

@@ -302,16 +302,18 @@ export default function Landing() {
                 <Link
                   key={id}
                   href={`/services?add=${id}`}
-                  className="nd-lift group flex items-center justify-between rounded-lg border border-line bg-surface px-5 py-4"
+                  className="nd-lift group flex flex-col rounded-xl border border-line bg-surface p-5"
                 >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-[14px] font-medium text-ink">{ts(`items.${id}.name`)}</span>
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <span className="font-display text-[20px] text-accent">{fmtGBP(svc.price)}</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-[15px] font-semibold text-ink">{ts(`items.${id}.name`)}</span>
+                    <span className="shrink-0 font-display text-[20px] text-accent">{fmtGBP(svc.price)}</span>
+                  </div>
+                  <p className="mt-1.5 flex-1 text-[13px] leading-snug text-muted">{ts(`items.${id}.desc`)}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-[13px] font-medium text-accent">
+                    {t('servicesTeaserPick')}
                     <ArrowRight
-                      size={16}
-                      className="text-gray-lt transition-transform group-hover:translate-x-0.5 group-hover:text-accent"
+                      size={15}
+                      className="transition-transform group-hover:translate-x-0.5"
                     />
                   </span>
                 </Link>
