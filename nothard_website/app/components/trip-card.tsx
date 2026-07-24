@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { MapPin } from 'lucide-react'
 import { Avatar } from './avatar'
 import { MODE_ICON } from './travel-mode'
+import { TransitLegs } from './transit-legs'
 import type { TripLive } from '@/app/lib/api'
 
 // Leaflet touches `window`, so the map is loaded client-side only.
@@ -59,6 +60,14 @@ export function TripCard({ trip }: { trip: TripLive }) {
         estimate={isEstimate}
         height={arrived ? 200 : 260}
       />
+
+      {/* Transit step-by-step (which line / stations) */}
+      {!arrived && trip.legs.length > 0 && (
+        <div className="border-t border-line px-4 py-3">
+          <div className="mb-2 text-[11.5px] font-medium text-ink-2">{t('howToTravel')}</div>
+          <TransitLegs legs={trip.legs} />
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2 px-4 py-2.5 text-[12px] text-muted">
         <span>

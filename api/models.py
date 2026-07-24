@@ -29,6 +29,11 @@ class User(Base):
     # Opaque per-runner token used as the Traccar Client "device id": location
     # pings authenticate by matching this, so no login is needed on the phone.
     track_token: Mapped[str | None] = mapped_column(String(48), unique=True, nullable=True)
+    # Runner's last known position from Traccar Client — updated on EVERY ping
+    # (even with no active trip), so "My location" can use it when starting a trip.
+    last_lat: Mapped[float | None] = mapped_column(nullable=True)
+    last_lng: Mapped[float | None] = mapped_column(nullable=True)
+    last_loc_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Set once the user accepts the Privacy Policy + Terms after first sign-in.
@@ -285,6 +290,8 @@ class Trip(Base):
 
     # Planned route (stable) — geometry + which engine produced it.
     route_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Transit step-by-step legs (mode/line/stations) — for the "how to travel" list.
+    legs_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
     eta_source: Mapped[str | None] = mapped_column(String(8), nullable=True)
     route_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # Live ETA to the destination — the only thing recomputed as the runner moves.

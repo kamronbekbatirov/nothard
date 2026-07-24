@@ -2171,6 +2171,7 @@ def create_app() -> Flask:
         now = datetime.utcnow()
         trip.origin_lat, trip.origin_lng = from_lat, from_lng
         trip.route_json = res["route"]
+        trip.legs_json = res.get("legs") or None
         trip.eta_source = res["source"]
         trip.route_at = now
         trip.eta_minutes = res["minutes"]
@@ -2256,6 +2257,7 @@ def create_app() -> Flask:
             # The drawn line's engine — dashed when it's an estimate (approx/line).
             "routeSource": trip.eta_source,
             "route": trip.route_json or [],
+            "legs": trip.legs_json or [],
             "offRoute": _off_route(trip, ping),
             "startedAt": trip.started_at.isoformat() if trip.started_at else None,
         }
@@ -2275,9 +2277,6 @@ def create_app() -> Flask:
             select(User).where(User.track_token == token)
         ).scalars().first()
         if not runner:
-            return ("", 200)
-        trip = active_trip_for_runner(runner.id)
-        if not trip:
             return ("", 200)
         try:
             lat = float(v.get("lat"))
@@ -2301,6 +2300,15 @@ def create_app() -> Flask:
                     rec = datetime.fromisoformat(str(ts).replace("Z", "+00:00")).replace(tzinfo=None)
                 except ValueError:
                     rec = datetime.utcnow()
+
+        # Always remember the runner's latest position, even with no active trip —
+        # so "My location" can use it when a trip is being started.
+        runner.last_lat, runner.last_lng, runner.last_loc_at = lat, lng, rec
+
+        trip = active_trip_for_runner(runner.id)
+        if not trip:
+            SessionLocal.commit()
+            return ("", 200)
         batt = None
         if v.get("batt") not in (None, ""):
             try:
@@ -2314,10 +2322,24 @@ def create_app() -> Flask:
         )
         SessionLocal.add(ping)
         SessionLocal.commit()
-        refresh_trip_eta(trip, ping)
+        refresh_trip(trip, ping)
         return ("", 200)
 
     # ---- Runner: trip control + phone setup -------------------------------
+    @app.get("/runner/my-location")
+    def runner_my_location():
+        """The runner's latest position from Traccar Client (used as a fallback
+        for 'My location' when the Telegram Mini App can't provide it)."""
+        user, err = require_role("runner")
+        if err:
+            return err
+        if user.last_lat is None or user.last_lng is None:
+            return jsonify({"location": None})
+        return jsonify({"location": {
+            "lat": user.last_lat, "lng": user.last_lng,
+            "at": user.last_loc_at.isoformat() if user.last_loc_at else None,
+        }})
+
     @app.get("/runner/geocode")
     def runner_geocode():
         user, err = require_role("runner")
@@ -2506,6 +2528,7 @@ def create_app() -> Flask:
         return jsonify({
             "route": res["route"],
             "routeSource": res["source"],
+            "legs": res.get("legs") or [],
             "eta": {"minutes": res["minutes"], "km": res["km"]},
             "origin": {"lat": float(o_lat), "lng": float(o_lng)},
             "dest": {"lat": float(dst_lat), "lng": float(dst_lng)},

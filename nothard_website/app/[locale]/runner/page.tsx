@@ -12,10 +12,12 @@ import { Input } from '@/app/components/field'
 import { LangSwitcher } from '@/app/components/lang-switcher'
 import { AddressField } from '@/app/components/address-field'
 import { TripCard } from '@/app/components/trip-card'
+import { TransitLegs } from '@/app/components/transit-legs'
 import { ModeSelector } from '@/app/components/travel-mode'
 import { useToast } from '@/app/components/toast'
 import { useRequireRole } from '@/app/lib/use-require-role'
 import { useTaskLabel } from '@/app/lib/task-label'
+import { getTelegramLocation } from '@/app/lib/telegram'
 import {
   api,
   clearTokens,
@@ -692,24 +694,39 @@ function StartTripModal({
   const [locating, setLocating] = useState(false)
   const [preview, setPreview] = useState<RoutePreview | null>(null)
 
-  function useMyLocation() {
-    if (!navigator.geolocation) {
-      toast(t('locateFail'))
+  // "My location" cascade: Telegram Mini App location → Traccar Client's last
+  // position → the browser's geolocation. First one that works wins.
+  async function useMyLocation() {
+    setLocating(true)
+    const apply = (c: { lat: number; lng: number }) => {
+      setOriginCoords(c)
+      setOrigin(t('myLocation'))
+      setLocating(false)
+    }
+    // 1) Telegram Mini App LocationManager (Bot API 8.0+).
+    try {
+      const tg = await getTelegramLocation()
+      if (tg) return apply(tg)
+    } catch {}
+    // 2) Traccar Client — the runner's phone already streams its GPS to us.
+    try {
+      const r = await api.runner.myLocation()
+      if (r.location) return apply({ lat: r.location.lat, lng: r.location.lng })
+    } catch {}
+    // 3) Browser geolocation.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => apply({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {
+          toast(t('locateFail'))
+          setLocating(false)
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      )
       return
     }
-    setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setOriginCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        setOrigin(t('myLocation'))
-        setLocating(false)
-      },
-      () => {
-        toast(t('locateFail'))
-        setLocating(false)
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
+    toast(t('locateFail'))
+    setLocating(false)
   }
 
   // Live route preview once we have both ends.
@@ -845,6 +862,12 @@ function StartTripModal({
                 estimate={previewEstimate}
                 height={200}
               />
+              {preview.legs.length > 0 && (
+                <div className="mt-3 rounded-lg border border-line bg-card p-3">
+                  <div className="mb-2 text-[12px] font-medium text-ink-2">{t('howToTravel')}</div>
+                  <TransitLegs legs={preview.legs} />
+                </div>
+              )}
             </div>
           )}
 

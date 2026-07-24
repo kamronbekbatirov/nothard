@@ -1181,6 +1181,7 @@
     "locating": "Locating…",
     "locateFail": "Couldn't get your location",
     "startFail": "Couldn't start the trip",
-    "previewLabel": "Route preview"
+    "previewLabel": "Route preview",
+    "howToTravel": "How to travel"
   }
 }

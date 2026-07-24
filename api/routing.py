@@ -134,6 +134,7 @@ def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
         if journeys:
             j = journeys[0]
             route: list = []
+            legs: list = []
             for leg in j.get("legs") or []:
                 ls = (leg.get("path") or {}).get("lineString")
                 if ls:
@@ -142,6 +143,22 @@ def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
                             route.append([p[0], p[1]])
                     except (ValueError, TypeError, IndexError):
                         pass
+                # Step-by-step summary (Google-Maps-style): mode, line, stations.
+                mode_name = (leg.get("mode") or {}).get("name") or ""
+                line = ""
+                opts = leg.get("routeOptions") or []
+                if opts:
+                    line = opts[0].get("name") or ""
+                    ident = (opts[0].get("lineIdentifier") or {})
+                    line = ident.get("name") or line
+                legs.append({
+                    "mode": mode_name,                              # walking | tube | bus | elizabeth-line…
+                    "line": line,                                   # e.g. "Jubilee", "Elizabeth line"
+                    "summary": (leg.get("instruction") or {}).get("summary") or "",
+                    "from": (leg.get("departurePoint") or {}).get("commonName") or "",
+                    "to": (leg.get("arrivalPoint") or {}).get("commonName") or "",
+                    "minutes": int(round(leg.get("duration") or 0)),
+                })
             km = sum(
                 haversine_km(route[i][0], route[i][1], route[i + 1][0], route[i + 1][1])
                 for i in range(len(route) - 1)
@@ -150,6 +167,7 @@ def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
                 "minutes": int(round(j.get("duration") or 0)),
                 "km": round(km, 2),
                 "route": route,
+                "legs": legs,
                 "source": "tfl",
                 "mode": "transit",
             }

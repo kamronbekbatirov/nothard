@@ -26,6 +26,23 @@ type TG = {
   disableVerticalSwipes?: () => void
   enableClosingConfirmation?: () => void
   BackButton?: { hide?: () => void }
+  // Bot API 8.0+ location access (Mini App).
+  LocationManager?: {
+    isInited?: boolean
+    isLocationAvailable?: boolean
+    init?: (cb?: () => void) => void
+    getLocation?: (cb: (data: TelegramLocationData | null) => void) => void
+    openSettings?: () => void
+  }
+}
+
+export type TelegramLocationData = {
+  latitude: number
+  longitude: number
+  altitude?: number | null
+  course?: number | null
+  speed?: number | null
+  horizontal_accuracy?: number | null
 }
 
 // Brand colors (must mirror the design tokens in globals.css / tailwind.config.js)
@@ -103,6 +120,42 @@ export function telegramDisplayName(): string {
   if (!u) return ''
   const full = [u.first_name, u.last_name].filter(Boolean).join(' ').trim()
   return full || u.username || ''
+}
+
+/**
+ * Get the device location via the Telegram Mini App LocationManager (Bot API
+ * 8.0+). Resolves `{lat, lng}` on success, or null if unavailable / denied /
+ * not in Telegram — the caller then falls back to Traccar / the browser.
+ */
+export function getTelegramLocation(): Promise<{ lat: number; lng: number } | null> {
+  return new Promise((resolve) => {
+    const tg = getTelegram()
+    const lm = tg?.LocationManager
+    if (!lm?.getLocation) return resolve(null)
+    let settled = false
+    const done = (r: { lat: number; lng: number } | null) => {
+      if (!settled) {
+        settled = true
+        resolve(r)
+      }
+    }
+    const fetch = () => {
+      try {
+        lm.getLocation!((data) => {
+          done(data ? { lat: data.latitude, lng: data.longitude } : null)
+        })
+      } catch {
+        done(null)
+      }
+    }
+    try {
+      if (lm.isInited) fetch()
+      else lm.init?.(() => fetch())
+    } catch {
+      done(null)
+    }
+    setTimeout(() => done(null), 12_000)
+  })
 }
 
 /** requestContact needs Bot API 6.9+; hide the button on older clients. */

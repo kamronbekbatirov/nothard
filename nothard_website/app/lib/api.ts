@@ -432,6 +432,8 @@ export const api = {
     // ---- live tracking ----
     geocode: (q: string) =>
       req<{ results: GeoResult[] }>(`/runner/geocode?q=${encodeURIComponent(q)}`),
+    // Runner's latest position from Traccar Client (fallback for "My location").
+    myLocation: () => req<{ location: { lat: number; lng: number; at: string | null } | null }>('/runner/my-location'),
     trackConfig: () => req<TrackConfig>('/runner/track-config'),
     regenToken: () => req<{ deviceId: string }>('/runner/track-token/regenerate', { method: 'POST' }),
     trip: () => req<{ trip: (TripLive & { client: { id: number; name: string } | null }) | null }>('/runner/trip'),
@@ -482,6 +484,16 @@ export type TravelMode = 'car' | 'walk' | 'cycle' | 'transit'
 
 export type RouteSource = 'osrm' | 'otp' | 'tfl' | 'approx' | 'line'
 
+// One step of a transit journey (walk / tube / bus leg).
+export type TripLeg = {
+  mode: string
+  line: string
+  summary: string
+  from: string
+  to: string
+  minutes: number
+}
+
 export type TripLive = {
   id: number
   status: 'active' | 'arrived' | 'cancelled'
@@ -494,6 +506,8 @@ export type TripLive = {
   // Engine that drew the (stable) route line — dashed when it's an estimate.
   routeSource: RouteSource | null
   route: LatLng[]
+  // Transit step-by-step (which line, which stations) — empty for non-transit.
+  legs: TripLeg[]
   // True when the live position strayed far from the planned route → offer rebuild.
   offRoute: boolean
   startedAt: string | null
@@ -502,6 +516,7 @@ export type TripLive = {
 export type RoutePreview = {
   route: LatLng[]
   routeSource: RouteSource | null
+  legs: TripLeg[]
   eta: { minutes: number; km: number } | null
   origin?: { lat: number; lng: number }
   dest?: { lat: number; lng: number }
