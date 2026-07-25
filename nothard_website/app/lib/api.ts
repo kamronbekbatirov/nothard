@@ -46,7 +46,7 @@ export type ChatMessage = {
 }
 
 export type OrderHistoryItem = {
-  type: 'package' | 'service' | 'viewing'
+  type: 'package' | 'service' | 'viewing' | 'arrangement'
   id: string
   amountGBP: number
   paid: boolean
@@ -231,8 +231,11 @@ export const api = {
     }) => req<HousingItem>('/me/housing', { method: 'POST', body: JSON.stringify(body) }),
     deleteHousing: (id: number) =>
       req<{ ok: boolean }>(`/me/housing/${id}`, { method: 'DELETE' }),
-    // Request (and pay £30 for) an accompanied viewing of a shortlisted property.
-    requestViewing: (id: number) =>
+    // Ask us to take on a property (no charge) — operator reviews & approves.
+    requestHousing: (id: number) =>
+      req<HousingItem>(`/me/housing/${id}/request`, { method: 'POST' }),
+    // Pay after approval: catalog → £100 arrangement, custom link → £30 viewing.
+    payHousing: (id: number) =>
       req<HousingItem>(`/me/housing/${id}/viewing`, { method: 'POST' }),
     // Create/return the stable public share token for the family view.
     shareLink: () => req<{ token: string }>('/me/share', { method: 'POST' }),
@@ -596,6 +599,9 @@ export type Attachment = { id: number; filename: string; url: string }
 export type HousingMedia = { id: number; url: string; filename: string; kind: 'image' | 'video' }
 export type HousingStatus =
   | 'new'
+  | 'requested'
+  | 'approved'
+  | 'arranging'
   | 'viewing'
   | 'viewed'
   | 'reached'

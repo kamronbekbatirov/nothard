@@ -19,8 +19,12 @@ SERVICE_PRICE = {
     "docTranslate": 20,
 }
 
-# One accompanied property viewing (charged per property from the housing shortlist).
-VIEWING_PRICE = 30
+# Housing charges (per property, after the operator approves the client's request):
+#  - CUSTOM (client's own link): an accompanied viewing — a runner goes & films it.
+#  - CATALOG (our listing, already has photos/video): just the paperwork/arrangement,
+#    no physical viewing needed.
+VIEWING_PRICE = 30      # custom-link viewing
+ARRANGEMENT_PRICE = 100  # catalog listing arrangement
 
 # Bundle prices (discounted vs. buying the included services à la carte).
 PACKAGE_AMOUNT = {"meet": 114, "housing": 299, "premium": 647}

@@ -42,8 +42,10 @@ export const SERVICES: Service[] = [
   { id: 'docTranslate', price: 20, stage: 'documents', online: true },
 ]
 
-// £ price of a single accompanied property viewing (per-property charge).
+// £ housing charges (per property, after the operator approves the request):
+// custom link → accompanied viewing; catalog listing → paperwork/arrangement.
 export const VIEWING_PRICE = 30
+export const ARRANGEMENT_PRICE = 100
 
 export function serviceById(id: string) {
   return SERVICES.find((s) => s.id === id)

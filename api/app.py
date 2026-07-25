@@ -24,6 +24,7 @@ import routing
 from catalog import (
     SERVICE_PRICE,
     VIEWING_PRICE,
+    ARRANGEMENT_PRICE,
     PACKAGE_AMOUNT,
     PACKAGE_STEPS,
     RUNNER_STEPS,
@@ -199,7 +200,8 @@ def create_app() -> Flask:
 
     HOUSING_KEYS = {"housingSearch", "viewings"}
     # new → viewing → viewed → secured → completed (or busy / declined)
-    HOUSING_STATUSES = {"new", "viewing", "viewed", "reached", "busy", "secured", "completed", "declined"}
+    HOUSING_STATUSES = {"new", "requested", "approved", "arranging", "viewing", "viewed",
+                        "reached", "busy", "secured", "completed", "declined"}
     # Package step tasks that produce a document the operator can upload.
     FILE_STEPS = {"lease", "bank", "nhs"}
 
@@ -1513,33 +1515,62 @@ def create_app() -> Flask:
         SessionLocal.commit()
         return jsonify({"ok": True})
 
-    @app.post("/me/housing/<int:item_id>/viewing")
-    def my_housing_viewing(item_id: int):
-        """Request (and pay £30 for) an accompanied viewing of a shortlisted
-        property. Creates a paid `viewing` order the operator then schedules."""
-        user, err = require_user()
-        if err:
-            return err
+    def _client_housing(user, item_id):
         c = SessionLocal.execute(select(Client).where(Client.user_id == user.id)).scalar_one_or_none()
         h = SessionLocal.get(HousingItem, item_id)
         if not c or not h or h.client_id != c.id:
+            return None, None
+        return c, h
+
+    @app.post("/me/housing/<int:item_id>/request")
+    def my_housing_request(item_id: int):
+        """Client asks us to take on a property. No charge yet — the operator
+        reviews (checks availability/conditions), then approves or declines. For a
+        catalog listing this leads to £100 arrangement; for a client's own link,
+        the operator sets a viewing slot and it's a £30 accompanied viewing."""
+        user, err = require_user()
+        if err:
+            return err
+        c, h = _client_housing(user, item_id)
+        if not h:
             return jsonify({"error": "not found"}), 404
-        # One paid viewing per property — return the existing one if already requested.
+        # Only a fresh item can be requested; ignore if already in the pipeline.
+        # The operator sees the "requested" status on their admin board (no push).
+        if h.status in ("new", "declined"):
+            h.status = "requested"
+            SessionLocal.commit()
+        return jsonify(housing_row(h)), 200
+
+    @app.post("/me/housing/<int:item_id>/viewing")
+    def my_housing_pay(item_id: int):
+        """Pay step, only after the operator approved the request. Catalog listing
+        → £100 arrangement (no physical viewing needed, we already have media);
+        client's own link → £30 accompanied viewing that a runner then carries out.
+        The order type/amount is chosen by the listing `source`."""
+        user, err = require_user()
+        if err:
+            return err
+        c, h = _client_housing(user, item_id)
+        if not h:
+            return jsonify({"error": "not found"}), 404
+        if h.status != "approved":
+            return jsonify({"error": "not approved yet", "code": "not_approved"}), 400
+        is_catalog = h.source == "catalog"
+        otype = "arrangement" if is_catalog else "viewing"
+        amount = ARRANGEMENT_PRICE if is_catalog else VIEWING_PRICE
         existing = SessionLocal.execute(
             select(Order).where(
-                Order.client_id == c.id,
-                Order.item_type == "viewing",
-                Order.item_id == str(h.id),
+                Order.client_id == c.id, Order.item_type == otype, Order.item_id == str(h.id),
             )
         ).scalar_one_or_none()
-        if existing:
-            return jsonify(housing_row(h)), 200
-        order = Order(
-            client_id=c.id, item_type="viewing", item_id=str(h.id),
-            amount_gbp=VIEWING_PRICE, paid=True, status="active",
-            details={"housingId": h.id, "addr": h.addr or h.title},
-        )
-        SessionLocal.add(order)
+        if not existing:
+            SessionLocal.add(Order(
+                client_id=c.id, item_type=otype, item_id=str(h.id),
+                amount_gbp=amount, paid=True, status="active",
+                details={"housingId": h.id, "addr": h.addr or h.title},
+            ))
+        # Catalog → straight to arranging the paperwork; custom → viewing booked.
+        h.status = "arranging" if is_catalog else "viewing"
         SessionLocal.commit()
         addr = h.title or h.addr or "квартира"
         notify_client(c, "housing_status", addr=addr, status_key=h.status)

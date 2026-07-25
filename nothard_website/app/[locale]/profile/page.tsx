@@ -47,6 +47,7 @@ import {
   LONDON_AIRPORT_TERMINALS,
   LONDON_FLIGHTS,
   VIEWING_PRICE,
+  ARRANGEMENT_PRICE,
   fmtGBP,
   fmtUZS,
 } from '@/app/lib/data'
@@ -954,6 +955,9 @@ function hostOf(u: string) {
 // transparent tint washes out. White base + colored text stays legible on any image.
 const HOUSING_TONE: Record<string, string> = {
   new: 'bg-card text-ink ring-1 ring-line',
+  requested: 'bg-card text-amber-700 ring-1 ring-line',
+  approved: 'bg-accent-bg text-accent ring-1 ring-accent/30',
+  arranging: 'bg-card text-sky-700 ring-1 ring-line',
   viewing: 'bg-card text-sky-700 ring-1 ring-line',
   viewed: 'bg-card text-accent ring-1 ring-line',
   reached: 'bg-card text-accent ring-1 ring-line',
@@ -980,17 +984,25 @@ function HousingStatusBadge({ status }: { status: string }) {
 function HousingCard({
   h,
   onRemove,
-  onRequestViewing,
+  onRequest,
+  onPay,
 }: {
   h: HousingItem
   onRemove: (id: number) => void
-  onRequestViewing: (id: number) => Promise<void>
+  onRequest: (id: number) => Promise<void>
+  onPay: (id: number) => Promise<void>
 }) {
   const t = useTranslations('Profile')
   const [busy, setBusy] = useState(false)
-  // Once a viewing is scheduled (or already happened) the request CTA is moot.
-  const canRequestViewing =
-    !h.viewingRequested && ['new', 'reached', 'busy'].includes(h.status)
+  const isCatalog = h.source === 'catalog'
+  const run = async (fn: (id: number) => Promise<void>) => {
+    setBusy(true)
+    try {
+      await fn(h.id)
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-card">
       <div className="relative h-[160px]">
@@ -1035,35 +1047,37 @@ function HousingCard({
           </a>
         )}
 
-        {h.status === 'viewing' && h.viewingAt && (
+        {(h.status === 'viewing' || h.status === 'approved') && h.viewingAt && (
           <div className="mt-2.5 rounded-lg bg-sky-500/10 px-3 py-2 text-[13px] font-medium text-sky-700">
             📅 {t('housing.viewingAt', { when: h.viewingAt.replace('T', ' ') })}
           </div>
         )}
         {h.note && <div className="mt-2 text-[12.5px] leading-snug text-ink-2">{h.note}</div>}
 
-        {/* Accompanied viewing — £30 per property, requested from the shortlist. */}
-        {canRequestViewing ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3 w-full"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true)
-              try {
-                await onRequestViewing(h.id)
-              } finally {
-                setBusy(false)
-              }
-            }}
-          >
-            {t('housing.requestViewing', { price: VIEWING_PRICE })}
+        {/* Request → operator review → pay. Catalog = £100 arrangement (no visit);
+            custom link = £30 accompanied viewing after a slot is set. */}
+        {h.status === 'new' || h.status === 'declined' ? (
+          <Button variant="outline" size="sm" className="mt-3 w-full" disabled={busy} onClick={() => run(onRequest)}>
+            {isCatalog ? t('housing.wantCatalog') : t('housing.wantCustom')}
           </Button>
-        ) : h.viewingRequested && h.status !== 'viewing' ? (
+        ) : h.status === 'requested' ? (
           <div className="mt-3 rounded-lg bg-accent-bg px-3 py-2 text-[12.5px] font-medium text-accent">
-            {t('housing.viewingRequested')}
+            {t('housing.requestedInfo')}
           </div>
+        ) : h.status === 'approved' ? (
+          isCatalog ? (
+            <Button variant="solid" size="sm" className="mt-3 w-full" disabled={busy} onClick={() => run(onPay)}>
+              {t('housing.arrangePay', { price: ARRANGEMENT_PRICE })}
+            </Button>
+          ) : h.viewingAt ? (
+            <Button variant="solid" size="sm" className="mt-3 w-full" disabled={busy} onClick={() => run(onPay)}>
+              {t('housing.viewingPay', { price: VIEWING_PRICE })}
+            </Button>
+          ) : (
+            <div className="mt-3 rounded-lg bg-accent-bg px-3 py-2 text-[12.5px] font-medium text-accent">
+              {t('housing.approvedWait')}
+            </div>
+          )
         ) : null}
 
         {h.media.length > 0 && (
@@ -1116,11 +1130,18 @@ function HousingSection({ items, onRefresh }: { items: HousingItem[]; onRefresh:
       onRefresh()
     } catch {}
   }
-  async function requestViewing(id: number) {
+  async function requestHousing(id: number) {
     try {
-      await api.me.requestViewing(id)
+      await api.me.requestHousing(id)
       onRefresh()
-      toast(t('housing.viewingRequested'))
+      toast(t('housing.requestedInfo'))
+    } catch {}
+  }
+  async function payHousing(id: number) {
+    try {
+      await api.me.payHousing(id)
+      onRefresh()
+      toast(t('housing.paidToast'))
     } catch {}
   }
 
@@ -1167,7 +1188,7 @@ function HousingSection({ items, onRefresh }: { items: HousingItem[]; onRefresh:
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {items.map((h) => (
-            <HousingCard key={h.id} h={h} onRemove={remove} onRequestViewing={requestViewing} />
+            <HousingCard key={h.id} h={h} onRemove={remove} onRequest={requestHousing} onPay={payHousing} />
           ))}
         </div>
       )}
@@ -1631,7 +1652,9 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
       ? tp(`${it.id}.name` as any)
       : it.type === 'viewing'
         ? t('history.viewing')
-        : ts(`items.${it.id}.name` as any)
+        : it.type === 'arrangement'
+          ? t('history.arrangement')
+          : ts(`items.${it.id}.name` as any)
 
   return (
     <div className="mt-8">

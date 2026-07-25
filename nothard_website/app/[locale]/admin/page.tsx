@@ -2414,7 +2414,7 @@ function ArrivalRow({
   )
 }
 
-const HOUSING_STATUSES_UI: HousingStatus[] = ['new', 'viewing', 'viewed', 'secured', 'completed', 'busy', 'declined']
+const HOUSING_STATUSES_UI: HousingStatus[] = ['new', 'requested', 'approved', 'arranging', 'viewing', 'viewed', 'secured', 'completed', 'busy', 'declined']
 
 function HousingRow({
   h,

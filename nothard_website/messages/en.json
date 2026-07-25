@@ -568,7 +568,10 @@
         "secured": "Secured",
         "declined": "Declined",
         "viewed": "Viewed",
-        "completed": "Finalised"
+        "completed": "Finalised",
+        "requested": "Request sent",
+        "approved": "Approved",
+        "arranging": "Arranging"
       },
       "browseHint": "Flats from us and agencies",
       "empty": "Nothing yet. Open the catalog or paste a listing link.",
@@ -576,7 +579,14 @@
       "mediaTitle": "Photos & videos from the viewing",
       "pendingAdded": "{count} added to your search",
       "requestViewing": "Request a viewing — £{price}",
-      "viewingRequested": "Viewing requested — we’ll arrange a time"
+      "viewingRequested": "Viewing requested — we’ll arrange a time",
+      "wantCatalog": "I want this flat",
+      "wantCustom": "Send a request",
+      "requestedInfo": "Request sent — under review",
+      "approvedWait": "Approved — arranging a viewing time",
+      "arrangePay": "Arrange — £{price}",
+      "viewingPay": "Book a viewing — £{price}",
+      "paidToast": "Paid"
     },
     "runnerTitle": "Your host",
     "runnerRole": "Meets and helps you on the ground",
@@ -633,7 +643,8 @@
       "active": "In progress",
       "bought": "Bought",
       "completed": "Completed",
-      "viewing": "Property viewing"
+      "viewing": "Property viewing",
+      "arrangement": "Home arrangement"
     },
     "share": {
       "cta": "Share",
@@ -803,7 +814,10 @@
       "secured": "Secured",
       "declined": "Declined",
       "viewed": "Viewed",
-      "completed": "Finalised"
+      "completed": "Finalised",
+      "requested": "Requested",
+      "approved": "Approved",
+      "arranging": "Arranging"
     },
     "listingStatus": {
       "published": "Published",

@@ -568,7 +568,10 @@
         "secured": "Band qilindi",
         "declined": "Rad etildi",
         "viewed": "Ko‘rildi",
-        "completed": "Rasmiylashtirildi"
+        "completed": "Rasmiylashtirildi",
+        "requested": "So‘rov yuborildi",
+        "approved": "Tasdiqlandi",
+        "arranging": "Rasmiylashtirilmoqda"
       },
       "browseHint": "Biz va agentliklardan kvartiralar",
       "empty": "Hozircha bo‘sh. Katalogni oching yoki havola qo‘shing.",
@@ -576,7 +579,14 @@
       "mediaTitle": "Ko‘rikdan foto va video",
       "pendingAdded": "Qidiruvga qo'shildi: {count}",
       "requestViewing": "Ko‘rikka yozilish — £{price}",
-      "viewingRequested": "Ko‘rik so‘raldi — vaqtini kelishamiz"
+      "viewingRequested": "Ko‘rik so‘raldi — vaqtini kelishamiz",
+      "wantCatalog": "Shu kvartirani xohlayman",
+      "wantCustom": "So‘rov yuborish",
+      "requestedInfo": "So‘rov yuborildi — ko‘rib chiqilmoqda",
+      "approvedWait": "Tasdiqlandi — ko‘rish vaqtini kelishamiz",
+      "arrangePay": "Rasmiylashtirish — £{price}",
+      "viewingPay": "Ko‘rishni buyurtma qilish — £{price}",
+      "paidToast": "To‘landi"
     },
     "runnerTitle": "Hamrohingiz",
     "runnerRole": "Kutib oladi va joyida yordam beradi",
@@ -633,7 +643,8 @@
       "active": "Jarayonda",
       "bought": "Sotib olindi",
       "completed": "Yakunlandi",
-      "viewing": "Uy ko‘rigi"
+      "viewing": "Uy ko‘rigi",
+      "arrangement": "Uy-joyni rasmiylashtirish"
     },
     "share": {
       "cta": "Ulashish",
@@ -803,7 +814,10 @@
       "secured": "Band qilindi",
       "declined": "Rad etildi",
       "viewed": "Ko‘rildi",
-      "completed": "Rasmiylashtirildi"
+      "completed": "Rasmiylashtirildi",
+      "requested": "So‘rov",
+      "approved": "Tasdiqlangan",
+      "arranging": "Rasmiylashtirilmoqda"
     },
     "listingStatus": {
       "published": "Chop etilgan",

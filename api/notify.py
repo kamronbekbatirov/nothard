@@ -20,16 +20,20 @@ OPEN_LABEL = {
 }
 
 STATUS_LABEL = {
-    "ru": {"new": "Новое", "viewing": "Просмотр назначен", "viewed": "Просмотрено",
+    "ru": {"new": "Новое", "requested": "Запрос отправлен", "approved": "Одобрено",
+           "arranging": "Оформляем", "viewing": "Просмотр назначен", "viewed": "Просмотрено",
            "secured": "Забронировано", "completed": "Оформлено", "busy": "Занято",
            "declined": "Отклонено", "reached": "Связались"},
-    "en": {"new": "New", "viewing": "Viewing set", "viewed": "Viewed",
+    "en": {"new": "New", "requested": "Request sent", "approved": "Approved",
+           "arranging": "Arranging", "viewing": "Viewing set", "viewed": "Viewed",
            "secured": "Secured", "completed": "Finalised", "busy": "Taken",
            "declined": "Declined", "reached": "Contacted"},
-    "uz": {"new": "Yangi", "viewing": "Ko‘rik belgilandi", "viewed": "Ko‘rildi",
+    "uz": {"new": "Yangi", "requested": "So‘rov yuborildi", "approved": "Tasdiqlandi",
+           "arranging": "Rasmiylashtirilmoqda", "viewing": "Ko‘rik belgilandi", "viewed": "Ko‘rildi",
            "secured": "Band qilindi", "completed": "Rasmiylashtirildi", "busy": "Band",
            "declined": "Rad etildi", "reached": "Bog‘lanildi"},
-    "uz-cyrl": {"new": "Янги", "viewing": "Кўрик белгиланди", "viewed": "Кўрилди",
+    "uz-cyrl": {"new": "Янги", "requested": "Сўров юборилди", "approved": "Тасдиқланди",
+                "arranging": "Расмийлаштирилмоқда", "viewing": "Кўрик белгиланди", "viewed": "Кўрилди",
                 "secured": "Банд қилинди", "completed": "Расмийлаштирилди", "busy": "Банд",
                 "declined": "Рад этилди", "reached": "Боғланилди"},
 }
