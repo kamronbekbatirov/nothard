@@ -47,6 +47,7 @@
   },
   "overrides": {
     "sharp": "^0.35.3",
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "brace-expansion": ">=5.0.8"
   }
 }
