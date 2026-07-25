@@ -68,11 +68,11 @@
       },
       "bank": {
         "title": "Bank · NHS",
-        "desc": "Bank hisobini ochamiz va sizni NHS — Britaniyaning bepul davlat tibbiyotiga — hamda uy yaqinidagi shifokorga (GP) ro‘yxatdan o‘tkazamiz."
+        "desc": "Bankda hisob ochamiz va sizni NHS — Buyuk Britaniyaning bepul sog‘liqni saqlash tizimiga — hamda uyingiz yaqinidagi shifokorga (GP) biriktiramiz."
       },
       "moveIn": {
         "title": "Joylashish",
-        "desc": "Kommunal xizmatlar — va yashay boshlaysiz."
+        "desc": "Elektr va internetni ulaymiz — va yashashni boshlashingiz mumkin."
       }
     },
     "packagesTitle": "Xizmat paketlari",
@@ -97,7 +97,7 @@
       },
       "1": {
         "title": "Shaffof narxlar",
-        "desc": "Faqat kerakli narsa uchun to‘laysiz. Tanlash bepul, ko‘rik — £30."
+        "desc": "Faqat kerak bo‘lgani uchun to‘laysiz. Tanlash va shortlist — bepul; havola bo‘yicha kvartirani ko‘rish — £30, katalog kvartirasini rasmiylashtirish — £100."
       },
       "2": {
         "title": "O‘z tilingizda qo‘llab-quvvatlash",
@@ -114,7 +114,7 @@
         "0": "Aeroportda kutib olish",
         "1": "Yuk bilan yordam",
         "2": "SIM-karta va Oyster",
-        "3": "Yashash joyingizgacha yetkazamiz",
+        "3": "Uyingizgacha jamoat transportida yetkazamiz",
         "4": "Birinchi kun qo‘llab-quvvatlash"
       }
     },
@@ -156,12 +156,12 @@
     },
     "items": {
       "airportTransport": {
-        "name": "Kutib olish + transport",
-        "desc": "Aeroportda kutib olamiz, yuk bilan yordam beramiz, kerak bo‘lsa Oyster va SIM sotib olamiz va yashash joyingizgacha jamoat transportida birga boramiz."
+        "name": "Aeroportda kutib olish → uyga jamoat transportida",
+        "desc": "Aeroportda kutib olamiz, yuk bilan yordam beramiz, kerak bo‘lsa Oyster va SIM olamiz va siz bilan birga jamoat transportida turar joyingizgacha boramiz."
       },
       "airportTaxi": {
-        "name": "Kutib olish + taksi",
-        "desc": "Aeroportda kutib olamiz, yuk bilan yordam beramiz, taksi chaqirib to‘g‘ri yashash joyingizgacha yetkazamiz. Yo‘l haqi kiritilgan."
+        "name": "Aeroportda kutib olish → uyga taksida",
+        "desc": "Aeroportda kutib olamiz, yuk bilan yordam beramiz, taksi chaqiramiz va to‘g‘ri turar joyingizgacha yetkazamiz. Yo‘l haqi narxga kiritilgan."
       },
       "sim": {
         "name": "SIM-karta",
@@ -192,8 +192,8 @@
         "desc": "Tumanga chiqamiz va foto/video yuboramiz: transport, xavfsizlik, atrof."
       },
       "utilities": {
-        "name": "Kommunal xizmatlar",
-        "desc": "Ko‘chib kirgan uyingizda elektr va uy internetini ulaymiz."
+        "name": "Kommunal xizmatlarni ulash",
+        "desc": "Yangi turar joyingizda elektr va uy internetini ulaymiz."
       },
       "bankOnline": {
         "name": "Bank hisobi",
@@ -388,7 +388,6 @@
     "telegramError": "Telegram orqali kirib bo‘lmadi",
     "invalidCredentials": "Email yoki parol noto‘g‘ri",
     "emailTaken": "Bu email allaqachon ro‘yxatdan o‘tgan",
-    "verifyLater": "Emailni tasdiqlash keyinroq qo‘shiladi",
     "tgCallbackLoading": "Telegram orqali kirish yakunlanmoqda…",
     "tgCallbackError": "Kirish havolasi yaroqsiz yoki muddati o‘tgan",
     "loginByCode": "Pochta kodi bilan kirish",
@@ -1187,7 +1186,7 @@
     "locateFail": "Joylashuvni aniqlab bo‘lmadi",
     "startFail": "Safarni boshlab bo‘lmadi",
     "previewLabel": "Marshrut ko‘rinishi",
-    "howToTravel": "Qanday borish",
+    "howToTravel": "Sizning marshrutingiz",
     "legWalkTo": "{place} gacha piyoda",
     "legWalk": "Piyoda",
     "legLineTo": "{line} — {station} gacha",

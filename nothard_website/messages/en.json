@@ -68,11 +68,11 @@
       },
       "bank": {
         "title": "Bank · NHS",
-        "desc": "We open a bank account and register you with the NHS — the UK’s free public healthcare — and a local doctor (GP)."
+        "desc": "We open a bank account and register you with the NHS — the UK's free public healthcare — and with a local doctor (GP) near your home."
       },
       "moveIn": {
         "title": "Move-in",
-        "desc": "Utilities set up — and you start living."
+        "desc": "We set up electricity and internet — and you're ready to live."
       }
     },
     "packagesTitle": "Service packages",
@@ -97,7 +97,7 @@
       },
       "1": {
         "title": "Transparent pricing",
-        "desc": "Pay only for what you need. Free matching, £30 per viewing."
+        "desc": "Pay only for what you need. Matching and shortlist are free; a viewing of a link flat is £30, arranging a catalog flat is £100."
       },
       "2": {
         "title": "Support in your language",
@@ -114,7 +114,7 @@
         "0": "Airport pickup",
         "1": "Luggage help",
         "2": "SIM card and Oyster",
-        "3": "We take you to your place",
+        "3": "We take you home by public transport",
         "4": "First-day support"
       }
     },
@@ -156,12 +156,12 @@
     },
     "items": {
       "airportTransport": {
-        "name": "Meet + transport",
-        "desc": "We meet you at the airport, help with luggage, buy an Oyster and SIM if you need them, and travel with you to your place by public transport."
+        "name": "Airport meet → home by transit",
+        "desc": "We meet you at the airport, help with luggage, buy an Oyster and SIM if needed, and travel with you to your accommodation by public transport."
       },
       "airportTaxi": {
-        "name": "Meet + taxi",
-        "desc": "We meet you at the airport, help with luggage, order a taxi and drive you straight to your place. Fare included."
+        "name": "Airport meet → home by taxi",
+        "desc": "We meet you at the airport, help with luggage, order a taxi and take you straight to your accommodation. The fare is included."
       },
       "sim": {
         "name": "SIM card",
@@ -192,8 +192,8 @@
         "desc": "We visit the area and send photos and video: transport, safety, what’s around."
       },
       "utilities": {
-        "name": "Utilities setup",
-        "desc": "We set up electricity and home internet in the place you’ve moved into."
+        "name": "Utility setup",
+        "desc": "We set up electricity and home internet at your new place."
       },
       "bankOnline": {
         "name": "Bank account",
@@ -388,7 +388,6 @@
     "telegramError": "Couldn't sign in with Telegram",
     "invalidCredentials": "Wrong email or password",
     "emailTaken": "This email is already registered",
-    "verifyLater": "Email verification coming soon",
     "tgCallbackLoading": "Finishing Telegram sign-in…",
     "tgCallbackError": "The sign-in link is invalid or expired",
     "loginByCode": "Sign in with an email code",
@@ -1187,7 +1186,7 @@
     "locateFail": "Couldn't get your location",
     "startFail": "Couldn't start the trip",
     "previewLabel": "Route preview",
-    "howToTravel": "How to travel",
+    "howToTravel": "Your route",
     "legWalkTo": "Walk to {place}",
     "legWalk": "Walk",
     "legLineTo": "{line} to {station}",

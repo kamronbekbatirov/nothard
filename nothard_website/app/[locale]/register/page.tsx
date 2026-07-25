@@ -104,7 +104,6 @@ export default function RegisterPage() {
           />
         </Field>
         {error && <p className="text-[13px] text-terracotta">{error}</p>}
-        <p className="text-[12px] text-gray">{t('verifyLater')}</p>
         <Button type="submit" variant="solid" size="block" disabled={busy}>
           {busy ? t('registerTitle') + '…' : t('registerSubmit')}
         </Button>
