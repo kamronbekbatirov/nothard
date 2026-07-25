@@ -589,7 +589,7 @@
       "paidToast": "Paid"
     },
     "runnerTitle": "Your host",
-    "runnerRole": "Meets and helps you on the ground",
+    "runnerRole": "Meets you at the airport and accompanies you",
     "runnerPending": "A host hasn't been assigned yet",
     "intake": {
       "title": "Arrival details",
@@ -669,7 +669,8 @@
       "sheetTitle": "Buy a package or service",
       "total": "Total",
       "owned": "Already active"
-    }
+    },
+    "managerRole": "Handles everything else: bank, NHS, housing, documents"
   },
   "Admin": {
     "badge": "Operator",
@@ -882,7 +883,11 @@
       "feeLabel": "Fee per visit",
       "feeSaved": "Fee updated",
       "edit": "Edit",
-      "save": "Save"
+      "save": "Save",
+      "feeManage": "Manage",
+      "feeHint": "Price per kind of work",
+      "cancel": "Cancel",
+      "manager": "Manager"
     }
   },
   "Agency": {
@@ -998,7 +1003,8 @@
     "allDone": "All visits done — great work!",
     "historyTitle": "History · {count}",
     "hide": "Hide",
-    "show": "Show"
+    "show": "Show",
+    "visitsDoneCount": "{count} done"
   },
   "Footer": {
     "tagline": "End-to-end relocation to London. Calm, human, in your language.",

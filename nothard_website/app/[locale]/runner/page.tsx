@@ -199,9 +199,7 @@ export default function RunnerPage() {
                 <div>
                   {t('paid')}: <span className="font-medium text-ink">{fmtGBP(data.payout.paidGBP)}</span>
                 </div>
-                <div className="mt-0.5">
-                  {fmtGBP(data.payout.visitFee)} · {t('perVisit')}
-                </div>
+                <div className="mt-0.5">{t('visitsDoneCount', { count: data.payout.visitsDone })}</div>
               </div>
             </div>
           </div>
@@ -241,7 +239,7 @@ export default function RunnerPage() {
         </div>
 
         {/* History — completed visits (the runner's earnings log) */}
-        {history.length > 0 && <VisitHistory rows={history} fee={data?.payout.visitFee ?? 0} />}
+        {history.length > 0 && <VisitHistory rows={history} />}
       </main>
 
       {chatClient && (
@@ -542,7 +540,7 @@ function VisitRow({ v, onAdvance }: { v: RunnerVisitRow; onAdvance: () => void }
   )
 }
 
-function VisitHistory({ rows, fee }: { rows: (RunnerVisitRow & { client: string })[]; fee: number }) {
+function VisitHistory({ rows }: { rows: (RunnerVisitRow & { client: string })[] }) {
   const t = useTranslations('Runner')
   const label = useTaskLabel()
   const [open, setOpen] = useState(false)
@@ -566,7 +564,7 @@ function VisitHistory({ rows, fee }: { rows: (RunnerVisitRow & { client: string 
                   {v.completedAt ? ` · ${fmtDateTime(v.completedAt)}` : ''}
                 </div>
               </div>
-              <span className="shrink-0 text-[13px] font-semibold text-accent">+{fmtGBP(fee)}</span>
+              <span className="shrink-0 text-[13px] font-semibold text-accent">+{fmtGBP(v.fee)}</span>
             </div>
           ))}
         </div>

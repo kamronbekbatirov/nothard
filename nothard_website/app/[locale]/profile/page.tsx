@@ -1754,6 +1754,9 @@ function PopulatedCabinet({
   const steps = data.path.filter((p) => p.kind === 'step')
   const total = steps.length
   const hasPackage = !!data.package && total > 0
+  // Show the relocation path whenever there are steps — including the two arrival
+  // steps a standalone airport service now creates (not only for a full package).
+  const hasPath = total > 0
   const completedServices = data.completedServices || []
   // Parallel path: each step carries its own status (housing search, temp stay and
   // viewings can all run at once), so progress is simply how many are done — not a
@@ -1862,7 +1865,7 @@ function PopulatedCabinet({
                 <PersonAvatar url={manager.photoUrl} name={manager.name} />
                 <div className="min-w-0">
                   <div className="truncate text-[15px] font-semibold text-ink">{manager.name}</div>
-                  <div className="text-[12.5px] text-muted">{t('managerHours')}</div>
+                  <div className="text-[12.5px] text-muted">{t('managerRole')}</div>
                 </div>
               </div>
               <PersonContact telegram={manager.telegram} phone={manager.phone} />
@@ -1968,7 +1971,7 @@ function PopulatedCabinet({
       <section>
         <p className="text-[14px] text-muted">{t('greeting', { name: data.user.name })}</p>
 
-        {hasPackage ? (
+        {hasPath ? (
           <>
             <h1 className="mt-1 font-display text-[28px] text-ink sm:text-[30px]">{t('heading')}</h1>
 

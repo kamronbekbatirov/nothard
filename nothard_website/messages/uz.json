@@ -589,7 +589,7 @@
       "paidToast": "To‘landi"
     },
     "runnerTitle": "Hamrohingiz",
-    "runnerRole": "Kutib oladi va joyida yordam beradi",
+    "runnerRole": "Aeroportda kutib oladi va hamrohlik qiladi",
     "runnerPending": "Hamroh hali tayinlanmagan",
     "intake": {
       "title": "Kelish tafsilotlari",
@@ -669,7 +669,8 @@
       "sheetTitle": "Paket yoki xizmat sotib olish",
       "total": "Jami",
       "owned": "Allaqachon faol"
-    }
+    },
+    "managerRole": "Qolgan hammasini yuritadi: bank, NHS, uy-joy, hujjatlar"
   },
   "Admin": {
     "badge": "Operator",
@@ -882,7 +883,11 @@
       "feeLabel": "Chiqish uchun stavka",
       "feeSaved": "Stavka yangilandi",
       "edit": "Tahrirlash",
-      "save": "Saqlash"
+      "save": "Saqlash",
+      "feeManage": "Sozlash",
+      "feeHint": "Har bir ish uchun narx",
+      "cancel": "Bekor qilish",
+      "manager": "Menejer"
     }
   },
   "Agency": {
@@ -998,7 +1003,8 @@
     "allDone": "Barcha chiqishlar bajarildi — zo‘r ish!",
     "historyTitle": "Tarix · {count}",
     "hide": "Yashirish",
-    "show": "Ko‘rsatish"
+    "show": "Ko‘rsatish",
+    "visitsDoneCount": "{count} bajarildi"
   },
   "Footer": {
     "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",

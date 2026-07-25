@@ -297,9 +297,19 @@ export const api = {
       req<{ ok: boolean }>(`/admin/clients/${clientId}`, { method: 'DELETE' }),
     accounts: () => req<{ accounts: AdminAccount[] }>('/admin/accounts'),
     runnerDetail: (id: number) => req<RunnerDetail>(`/admin/runners/${id}`),
-    getRunnerFee: () => req<{ fee: number }>('/admin/settings/runner-fee'),
-    setRunnerFee: (fee: number) =>
-      req<{ fee: number }>('/admin/settings/runner-fee', { method: 'POST', body: JSON.stringify({ fee }) }),
+    // Per-service runner fee price list (£ per completed task, by key).
+    getRunnerFees: () => req<{ fees: Record<string, number> }>('/admin/settings/runner-fees'),
+    setRunnerFees: (fees: Record<string, number>) =>
+      req<{ fees: Record<string, number> }>('/admin/settings/runner-fees', {
+        method: 'POST',
+        body: JSON.stringify({ fees }),
+      }),
+    // Hand a single task to a runner (or unassign with null).
+    assignTask: (taskId: number, runnerId: number | null) =>
+      req<AdminClient>(`/admin/tasks/${taskId}/assign`, {
+        method: 'POST',
+        body: JSON.stringify({ runner_id: runnerId }),
+      }),
     setRunnerPaid: (taskId: number, paid: boolean) =>
       req<{ ok: boolean; id: number; runnerPaid: boolean }>(`/admin/tasks/${taskId}/runner-paid`, {
         method: 'POST',
@@ -702,6 +712,8 @@ export type AdminTaskRef = {
   status: string
   canUpload: boolean
   attachments: Attachment[]
+  runnerId: number | null
+  fee: number
 }
 export type AdminServiceRef = {
   id: string
@@ -711,6 +723,8 @@ export type AdminServiceRef = {
   status: string
   done: boolean
   attachments: Attachment[]
+  runnerId: number | null
+  fee: number
 }
 export type AdminClient = {
   id: number
@@ -786,7 +800,6 @@ export type AdminAccount = {
   package?: string | null
   paid?: boolean
   // Runner payout summary (present for role === 'runner')
-  visitFee?: number
   visitsDone?: number
   visitsUnpaid?: number
   owedGBP?: number
@@ -800,6 +813,7 @@ export type RunnerVisit = {
   status: string
   time: string
   addr: string
+  fee: number
   completedAt: string | null
   runnerPaid: boolean
 }
@@ -807,7 +821,7 @@ export type RunnerVisit = {
 export type RunnerDetail = {
   runner: AdminAccount
   clients: { id: number; name: string; tasks: RunnerVisit[] }[]
-  payout: { visitFee: number; visitsDone: number; visitsUnpaid: number; owedGBP: number; paidGBP: number }
+  payout: { visitsDone: number; visitsUnpaid: number; owedGBP: number; paidGBP: number }
 }
 export type AdminPayment = {
   id: number
@@ -921,6 +935,7 @@ export type RunnerVisitRow = {
   stage: string
   time: string
   addr: string
+  fee: number
   completedAt: string | null
 }
 export type RunnerClientRow = {
@@ -936,7 +951,7 @@ export type RunnerDashboard = {
   name: string
   photoUrl: string | null
   stats: { clients: number; visitsTotal: number; visitsDone: number; visitsActive: number }
-  payout: { visitFee: number; visitsDone: number; owedGBP: number; paidGBP: number }
+  payout: { visitsDone: number; owedGBP: number; paidGBP: number }
   clients: RunnerClientRow[]
 }
 

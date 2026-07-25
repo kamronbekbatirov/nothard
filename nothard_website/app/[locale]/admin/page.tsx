@@ -107,6 +107,11 @@ export default function AdminPage() {
       applyClient(await api.admin.setTaskStatus(taskId, status))
     } catch {}
   }
+  async function assignTask(taskId: number, runnerId: number | null) {
+    try {
+      applyClient(await api.admin.assignTask(taskId, runnerId))
+    } catch {}
+  }
   async function renameClient(clientId: number, name: string) {
     try {
       applyClient(await api.admin.updateClient(clientId, name))
@@ -243,6 +248,7 @@ export default function AdminPage() {
             onAssignRunner={(rid) => assignRunner(selected.id, rid)}
             onAssignManager={(mid) => assignManager(selected.id, mid)}
             onSetTaskStatus={setTaskStatus}
+            onAssignTask={assignTask}
             onRename={(name) => renameClient(selected.id, name)}
             onDelete={() => deleteClient(selected.id)}
             onHousingStatus={setHousingStatus}
@@ -495,25 +501,35 @@ function RunnersView({
 }) {
   const t = useTranslations('Admin')
   const { toast } = useToast()
+  const label = useTaskLabel()
   const [editing, setEditing] = useState<AdminAccount | 'new' | null>(null)
   const [openId, setOpenId] = useState<number | null>(null)
-  const [fee, setFee] = useState<number | null>(null)
-  const [feeDraft, setFeeDraft] = useState('')
-  const [feeEditing, setFeeEditing] = useState(false)
+  const [fees, setFees] = useState<Record<string, number> | null>(null)
+  const [feesDraft, setFeesDraft] = useState<Record<string, string>>({})
+  const [feesOpen, setFeesOpen] = useState(false)
   const runners = (accounts ?? []).filter((a) => a.role === 'runner')
   const totalOwed = runners.reduce((s, r) => s + (r.owedGBP ?? 0), 0)
 
   useEffect(() => {
-    api.admin.getRunnerFee().then((r) => setFee(r.fee)).catch(() => {})
+    api.admin.getRunnerFees().then((r) => setFees(r.fees)).catch(() => {})
   }, [])
 
-  async function saveFee() {
-    const n = Number(feeDraft)
-    if (!Number.isFinite(n) || n < 0) return
+  // Which key is a step vs a service — for localized labels.
+  const FEE_KEY_KIND: Record<string, 'step' | 'service'> = {
+    airportMeet: 'step', transfer: 'step', viewings: 'step', moveIn: 'step',
+    moving: 'service', tempHousing: 'service', neighborhood: 'service',
+  }
+
+  async function saveFees() {
+    const clean: Record<string, number> = {}
+    for (const [k, v] of Object.entries(feesDraft)) {
+      const n = Number(v)
+      if (Number.isFinite(n) && n >= 0) clean[k] = Math.round(n)
+    }
     try {
-      const r = await api.admin.setRunnerFee(Math.round(n))
-      setFee(r.fee)
-      setFeeEditing(false)
+      const r = await api.admin.setRunnerFees(clean)
+      setFees(r.fees)
+      setFeesOpen(false)
       toast(t('runner.feeSaved'))
       onChanged()
     } catch {}
@@ -528,49 +544,58 @@ function RunnersView({
         </Button>
       </div>
 
-      {/* Payout summary + editable per-visit fee */}
+      {/* Payout summary */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi value={fmtGBP(totalOwed)} label={t('runner.totalOwed')} tone={totalOwed > 0 ? 'terracotta' : 'accent'} />
         <Kpi
           value={String(runners.reduce((s, r) => s + (r.visitsDone ?? 0), 0))}
           label={t('runner.visits')}
         />
-        {/* Fee — operator-editable */}
-        <div className="rounded-xl border border-line bg-card p-4">
+        {/* Per-service fee list — operator sets the £ paid for each kind of work. */}
+        <button
+          onClick={() => {
+            setFeesDraft(Object.fromEntries(Object.entries(fees ?? {}).map(([k, v]) => [k, String(v)])))
+            setFeesOpen((o) => !o)
+          }}
+          className="rounded-xl border border-line bg-card p-4 text-left transition-colors hover:border-accent/40"
+        >
           <div className="text-[11px] uppercase tracking-wide text-gray">{t('runner.feeLabel')}</div>
-          {feeEditing ? (
-            <div className="mt-1.5 flex items-center gap-1.5">
-              <span className="text-[18px] text-muted">£</span>
-              <input
-                type="number"
-                min={0}
-                autoFocus
-                value={feeDraft}
-                onChange={(e) => setFeeDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && saveFee()}
-                className="h-9 w-16 rounded-md border border-line bg-surface px-2 text-[15px] text-ink"
-              />
-              <button onClick={saveFee} className="rounded-md bg-accent px-2.5 py-1.5 text-[12px] font-medium text-white">
-                {t('runner.save')}
-              </button>
-            </div>
-          ) : (
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="font-display text-[26px] text-ink">{fee != null ? fmtGBP(fee) : '—'}</span>
-              <button
-                onClick={() => {
-                  setFeeDraft(String(fee ?? ''))
-                  setFeeEditing(true)
-                }}
-                className="text-[12.5px] font-medium text-accent hover:underline"
-              >
-                {t('runner.edit')}
-              </button>
-            </div>
-          )}
-          <div className="mt-0.5 text-[11.5px] text-gray">{t('runner.perVisit')}</div>
-        </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="font-display text-[20px] text-ink">{t('runner.feeManage')}</span>
+            <ChevronDown size={16} className={cn('text-accent transition-transform', feesOpen && 'rotate-180')} />
+          </div>
+          <div className="mt-0.5 text-[11.5px] text-gray">{t('runner.feeHint')}</div>
+        </button>
       </div>
+
+      {/* Fee table */}
+      {feesOpen && fees && (
+        <div className="mb-4 rounded-xl border border-line bg-card p-4">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {Object.keys(fees).map((key) => (
+              <label key={key} className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2">
+                <span className="min-w-0 truncate text-[13px] text-ink-2">
+                  {label(FEE_KEY_KIND[key] ?? 'service', key).title}
+                </span>
+                <span className="flex shrink-0 items-center gap-1 text-[14px] text-muted">
+                  £
+                  <input
+                    type="number"
+                    min={0}
+                    value={feesDraft[key] ?? ''}
+                    onChange={(e) => setFeesDraft((d) => ({ ...d, [key]: e.target.value }))}
+                    className="h-8 w-16 rounded-md border border-line bg-card px-2 text-[14px] text-ink"
+                  />
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="mt-3 flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setFeesOpen(false)}>{t('runner.cancel')}</Button>
+            <Button variant="solid" size="sm" onClick={saveFees}>{t('runner.save')}</Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {runners.map((r) => {
@@ -733,9 +758,6 @@ function RunnerDetailDrawer({
                   <div className="font-display text-[22px] text-ink">{data.payout.visitsDone}</div>
                   <div className="text-[11.5px] text-muted">{t('runner.visits')}</div>
                 </div>
-              </div>
-              <div className="mt-2 text-center text-[12px] text-gray">
-                {fmtGBP(data.payout.visitFee)} {t('runner.perVisit')}
               </div>
               {data.payout.owedGBP > 0 && (
                 <Button variant="solid" size="block" className="mt-3" disabled={busy} onClick={payAll}>
@@ -1846,6 +1868,7 @@ function Drawer({
   onAssignRunner,
   onAssignManager,
   onSetTaskStatus,
+  onAssignTask,
   onRename,
   onDelete,
   onHousingStatus,
@@ -1867,6 +1890,7 @@ function Drawer({
   onAssignRunner: (runnerId?: number | null) => void
   onAssignManager: (managerId?: number | null) => void
   onSetTaskStatus: (taskId: number, status: string) => void
+  onAssignTask: (taskId: number, runnerId: number | null) => void
   onRename: (name: string) => void
   onDelete: () => void
   onHousingStatus: (id: number, status: HousingStatus, opts?: { note?: string; viewingAt?: string }) => void
@@ -1896,9 +1920,14 @@ function Drawer({
     status: string
     paid?: boolean
     orderId?: number
+    runnerId: number | null
+    fee: number
   }
   const rows: Row[] = [
-    ...client.steps.map((s) => ({ taskId: s.taskId, kind: 'step' as const, key: s.key, status: s.status })),
+    ...client.steps.map((s) => ({
+      taskId: s.taskId, kind: 'step' as const, key: s.key, status: s.status,
+      runnerId: s.runnerId, fee: s.fee,
+    })),
     ...client.services.map((s) => ({
       taskId: s.taskId,
       kind: 'service' as const,
@@ -1906,6 +1935,8 @@ function Drawer({
       status: s.status,
       paid: s.paid,
       orderId: s.orderId,
+      runnerId: s.runnerId,
+      fee: s.fee,
     })),
   ]
 
@@ -2087,11 +2118,34 @@ function Drawer({
                   key={`${r.kind}-${r.key}-${i}`}
                   className="flex items-center justify-between gap-2 rounded-lg border border-line bg-card px-3 py-2"
                 >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className={cn('h-2 w-2 shrink-0 rounded-full', done ? 'bg-accent' : 'bg-line')} />
-                    <span className={cn('truncate text-[13px]', done ? 'text-ink-2' : 'text-ink')}>
-                      {label(r.kind, r.key).title}
+                  <span className="flex min-w-0 flex-col gap-1">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className={cn('h-2 w-2 shrink-0 rounded-full', done ? 'bg-accent' : 'bg-line')} />
+                      <span className={cn('truncate text-[13px]', done ? 'text-ink-2' : 'text-ink')}>
+                        {label(r.kind, r.key).title}
+                      </span>
                     </span>
+                    {/* Who does this task: a runner (paid the per-key fee) or the
+                        manager (unassigned). Only the operator sets it. */}
+                    {r.taskId != null && (
+                      <span className="flex items-center gap-1.5 pl-4">
+                        <select
+                          value={r.runnerId ?? ''}
+                          onChange={(e) =>
+                            onAssignTask(r.taskId!, e.target.value ? Number(e.target.value) : null)
+                          }
+                          className="max-w-[130px] truncate rounded-md border border-line bg-surface px-1.5 py-0.5 text-[11.5px] text-ink-2"
+                        >
+                          <option value="">{t('runner.manager')}</option>
+                          {runners.map((rn) => (
+                            <option key={rn.id} value={rn.id}>{rn.name}</option>
+                          ))}
+                        </select>
+                        {r.runnerId != null && r.fee > 0 && (
+                          <span className="text-[11px] text-gray">£{r.fee}</span>
+                        )}
+                      </span>
+                    )}
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     {r.taskId != null && r.kind === 'step' ? (

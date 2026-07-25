@@ -54,13 +54,36 @@ PACKAGE_STEPS = {
     ],
 }
 
-# Steps that are field visits performed by a runner (get a time + address).
-RUNNER_STEPS = {"airportMeet", "transfer", "viewings", "moveIn"}
+# Steps AUTO-assigned to the client's runner (the airport meet is the only
+# in-person work a runner always does). Everything else is manager work by
+# default; the operator can still hand a specific task to a runner by hand.
+RUNNER_STEPS = {"airportMeet", "transfer"}
 
-# Individual services that also involve a field runner visit.
-RUNNER_SERVICES = {"airportTransport", "airportTaxi", "moving", "tempHousing"}
+# No service auto-assigns to a runner anymore. Airport services expand into the
+# airportMeet + transfer STEPS below (so a standalone airport buy behaves exactly
+# like the meet package's arrival), everything else is manager work.
+RUNNER_SERVICES: set[str] = set()
 
-# What we pay a runner (field companion) per completed in-person visit (GBP).
+# Standalone airport services → the two arrival steps (dashboard points + trip).
+AIRPORT_SERVICE_STEPS = {
+    "airportTransport": ["airportMeet", "transfer"],
+    "airportTaxi": ["airportMeet", "transfer"],
+}
+
+# What we pay a runner per completed task, keyed by step/service key (GBP). The
+# operator overrides these in Admin → Runners (the `runner_fees` setting). The
+# airport meet pays ONCE: £50 on airportMeet, £0 on transfer, so finishing both
+# points = £50 total (not per step). Unlisted keys default to 0 until the
+# operator sets a price for work they assign by hand.
+RUNNER_FEES = {"airportMeet": 50, "transfer": 0}
+
+# Keys the operator can set a runner price for (shown in the Admin → Runners fee
+# table). The airport meet is auto-assigned; the rest are work the operator may
+# hand to a runner (viewings, move-in, moving, area scouting, temp housing).
+RUNNER_FEE_KEYS = ["airportMeet", "transfer", "viewings", "moveIn",
+                   "moving", "tempHousing", "neighborhood"]
+
+# Legacy flat fee (kept as the ultimate fallback / migration default).
 RUNNER_VISIT_FEE = 15
 
 PACKAGE_ORDER = ["meet", "housing", "premium"]

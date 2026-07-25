@@ -29,6 +29,9 @@ from catalog import (
     PACKAGE_STEPS,
     RUNNER_STEPS,
     RUNNER_SERVICES,
+    AIRPORT_SERVICE_STEPS,
+    RUNNER_FEES,
+    RUNNER_FEE_KEYS,
     RUNNER_VISIT_FEE,
     docs_for_package,
     docs_for_service,
@@ -224,13 +227,26 @@ def create_app() -> Flask:
         else:
             SessionLocal.add(Setting(key=key, value=value))
 
-    def runner_fee() -> int:
-        """Current £ per completed runner visit — operator-editable, defaults to
-        the catalog constant."""
-        try:
-            return int(get_setting("runner_visit_fee", str(RUNNER_VISIT_FEE)))
-        except (TypeError, ValueError):
-            return RUNNER_VISIT_FEE
+    def runner_fees_map() -> dict:
+        """Per-key runner fees (£) = catalog defaults overlaid with the operator's
+        `runner_fees` setting (a JSON {key: gbp} edited in Admin → Runners)."""
+        raw = get_setting("runner_fees", "")
+        override = {}
+        if raw:
+            try:
+                override = {str(k): int(v) for k, v in json.loads(raw).items()}
+            except (ValueError, TypeError, AttributeError):
+                override = {}
+        return {**RUNNER_FEES, **override}
+
+    def runner_fee_for(key: str) -> int:
+        """What the runner earns for completing a task with this key. Unlisted keys
+        pay 0 until the operator sets a price (so hand-assigned work is deliberate)."""
+        return int(runner_fees_map().get(key, 0))
+
+    def tasks_owed(tasks) -> int:
+        """£ owed for a set of completed-but-unpaid runner tasks (sum of per-key fees)."""
+        return sum(runner_fee_for(t.key) for t in tasks)
 
     def notify_task_done(client, task):
         """A task just completed. If it finishes a reviewable order (a service, or
@@ -463,6 +479,20 @@ def create_app() -> Flask:
 
     def make_service_task(client: Client, order: Order, service_id: str):
         base = max((t.position for t in client_tasks(client.id)), default=-1) + 1
+        # Airport services behave like the meet package's arrival: they become the
+        # airportMeet + transfer STEPS (two dashboard points + the two-phase trip),
+        # auto-assigned to the client's runner. Every other service is a single
+        # task that stays UNASSIGNED — manager work unless the operator hands it out.
+        step_keys = AIRPORT_SERVICE_STEPS.get(service_id)
+        if step_keys:
+            for i, key in enumerate(step_keys):
+                SessionLocal.add(Task(
+                    client_id=client.id, order_id=order.id, kind="step", key=key,
+                    status="todo",
+                    runner_id=client.runner_id if key in RUNNER_STEPS else None,
+                    position=base + i,
+                ))
+            return
         SessionLocal.add(
             Task(
                 client_id=client.id,
@@ -470,7 +500,7 @@ def create_app() -> Flask:
                 kind="service",
                 key=service_id,
                 status="todo",
-                runner_id=client.runner_id if service_id in RUNNER_SERVICES else None,
+                runner_id=None,
                 position=base,
             )
         )
@@ -896,12 +926,18 @@ def create_app() -> Flask:
             (o for o in reversed(orders) if o.item_type == "package" and not o.archived), None
         )
         # Services split: active/awaiting-ack (not archived) vs acknowledged-done (archived).
-        svc_active = [o for o in orders if o.item_type == "service" and not o.archived]
-        svc_archived = [o for o in orders if o.item_type == "service" and o.archived]
+        svc_active = [o for o in orders if o.item_type == "service" and not o.archived and o.item_id not in AIRPORT_SERVICE_STEPS]
+        svc_archived = [o for o in orders if o.item_type == "service" and o.archived and o.item_id not in AIRPORT_SERVICE_STEPS]
 
         pkg_steps = [
             t for t in tasks if t.kind == "step" and pkg_order and t.order_id == pkg_order.id
         ]
+        # The cabinet path shows ALL step tasks (a package's steps AND the arrival
+        # steps a standalone airport service creates), ordered by position, so a
+        # lone airport buy gets the same two dashboard points as the meet package.
+        path_steps = sorted(
+            [t for t in tasks if t.kind == "step"], key=lambda t: (t.position, t.id)
+        )
         package_complete = bool(pkg_order) and bool(pkg_steps) and all(
             t.status == "done" for t in pkg_steps
         )
@@ -1005,8 +1041,8 @@ def create_app() -> Flask:
             "pendingReview": pending_review,
             "services": services,
             "completedServices": completed_services,
-            "path": [task_public(t) for t in pkg_steps],
-            "documentFiles": _document_files(pkg_steps),
+            "path": [task_public(t) for t in path_steps],
+            "documentFiles": _document_files(path_steps),
             "housingSearch": has_housing_search(tasks),
             "housing": housing_rows(client_housing(c.id)),
             "history": history,
@@ -1071,6 +1107,7 @@ def create_app() -> Flask:
             {"id": o.item_id,
              "done": bool(svc_task_by_order.get(o.id) and svc_task_by_order[o.id].status == "done")}
             for o in orders if o.item_type == "service" and not o.archived
+            and o.item_id not in AIRPORT_SERVICE_STEPS
         ]
         return jsonify({
             "clientName": _first_name(c.name),
@@ -1722,9 +1759,13 @@ def create_app() -> Flask:
         pkg = next(
             (o for o in reversed(orders) if o.item_type == "package" and not o.archived), None
         )
-        svc = [o for o in orders if o.item_type == "service"]
+        # Airport services render as arrival STEPS (above), not service cards.
+        svc = [o for o in orders if o.item_type == "service" and o.item_id not in AIRPORT_SERVICE_STEPS]
         tasks = client_tasks(c.id)
         step_tasks = [t for t in tasks if t.kind == "step" and pkg and t.order_id == pkg.id]
+        # All step tasks (package + standalone airport steps) for the drawer's path,
+        # ordered by position; step_tasks above stays package-only for completion.
+        all_steps = sorted([t for t in tasks if t.kind == "step"], key=lambda t: (t.position, t.id))
         # Per-order (not per-key) so a re-bought service resolves to its own task.
         svc_task_by_order = {t.order_id: t for t in tasks if t.kind == "service" and t.order_id}
         u = SessionLocal.get(User, c.user_id) if c.user_id else None
@@ -1733,7 +1774,7 @@ def create_app() -> Flask:
         steps_done = bool(step_tasks) and all(t.status == "done" for t in step_tasks)
         active = any(t.status != "done" for t in tasks)
         attach_map = order_attachments([o.id for o in svc])
-        step_att = task_attachments([t.id for t in step_tasks])
+        step_att = task_attachments([t.id for t in all_steps])
 
         def _svc_done(o: Order) -> bool:
             st = svc_task_by_order.get(o.id)
@@ -1800,8 +1841,10 @@ def create_app() -> Flask:
                     "status": t.status,
                     "canUpload": t.key in FILE_STEPS,
                     "attachments": step_att.get(t.id, []),
+                    "runnerId": t.runner_id,
+                    "fee": runner_fee_for(t.key),
                 }
-                for t in step_tasks
+                for t in all_steps
             ],
             "activeService": active_service,
             "services": [
@@ -1813,6 +1856,8 @@ def create_app() -> Flask:
                     "status": svc_task_by_order[o.id].status if o.id in svc_task_by_order else "todo",
                     "done": _svc_done(o),
                     "attachments": attach_map.get(o.id, []),
+                    "runnerId": svc_task_by_order[o.id].runner_id if o.id in svc_task_by_order else None,
+                    "fee": runner_fee_for(o.item_id),
                 }
                 for o in svc
             ],
@@ -2091,12 +2136,10 @@ def create_app() -> Flask:
             unpaid = [t for t in done if not t.runner_paid]
             row["taskTotal"] = len(rtasks)
             row["taskDone"] = len(done)
-            # Payout: fee per completed visit; owed = completed-but-unpaid.
-            fee = runner_fee()
-            row["visitFee"] = fee
+            # Payout: per-key fee per completed task; owed = completed-but-unpaid.
             row["visitsDone"] = len(done)
             row["visitsUnpaid"] = len(unpaid)
-            row["owedGBP"] = len(unpaid) * fee
+            row["owedGBP"] = tasks_owed(unpaid)
             row["clientCount"] = SessionLocal.execute(
                 select(func.count()).select_from(Client).where(Client.runner_id == u.id)
             ).scalar_one()
@@ -2123,27 +2166,57 @@ def create_app() -> Flask:
         users = SessionLocal.execute(select(User).order_by(User.role, User.id)).scalars().all()
         return jsonify({"accounts": [account_row(u) for u in users]})
 
-    # ---- Runner visit fee (operator-editable) -----------------------------
-    @app.get("/admin/settings/runner-fee")
-    def admin_get_runner_fee():
+    # ---- Per-service runner fees (operator-editable) ----------------------
+    @app.get("/admin/settings/runner-fees")
+    def admin_get_runner_fees():
+        """The £ a runner earns for each kind of work — the editable price list."""
         user, err = require_role("operator")
         if err:
             return err
-        return jsonify({"fee": runner_fee()})
+        m = runner_fees_map()
+        return jsonify({"fees": {k: int(m.get(k, 0)) for k in RUNNER_FEE_KEYS}})
 
-    @app.post("/admin/settings/runner-fee")
-    def admin_set_runner_fee():
+    @app.post("/admin/settings/runner-fees")
+    def admin_set_runner_fees():
         user, err = require_role("operator")
         if err:
             return err
         d = request.get_json(silent=True) or {}
-        try:
-            fee = max(0, int(d.get("fee")))
-        except (TypeError, ValueError):
-            return jsonify({"error": "bad fee"}), 400
-        set_setting("runner_visit_fee", str(fee))
+        incoming = d.get("fees") or {}
+        clean = {}
+        for k in RUNNER_FEE_KEYS:
+            if k in incoming:
+                try:
+                    clean[k] = max(0, int(incoming[k]))
+                except (TypeError, ValueError):
+                    return jsonify({"error": "bad fee", "key": k}), 400
+        # Merge over any previously-saved overrides so a partial POST is fine.
+        merged = {**{k: v for k, v in runner_fees_map().items() if k in RUNNER_FEE_KEYS}, **clean}
+        set_setting("runner_fees", json.dumps(merged))
         SessionLocal.commit()
-        return jsonify({"fee": fee})
+        return jsonify({"fees": {k: int(merged.get(k, 0)) for k in RUNNER_FEE_KEYS}})
+
+    @app.post("/admin/tasks/<int:task_id>/assign")
+    def admin_task_assign(task_id: int):
+        """Hand a specific task to a runner (or unassign with runner_id=null). This
+        is how non-airport work (a viewing, a move) gets given to a runner — nothing
+        but the airport meet is auto-assigned."""
+        user, err = require_role("operator")
+        if err:
+            return err
+        t = SessionLocal.get(Task, task_id)
+        if not t:
+            return jsonify({"error": "not found"}), 404
+        d = request.get_json(silent=True) or {}
+        rid = d.get("runner_id")
+        if rid is not None:
+            r = SessionLocal.get(User, rid)
+            if not r or r.role != "runner":
+                return jsonify({"error": "not a runner"}), 400
+        t.runner_id = rid
+        SessionLocal.commit()
+        c = SessionLocal.get(Client, t.client_id)
+        return jsonify(admin_client_row(c, runner_name_map(), manager_name_map()))
 
     # ==== Live runner tracking (Traccar Client → OSRM ETA) =================
     def _setting_float(key: str, default: float) -> float:
@@ -2938,23 +3011,22 @@ def create_app() -> Flask:
                 "id": cid, "name": names.get(cid, ""),
                 "tasks": [{
                     "id": t.id, "kind": t.kind, "key": t.key, "status": t.status,
-                    "time": t.time, "addr": t.addr,
+                    "time": t.time, "addr": t.addr, "fee": runner_fee_for(t.key),
                     "completedAt": _iso(t.completed_at), "runnerPaid": t.runner_paid,
                 } for t in ct],
             })
 
         done = [t for t in tasks if t.status == "done"]
         unpaid = [t for t in done if not t.runner_paid]
-        fee = runner_fee()
+        paid = [t for t in done if t.runner_paid]
         return jsonify({
             "runner": account_row(u),
             "clients": clients,
             "payout": {
-                "visitFee": fee,
                 "visitsDone": len(done),
                 "visitsUnpaid": len(unpaid),
-                "owedGBP": len(unpaid) * fee,
-                "paidGBP": (len(done) - len(unpaid)) * fee,
+                "owedGBP": tasks_owed(unpaid),
+                "paidGBP": tasks_owed(paid),
             },
         })
 
@@ -3864,6 +3936,7 @@ def create_app() -> Flask:
             return {
                 "id": t.id, "kind": t.kind, "key": t.key, "stage": t.status,
                 "time": t.time, "addr": t.addr, "completedAt": _iso(t.completed_at),
+                "fee": runner_fee_for(t.key),
             }
 
         clients = []
@@ -3904,7 +3977,7 @@ def create_app() -> Flask:
         done = [t for t in tasks if t.status == "done"]
         active = [t for t in tasks if t.status not in ("done",)]
         unpaid = [t for t in done if not t.runner_paid]
-        fee = runner_fee()
+        paid = [t for t in done if t.runner_paid]
         return jsonify({
             "name": user.name,
             "photoUrl": user.photo_url,
@@ -3915,10 +3988,9 @@ def create_app() -> Flask:
                 "visitsActive": len(active),
             },
             "payout": {
-                "visitFee": fee,
                 "visitsDone": len(done),
-                "owedGBP": len(unpaid) * fee,
-                "paidGBP": (len(done) - len(unpaid)) * fee,
+                "owedGBP": tasks_owed(unpaid),
+                "paidGBP": tasks_owed(paid),
             },
             "clients": clients,
         })
