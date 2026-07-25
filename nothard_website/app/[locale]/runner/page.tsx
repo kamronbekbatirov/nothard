@@ -202,6 +202,8 @@ export default function RunnerPage() {
                 <div className="mt-0.5">{t('visitsDoneCount', { count: data.payout.visitsDone })}</div>
               </div>
             </div>
+            {/* Earnings history folded into the payout card (out of the main list) */}
+            {history.length > 0 && <VisitHistory rows={history} />}
           </div>
         )}
 
@@ -239,7 +241,6 @@ export default function RunnerPage() {
         </div>
 
         {/* History — completed visits (the runner's earnings log) */}
-        {history.length > 0 && <VisitHistory rows={history} />}
       </main>
 
       {chatClient && (
@@ -545,7 +546,7 @@ function VisitHistory({ rows }: { rows: (RunnerVisitRow & { client: string })[] 
   const label = useTaskLabel()
   const [open, setOpen] = useState(false)
   return (
-    <div className="mt-8">
+    <div className="mt-4 border-t border-line pt-4">
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-card px-4 py-3.5 text-left"

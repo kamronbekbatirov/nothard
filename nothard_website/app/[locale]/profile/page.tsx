@@ -1657,7 +1657,7 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
           : ts(`items.${it.id}.name` as any)
 
   return (
-    <div className="mt-8">
+    <div>
       <button
         onClick={() => setOpen((o) => !o)}
         className="btn-motion flex w-full items-center gap-3 rounded-xl border border-line bg-card px-4 py-3.5 text-left transition-colors hover:border-accent/40"
@@ -1965,6 +1965,9 @@ function PopulatedCabinet({
             <Share2 size={15} /> {t('share.cta')}
           </Button>
         )}
+
+        {/* Order history — collapsible, tucked in the side rail (out of the main flow) */}
+        <OrderHistory items={data.history} />
       </aside>
 
       {/* Main */}
@@ -2138,8 +2141,6 @@ function PopulatedCabinet({
           </div>
         )}
 
-        {/* Order history — everything bought, its status and completion times */}
-        <OrderHistory items={data.history} />
       </section>
 
       {arrivalOpen && data.package && (
