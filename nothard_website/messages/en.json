@@ -626,7 +626,9 @@
       "inDays": "in {days}d {hours}h {minutes}m",
       "inHours": "in {hours}h {minutes}m",
       "saved": "Arrival details saved",
-      "editTitle": "Edit arrival details"
+      "editTitle": "Edit arrival details",
+      "serviceCard": "Airport meet",
+      "details": "Arrival details"
     },
     "upgrade": {
       "cta": "Upgrade package",

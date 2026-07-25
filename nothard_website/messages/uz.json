@@ -626,7 +626,9 @@
       "inDays": "{days} kun {hours} soat {minutes} daqiqadan so'ng",
       "inHours": "{hours} soat {minutes} daqiqadan so'ng",
       "saved": "Uchib kelish ma'lumotlari saqlandi",
-      "editTitle": "Uchib kelish ma'lumotlarini tahrirlash"
+      "editTitle": "Uchib kelish ma'lumotlarini tahrirlash",
+      "serviceCard": "Aeroportda kutib olish",
+      "details": "Kelish tafsilotlari"
     },
     "upgrade": {
       "cta": "Paketni yaxshilash",

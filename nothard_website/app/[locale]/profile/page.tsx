@@ -1825,13 +1825,56 @@ function PopulatedCabinet({
             )}
 
           </div>
+        ) : data.arrival.hasAirportMeet ? (
+          /* Standalone airport service — arrival info is the priority (like a
+             package card), so buying more is pushed lower/less prominent. */
+          <div className="rounded-xl bg-accent p-5 text-white">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">
+              {t('arrival.title')}
+            </div>
+            <div className="mt-2 font-display text-[19px] leading-tight text-white">{t('arrival.serviceCard')}</div>
+            <div className="mt-3 rounded-lg bg-white/10 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                  {t('arrival.details')}
+                </span>
+                <button
+                  onClick={() => setArrivalOpen(true)}
+                  className="text-[12px] font-medium text-white/85 underline underline-offset-2 hover:text-white"
+                >
+                  {t('arrival.edit')}
+                </button>
+              </div>
+              {data.arrival.details.arrivalDate || data.arrival.details.dropoff ? (
+                <div className="mt-1.5 space-y-0.5 text-[13px] text-white/90">
+                  {data.arrival.details.arrivalDate && (
+                    <div>
+                      ✈️ {fmtDate(data.arrival.details.arrivalDate)} {data.arrival.details.arrivalTime}
+                      {data.arrival.details.airport ? ` · ${data.arrival.details.airport}` : ''}
+                    </div>
+                  )}
+                  {data.arrival.details.dropoff && <div>🏠 {data.arrival.details.dropoff}</div>}
+                </div>
+              ) : (
+                <div className="mt-1 text-[12.5px] text-white/60">{t('arrival.none')}</div>
+              )}
+            </div>
+          </div>
         ) : (
-          /* No active package → buy a new one right here (no redirect) */
+          /* Nothing active → buy a package right here (prominent, no redirect) */
           <PurchasePanel
             onCheckout={onCheckout}
             buying={buying}
             ownedServices={data.services.map((s) => s.id)}
           />
+        )}
+
+        {/* Buy more — small/secondary while there's active work (package or
+            airport service); the prominent buy panel only shows when idle. */}
+        {(data.package || data.arrival.hasAirportMeet) && (
+          <Button asChild variant="outline" size="block">
+            <Link href="/services">{t('addServices')}</Link>
+          </Button>
         )}
 
         {/* Extra services (rail) — only alongside a package */}
@@ -1948,16 +1991,11 @@ function PopulatedCabinet({
           </div>
         )}
 
-        {data.package && (
-          <Button asChild variant="outline" size="block">
-            <Link href="/services">{t('addServices')}</Link>
-          </Button>
-        )}
-
         {/* Share the relocation (read-only public page) — only when there's
             something meaningful to show: an active package, or any service or
             apartment. Hidden on an empty or fully-finished-and-nothing-else cabinet. */}
         {((data.package && !data.packageComplete) ||
+          (data.arrival.hasAirportMeet && data.state === 'active') ||
           data.services.length > 0 ||
           data.completedServices.length > 0 ||
           data.housing.length > 0) && (
@@ -2005,11 +2043,13 @@ function PopulatedCabinet({
                   // then "сейчас" (now) once the meeting time has arrived — it must NOT
                   // collapse when the clock hits 0. It only leaves this state when the
                   // operator marks it done.
-                  const isArrivalStep =
-                    step.key === 'airportMeet' && !!data.package?.hasAirportMeet && !done
-                  const hasArrivalTime = isArrivalStep && !!data.package?.details?.arrivalDate
+                  // Arrival details come from the package OR a standalone airport
+                  // service (top-level data.arrival), so the countdown works either way.
+                  const arrivalDetails = data.arrival.details
+                  const isArrivalStep = step.key === 'airportMeet' && data.arrival.hasAirportMeet && !done
+                  const hasArrivalTime = isArrivalStep && !!arrivalDetails.arrivalDate
                   const countdown = isArrivalStep
-                    ? arrivalCountdown(data.package?.details?.arrivalDate, data.package?.details?.arrivalTime)
+                    ? arrivalCountdown(arrivalDetails.arrivalDate, arrivalDetails.arrivalTime)
                     : null
                   // Expand a card for every in-progress step (several can run at once)
                   // and for the arrival step once a time is set (countdown → "now").
@@ -2143,9 +2183,9 @@ function PopulatedCabinet({
 
       </section>
 
-      {arrivalOpen && data.package && (
+      {arrivalOpen && (data.package || data.arrival.hasAirportMeet) && (
         <ArrivalEditModal
-          details={data.package.details || {}}
+          details={data.package?.details || data.arrival.details || {}}
           onClose={() => setArrivalOpen(false)}
           onSaved={() => {
             setArrivalOpen(false)
@@ -2250,6 +2290,8 @@ function ArrivalEditModal({
   const [arrivalTime, setArrivalTime] = useState(details.arrivalTime || '')
   const [airport, setAirport] = useState(details.airport || '')
   const [flight, setFlight] = useState(details.flight || '')
+  const [dropoff, setDropoff] = useState(details.dropoff || '')
+  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [busy, setBusy] = useState(false)
 
   return (
@@ -2288,6 +2330,18 @@ function ArrivalEditModal({
             otherLabel={t('intake.other')}
             placeholder={t('intake.flightOther')}
           />
+          <label className="block">
+            <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.dropoff')}</span>
+            <AddressField
+              search={(q) => api.me.geocode(q).then((r) => r.results)}
+              value={dropoff}
+              placeholder={t('intake.dropoffPlaceholder')}
+              onPick={(label, coords) => {
+                setDropoff(label)
+                setDropoffCoords(coords)
+              }}
+            />
+          </label>
           <Button
             variant="solid"
             size="block"
@@ -2295,7 +2349,13 @@ function ArrivalEditModal({
             onClick={async () => {
               setBusy(true)
               try {
-                await api.me.updateArrival({ arrivalDate, arrivalTime, airport, flight: flight.trim() })
+                await api.me.updateArrival({
+                  arrivalDate, arrivalTime, airport, flight: flight.trim(),
+                  dropoff: dropoff.trim(),
+                  ...(dropoffCoords
+                    ? { dropoffLat: String(dropoffCoords.lat), dropoffLng: String(dropoffCoords.lng) }
+                    : {}),
+                })
                 onSaved()
               } catch {
                 setBusy(false)

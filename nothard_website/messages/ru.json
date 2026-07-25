@@ -626,7 +626,9 @@
       "inDays": "через {days} дн {hours} ч {minutes} мин",
       "inHours": "через {hours} ч {minutes} мин",
       "saved": "Данные о прилёте сохранены",
-      "editTitle": "Изменить данные о прилёте"
+      "editTitle": "Изменить данные о прилёте",
+      "serviceCard": "Встреча в аэропорту",
+      "details": "Детали прилёта"
     },
     "upgrade": {
       "cta": "Улучшить пакет",

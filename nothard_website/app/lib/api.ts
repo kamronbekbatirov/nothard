@@ -684,6 +684,13 @@ export type DashboardData = {
   // True only when the active work actually needs a field companion (airport
   // meet / transport / moving). Plain services (Oyster, etc.) don't.
   needsRunner: boolean
+  // Arrival context (works with or without a package — e.g. a standalone airport
+  // service): whether there's an airport meet, and the saved arrival details.
+  arrival: {
+    hasAirportMeet: boolean
+    details: Record<string, string>
+    orderId: number | null
+  }
   package: {
     id: string
     amountGBP: number

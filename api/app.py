@@ -947,11 +947,15 @@ def create_app() -> Flask:
         # a not-yet-done runner service (transport / moving). Once every field visit is
         # done the companion card disappears (the manager stays). Plain admin services
         # (e.g. Oyster) never need one.
+        # Consider ALL step tasks (package + standalone airport steps), so a
+        # lone airport service still surfaces the runner card / active state.
         needs_runner = any(
-            t.key in RUNNER_STEPS and t.status != "done" for t in pkg_steps
+            t.key in RUNNER_STEPS and t.status != "done" for t in path_steps
         ) or any(
             o.item_id in RUNNER_SERVICES and not svc_done(o) for o in svc_active
         )
+        # Any incomplete step (incl. airport-service steps) means active work.
+        has_active_steps = any(t.status != "done" for t in path_steps)
 
         # Review prompt queue: a completed-but-unacknowledged package, then any
         # completed-but-unacknowledged service. (archived == acknowledged.)
@@ -1017,10 +1021,26 @@ def create_app() -> Flask:
 
         if not orders:
             state = "empty"
-        elif pkg_order is not None or svc_active:
+        elif pkg_order is not None or svc_active or has_active_steps:
             state = "active"
         else:
             state = "completed"
+
+        # Arrival context surfaced at the top level so a standalone airport service
+        # (not just the meet package) shows the "we'll meet you" card + countdown.
+        # hasAirportMeet = there's an airport-meet step OR the airport-meet order.
+        has_airport_meet = any(t.key == "airportMeet" for t in path_steps)
+        arrival_details = {}
+        arrival_order_id = None
+        for o in orders:
+            dd = o.details or {}
+            if dd.get("arrivalDate") or dd.get("airport") or dd.get("dropoff"):
+                for k in ("arrivalDate", "arrivalTime", "airport", "flight",
+                          "dropoff", "dropoffLat", "dropoffLng"):
+                    if dd.get(k) and not arrival_details.get(k):
+                        arrival_details[k] = dd[k]
+                if arrival_order_id is None:
+                    arrival_order_id = o.id
 
         return {
             **base,
@@ -1029,6 +1049,12 @@ def create_app() -> Flask:
             "documents": c.documents or {},
             "runner": runner_block(c),
             "needsRunner": needs_runner,
+            # Top-level arrival context (works with or without a package).
+            "arrival": {
+                "hasAirportMeet": has_airport_meet,
+                "details": arrival_details,
+                "orderId": arrival_order_id,
+            },
             "package": (
                 {"id": pkg_order.item_id, "amountGBP": pkg_order.amount_gbp,
                  "paid": pkg_order.paid, "status": pkg_order.status,
@@ -1468,17 +1494,24 @@ def create_app() -> Flask:
         if not c:
             return jsonify({"error": "not found"}), 404
         orders = client_orders(c.id)
-        pkg = next((o for o in reversed(orders) if o.item_type == "package" and not o.archived), None)
-        if not pkg:
-            return jsonify({"error": "no package"}), 404
+        # Arrival details live on the meet package OR a standalone airport service.
+        target = next((o for o in reversed(orders) if o.item_type == "package" and not o.archived), None)
+        if target is None:
+            target = next(
+                (o for o in reversed(orders)
+                 if o.item_type == "service" and o.item_id in AIRPORT_SERVICE_STEPS and not o.archived),
+                None,
+            )
+        if target is None:
+            return jsonify({"error": "no arrival order", "code": "no_arrival"}), 404
         data = request.get_json(silent=True) or {}
-        details = dict(pkg.details or {})
+        details = dict(target.details or {})
         for k in ARRIVAL_FIELDS:
             if k in data:
                 details[k] = (str(data.get(k) or "")).strip()[:120]
-        pkg.details = details
-        if details.get("arrivalDate"):
-            mark_airport_meet_active(c, pkg)
+        target.details = details
+        if details.get("arrivalDate") and target.item_type == "package":
+            mark_airport_meet_active(c, target)
         SessionLocal.commit()
         return jsonify(dashboard_payload(user))
 
