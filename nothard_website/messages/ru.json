@@ -361,7 +361,8 @@
       "parking": "Парковка",
       "balcony": "Балкон",
       "furnished": "С мебелью"
-    }
+    },
+    "favAria": "В избранное"
   },
   "Auth": {
     "loginTitle": "С возвращением",

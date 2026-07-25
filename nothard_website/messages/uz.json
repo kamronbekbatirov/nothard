@@ -361,7 +361,8 @@
       "parking": "Parking",
       "balcony": "Balkon",
       "furnished": "Mebelli"
-    }
+    },
+    "favAria": "Sevimlilarga saqlash"
   },
   "Auth": {
     "loginTitle": "Qaytganingizdan xursandmiz",

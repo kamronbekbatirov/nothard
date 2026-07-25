@@ -361,7 +361,8 @@
       "parking": "Parking",
       "balcony": "Balcony",
       "furnished": "Furnished"
-    }
+    },
+    "favAria": "Save to favourites"
   },
   "Auth": {
     "loginTitle": "Welcome back",

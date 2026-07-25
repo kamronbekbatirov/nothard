@@ -291,11 +291,14 @@ export default function SearchPage() {
                     )}
                     <button
                       onClick={() => toggleFav(p.id)}
-                      aria-label="favourite"
-                      className="nd-heart absolute right-3 top-3 text-[22px]"
-                      style={{ color: fav.has(p.id) ? 'rgb(var(--terracotta))' : 'rgb(var(--gray-lt))' }}
+                      aria-label={t('favAria')}
+                      title={t('favAria')}
+                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition hover:bg-black/55"
                     >
-                      {fav.has(p.id) ? '♥' : '♡'}
+                      <Heart
+                        size={16}
+                        className={cn(fav.has(p.id) ? 'fill-terracotta text-terracotta' : 'text-white')}
+                      />
                     </button>
                   </div>
                   <div className="p-4">
@@ -328,7 +331,7 @@ export default function SearchPage() {
                           </>
                         ) : (
                           <>
-                            <Heart size={15} /> {t('shortlist')}
+                            <Plus size={15} /> {t('shortlist')}
                           </>
                         )}
                       </Button>
