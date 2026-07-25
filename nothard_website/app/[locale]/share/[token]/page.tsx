@@ -6,6 +6,9 @@ import { useTranslations } from 'next-intl'
 import { CheckCircle2 } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { Footer } from '@/app/components/footer'
+import { Logo } from '@/app/components/logo'
+import { LangSwitcher } from '@/app/components/lang-switcher'
+import { ThemeToggle } from '@/app/components/theme'
 import { useTaskLabel } from '@/app/lib/task-label'
 import { api, type SharedRelocation, type TripLive } from '@/app/lib/api'
 import { TripCard } from '@/app/components/trip-card'
@@ -71,10 +74,11 @@ export default function SharePage() {
     <div className="min-h-screen bg-paper">
       <header className="border-b border-line">
         <div className="mx-auto flex max-w-[760px] items-center justify-between px-5 py-4 sm:px-8">
-          <Link href="/" className="font-display text-[18px] font-semibold text-ink">
-            Nothard
-          </Link>
-          <span className="text-[12.5px] text-muted">{t('tagline')}</span>
+          <Logo size={24} />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <LangSwitcher />
+          </div>
         </div>
       </header>
 

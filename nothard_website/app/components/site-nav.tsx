@@ -19,7 +19,7 @@ export function SiteNav() {
 
   const links: NavLink[] = [
     { label: t('howItWorks'), href: '/#how' },
-    { label: t('packages'), href: '/#packages' },
+    { label: t('packages'), href: '/services?tab=packages' },
     { label: t('services'), href: '/services' },
     { label: t('housing'), href: '/search' },
     { label: t('contacts'), href: '/#contacts' },

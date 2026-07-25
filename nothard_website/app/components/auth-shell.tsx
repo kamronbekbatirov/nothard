@@ -1,5 +1,6 @@
 import { Logo } from './logo'
 import { LangSwitcher } from './lang-switcher'
+import { ThemeToggle } from './theme'
 
 export function AuthShell({
   title,
@@ -14,7 +15,10 @@ export function AuthShell({
     <div className="flex min-h-screen flex-col bg-paper">
       <header className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-5 py-5 sm:px-11">
         <Logo size={26} />
-        <LangSwitcher />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <LangSwitcher />
+        </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-5 py-8">

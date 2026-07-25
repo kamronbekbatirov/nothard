@@ -1928,8 +1928,13 @@ function PopulatedCabinet({
           </Button>
         )}
 
-        {/* Share the relocation with family (read-only public page) */}
-        {data.hasOrders && (
+        {/* Share the relocation (read-only public page) — only when there's
+            something meaningful to show: an active package, or any service or
+            apartment. Hidden on an empty or fully-finished-and-nothing-else cabinet. */}
+        {((data.package && !data.packageComplete) ||
+          data.services.length > 0 ||
+          data.completedServices.length > 0 ||
+          data.housing.length > 0) && (
           <Button variant="ghost" size="block" className="gap-2" onClick={() => setShareOpen(true)}>
             <Share2 size={15} /> {t('share.cta')}
           </Button>

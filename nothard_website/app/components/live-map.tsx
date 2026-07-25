@@ -105,7 +105,9 @@ export default function LiveMap({
   const isEstimate = estimate
 
   return (
-    <div style={{ height }} className="overflow-hidden rounded-xl border border-line">
+    // `isolate` + z-0 keep Leaflet's high internal pane/control z-indexes (400/1000)
+    // contained in their own stacking context, below the sticky header (z-30).
+    <div style={{ height }} className="isolate relative z-0 overflow-hidden rounded-xl border border-line">
       <MapContainer
         center={center}
         zoom={13}

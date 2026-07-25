@@ -15,6 +15,7 @@ import { api } from '@/app/lib/api'
 import {
   SERVICE_STAGES,
   SERVICES,
+  PACKAGES,
   serviceById,
   fmtGBP,
   fmtUSD,
@@ -35,6 +36,7 @@ export default function ServicesPage() {
   const tco = useTranslations('Checkout')
   const tcommon = useTranslations('Common')
   const tp = useTranslations('Packages')
+  const tl = useTranslations('Landing') // package-tab title/subtitle/choose/popular
   const td = useTranslations('Duplicate')
   const { toast } = useToast()
   const router = useRouter()
@@ -46,6 +48,10 @@ export default function ServicesPage() {
   // nobody pays twice for the same thing.
   const [activePkg, setActivePkg] = useState<string | null>(null)
   const [warnDupes, setWarnDupes] = useState(false)
+  const [buyingPkg, setBuyingPkg] = useState<string | null>(null)
+  // Packages / Services tab — so the header "Пакеты" opens here instead of the
+  // landing anchor. Defaults from ?tab= (packages|services).
+  const [tab, setTab] = useState<'packages' | 'services'>('services')
   useEffect(() => {
     if (!user) {
       setActivePkg(null)
@@ -57,17 +63,30 @@ export default function ServicesPage() {
       .catch(() => {})
   }, [user])
 
-  // Pre-select a service when arriving from a landing-page tile (/services?add=<id>).
+  // Pre-select a service (?add=<id>) or open the packages tab (?tab=packages).
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get('add')
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tab') === 'packages') setTab('packages')
+    const id = params.get('add')
     if (id && serviceById(id)) {
       setCart((s) => (s.has(id) ? s : new Set(s).add(id)))
       toast(tc('addedToast'))
-      // Clean the query so a refresh doesn't re-add it.
-      window.history.replaceState(null, '', window.location.pathname)
     }
+    // Clean the query so a refresh doesn't re-add / re-switch.
+    if (id || params.get('tab')) window.history.replaceState(null, '', window.location.pathname)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Buy a package: guests → register; logged-in → cabinet picker preselected
+  // (so extra services can be added and paid in one checkout). Mirrors the landing.
+  function choosePackage(id: string) {
+    if (!user) {
+      router.push('/register')
+      return
+    }
+    setBuyingPkg(id)
+    router.push(`/profile?pkg=${id}`)
+  }
 
   const items = useMemo(
     () => Array.from(cart).map((id) => serviceById(id)!).filter(Boolean),
@@ -103,16 +122,93 @@ export default function ServicesPage() {
           </Link>
         )}
         <div className="mb-2 flex gap-2">
-          <Link href="/#packages" className="rounded-full px-3.5 py-1.5 text-[13px] font-medium text-muted hover:text-ink">
+          <button
+            onClick={() => setTab('packages')}
+            className={cn(
+              'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
+              tab === 'packages' ? 'bg-accent-bg font-semibold text-accent' : 'text-muted hover:text-ink'
+            )}
+          >
             {t('tabPackages')}
-          </Link>
-          <span className="rounded-full bg-accent-bg px-3.5 py-1.5 text-[13px] font-semibold text-accent">
+          </button>
+          <button
+            onClick={() => setTab('services')}
+            className={cn(
+              'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
+              tab === 'services' ? 'bg-accent-bg font-semibold text-accent' : 'text-muted hover:text-ink'
+            )}
+          >
             {t('tabServices')}
-          </span>
+          </button>
         </div>
-        <h1 className="font-display text-[30px] text-ink sm:text-[38px]">{t('title')}</h1>
-        <p className="mt-2 max-w-[62ch] text-[15px] leading-relaxed text-muted">{t('subtitle')}</p>
+        <h1 className="font-display text-[30px] text-ink sm:text-[38px]">
+          {tab === 'packages' ? tl('packagesTitle') : t('title')}
+        </h1>
+        <p className="mt-2 max-w-[62ch] text-[15px] leading-relaxed text-muted">
+          {tab === 'packages' ? tl('packagesSubtitle') : t('subtitle')}
+        </p>
 
+        {tab === 'packages' ? (
+          <div className="mt-8 grid items-start gap-[18px] md:grid-cols-3">
+            {PACKAGES.map((pkg) => {
+              const popular = !!pkg.popular
+              const features = Array.from({ length: pkg.featureCount }, (_, i) =>
+                tp(`${pkg.id}.features.${i}` as any)
+              )
+              return (
+                <div
+                  key={pkg.id}
+                  className={cn(
+                    'nd-lift relative rounded-xl border p-7',
+                    popular
+                      ? 'border-accent bg-accent text-[#eef2ee] shadow-[0_20px_44px_-26px_rgba(47,93,69,.8)]'
+                      : 'border-line bg-card'
+                  )}
+                >
+                  {popular && (
+                    <span className="absolute -top-3 left-7 rounded-full bg-surface px-[11px] py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-accent">
+                      {tl('popular')}
+                    </span>
+                  )}
+                  <div className={cn('font-display text-[23px]', popular ? 'text-white' : 'text-ink')}>
+                    {tp(`${pkg.id}.name` as any)}
+                  </div>
+                  <div className={cn('mb-5 text-[13px]', popular ? 'opacity-75' : 'text-gray')}>
+                    {tp(`${pkg.id}.tagline` as any)}
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className={cn('font-display text-[38px]', popular ? 'text-white' : 'text-ink')}>
+                      {fmtGBP(pkg.gbp)}
+                    </span>
+                    <span className={cn('text-[14px]', popular ? 'opacity-75' : 'text-gray')}>
+                      / {fmtUSD(pkg.gbp)}
+                    </span>
+                  </div>
+                  <div className={cn('mb-6 mt-0.5 text-[13px]', popular ? 'opacity-75' : 'text-gray')}>
+                    {fmtUZS(pkg.gbp)}
+                  </div>
+                  <div className="mb-6 flex flex-col gap-3">
+                    {features.map((f, i) => (
+                      <div key={i} className={cn('flex gap-2.5 text-[13.5px]', popular ? 'opacity-95' : 'text-ink-2')}>
+                        <span className={cn('font-bold', popular ? 'text-white' : 'text-accent')}>✓</span>
+                        {f}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    variant={popular ? 'white' : 'outline'}
+                    size="block"
+                    disabled={buyingPkg === pkg.id}
+                    className={cn('rounded-[11px]', popular && 'font-bold text-accent')}
+                    onClick={() => choosePackage(pkg.id)}
+                  >
+                    {tl('choose')}
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
           {/* Services by stage */}
           <div className="flex flex-col gap-9">
@@ -235,6 +331,7 @@ export default function ServicesPage() {
             </div>
           </aside>
         </div>
+        )}
       </main>
       <Footer />
 
