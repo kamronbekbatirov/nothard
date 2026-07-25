@@ -258,6 +258,11 @@ export const api = {
     // Per-client live trip shown in the client drawer (+ operator editing).
     geocode: (q: string) => req<{ results: GeoResult[] }>(`/admin/geocode?q=${encodeURIComponent(q)}`),
     clientTrip: (clientId: number) => req<{ trip: TripLive | null }>(`/admin/clients/${clientId}/trip`),
+    // Planned airport → drop-off route the operator can preview before a trip starts.
+    routePreview: (clientId: number, mode?: TravelMode) =>
+      req<RoutePreview & { mode: TravelMode; pickup: string | null; destLabel: string | null }>(
+        `/admin/clients/${clientId}/route-preview${mode ? `?mode=${mode}` : ''}`
+      ),
     setTripDestination: (tripId: number, body: { dest_label?: string; dest_lat?: number; dest_lng?: number }) =>
       req<{ trip: TripLive; located: boolean }>(`/admin/trips/${tripId}/destination`, {
         method: 'POST',

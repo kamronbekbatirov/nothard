@@ -2962,6 +2962,47 @@ def create_app() -> Flask:
         trip = active_trip_for_client(client_id)
         return jsonify({"trip": trip_live_payload(trip) if trip else None})
 
+    @app.get("/admin/clients/<int:client_id>/route-preview")
+    def admin_route_preview(client_id: int):
+        """The planned airport → drop-off route from what the client booked, so the
+        operator can see/choose it BEFORE the runner starts the trip. `?mode=` lets
+        them compare transit vs car; defaults to the mode implied by the service."""
+        user, err = require_role("operator")
+        if err:
+            return err
+        cfg = tracking_cfg()
+        arr = client_arrival_info(client_id)
+        # Pickup (airport) coords.
+        pu = airport_coords(arr["airport"]) if arr["airport"] else None
+        if not pu and arr["airport"]:
+            geo = routing.geocode(arr["airport"], nominatim_url=cfg["nominatim_url"])
+            if geo:
+                pu = (geo["lat"], geo["lng"])
+        # Drop-off coords.
+        d_lat, d_lng = arr["dropoff_lat"], arr["dropoff_lng"]
+        if (d_lat is None or d_lng is None) and arr["dropoff"]:
+            geo = routing.geocode(arr["dropoff"], nominatim_url=cfg["nominatim_url"])
+            if geo:
+                d_lat, d_lng = geo["lat"], geo["lng"]
+        if not pu or d_lat is None:
+            return jsonify({"route": [], "legs": [], "eta": None, "mode": arr["mode"],
+                            "pickup": arr["airport"], "dest": arr["dropoff"]})
+        mode = request.args.get("mode") if request.args.get("mode") in routing.MODE_SPEED_KMH else arr["mode"]
+        res = routing.route_eta(
+            pu[0], pu[1], float(d_lat), float(d_lng), mode=mode,
+            osrm_url=cfg["osrm_url"], walk_url=cfg["osrm_walk_url"] or None,
+            bike_url=cfg["osrm_bike_url"] or None, otp_url=cfg["otp_url"] or None,
+            tfl_key=cfg["tfl_app_key"] or None, fallback_kmh=cfg["fallback_kmh"],
+        )
+        return jsonify({
+            "route": res["route"], "legs": res.get("legs") or [],
+            "routeSource": res["source"], "mode": mode,
+            "eta": {"minutes": res["minutes"], "km": res["km"]},
+            "origin": {"lat": pu[0], "lng": pu[1]},
+            "dest": {"lat": float(d_lat), "lng": float(d_lng)},
+            "pickup": arr["airport"], "destLabel": arr["dropoff"],
+        })
+
     @app.post("/admin/trips/<int:trip_id>/destination")
     def admin_trip_set_dest(trip_id: int):
         user, err = require_role("operator")

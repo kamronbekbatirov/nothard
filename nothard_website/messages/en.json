@@ -1217,6 +1217,8 @@
     "phaseDest": "Taking the client to:",
     "metBtn": "Met the client",
     "clientOnWayPickup": "{name} will meet you shortly",
-    "clientOnWayDest": "On the way to your destination"
+    "clientOnWayDest": "On the way to your destination",
+    "adminPlannedTitle": "Planned route",
+    "adminPlannedHint": "The route is built automatically once the companion starts the trip."
   }
 }

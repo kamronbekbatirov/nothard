@@ -1217,6 +1217,8 @@
     "phaseDest": "Mijozni olib boradi:",
     "metBtn": "Mijozni kutib oldim",
     "clientOnWayPickup": "{name} sizni tez orada kutib oladi",
-    "clientOnWayDest": "Manzil sari yo‘ldamiz"
+    "clientOnWayDest": "Manzil sari yo‘ldamiz",
+    "adminPlannedTitle": "Rejalashtirilgan marshrut",
+    "adminPlannedHint": "Marshrut hamroh safarni boshlaganda avtomatik quriladi."
   }
 }

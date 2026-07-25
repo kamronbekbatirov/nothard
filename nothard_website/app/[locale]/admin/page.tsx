@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { Camera, ChevronDown, Paperclip, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
@@ -8,7 +9,14 @@ import { Button } from '@/app/components/button'
 import { DateTimeInput, Field, Input, PickOrType } from '@/app/components/field'
 import { AddressField } from '@/app/components/address-field'
 import { TripCard } from '@/app/components/trip-card'
+import { TransitLegs } from '@/app/components/transit-legs'
 import { ModeSelector } from '@/app/components/travel-mode'
+
+// Leaflet needs `window` → client-only. Used for the operator's planned-route preview.
+const AdminLiveMap = dynamic(() => import('@/app/components/live-map'), {
+  ssr: false,
+  loading: () => <div className="h-[200px] animate-pulse rounded-xl border border-line bg-card" />,
+})
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { PanelLoading } from '../runner/page'
@@ -32,6 +40,7 @@ import {
   type AdminTrip,
   type TripLive,
   type TravelMode,
+  type RoutePreview,
 } from '@/app/lib/api'
 import { fmtGBP, PACKAGES, SERVICES, LONDON_AIRPORT_TERMINALS, LONDON_FLIGHTS } from '@/app/lib/data'
 import { useTaskLabel } from '@/app/lib/task-label'
@@ -2744,6 +2753,12 @@ function AdminTripSection({ clientId }: { clientId: number }) {
   const [newDest, setNewDest] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [busy, setBusy] = useState(false)
+  // Planned route (airport → drop-off) shown BEFORE a trip starts, so the operator
+  // can see/choose it. `previewMode` lets them compare transit vs car.
+  const [preview, setPreview] = useState<
+    (RoutePreview & { mode: TravelMode; pickup: string | null; destLabel: string | null }) | null
+  >(null)
+  const [previewMode, setPreviewMode] = useState<TravelMode | undefined>(undefined)
 
   const load = () => api.admin.clientTrip(clientId).then((r) => setTrip(r.trip)).catch(() => {})
   useEffect(() => {
@@ -2753,7 +2768,40 @@ function AdminTripSection({ clientId }: { clientId: number }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId])
 
-  if (!trip || trip.status === 'cancelled') return null
+  const hasTrip = trip && trip.status !== 'cancelled'
+  // No live trip yet → load the planned route preview from the client's booking.
+  useEffect(() => {
+    if (hasTrip) return
+    api.admin.routePreview(clientId, previewMode).then(setPreview).catch(() => setPreview(null))
+  }, [clientId, hasTrip, previewMode])
+
+  if (!hasTrip) {
+    if (!preview || !preview.eta) return null
+    const isEstimate = preview.routeSource === 'approx' || preview.routeSource === 'line'
+    return (
+      <div className="mt-4 rounded-lg border border-accent/25 bg-accent-bg/40 p-3">
+        <div className="mb-2 text-[11px] uppercase tracking-wide text-accent">{t('adminPlannedTitle')}</div>
+        <div className="mb-2 text-[12px] leading-snug text-ink-2">
+          {preview.pickup && <div>✈️ {preview.pickup}</div>}
+          {preview.destLabel && <div>🏠 {preview.destLabel}</div>}
+        </div>
+        <ModeSelector value={preview.mode} onChange={(m: TravelMode) => setPreviewMode(m)} />
+        <div className="mt-1.5 text-[12px] font-medium text-accent">
+          {t('etaMin', { min: preview.eta.minutes })} · {t('kmLeft', { km: preview.eta.km })}
+        </div>
+        <div className="mt-2">
+          <AdminLiveMap position={null} dest={preview.dest ?? null} route={preview.route} estimate={isEstimate} height={200} />
+        </div>
+        {preview.legs.length > 0 && (
+          <div className="mt-2 rounded-lg border border-line bg-card p-2.5">
+            <TransitLegs legs={preview.legs} />
+          </div>
+        )}
+        <p className="mt-2 text-[11.5px] text-gray">{t('adminPlannedHint')}</p>
+      </div>
+    )
+  }
+  if (!trip) return null
 
   async function saveDest() {
     if (!trip || !newDest.trim()) return
