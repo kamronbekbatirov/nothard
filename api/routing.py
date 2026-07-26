@@ -129,6 +129,43 @@ def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
     return js[0] if js else None
 
 
+def _poly_len(pts: list) -> float:
+    return sum(haversine_km(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1])
+               for i in range(len(pts) - 1))
+
+
+def _detangle(pts: list) -> list:
+    """TfL's rail `lineString` (esp. the Elizabeth line) is often badly broken —
+    the geometry zigzags/doubles back so the drawn line looks buggy. When a leg's
+    polyline is much longer than the straight distance between its endpoints
+    (i.e. tangled), first drop points that backtrack against the overall
+    direction; if it's STILL tangled, fall back to a clean straight segment
+    between the endpoints (a transit schematic — the exact stops are in the legs)."""
+    if len(pts) < 4:
+        return pts
+    straight = haversine_km(pts[0][0], pts[0][1], pts[-1][0], pts[-1][1])
+    if straight < 0.3 or _poly_len(pts) <= straight * 1.4:
+        return pts  # already reasonable — leave the real curve alone
+    ax, ay = pts[0]
+    dx, dy = pts[-1][0] - ax, pts[-1][1] - ay
+    norm = dx * dx + dy * dy
+    if norm < 1e-12:
+        return [pts[0], pts[-1]]
+    out = [pts[0]]
+    max_proj = 0.0
+    for p in pts[1:-1]:
+        proj = ((p[0] - ax) * dx + (p[1] - ay) * dy) / norm  # 0..1 along start→end
+        if proj >= max_proj:  # strictly forward — drop any backtracking
+            out.append(p)
+            max_proj = proj
+    out.append(pts[-1])
+    # Still noticeably longer than straight → the geometry is too broken to trust;
+    # use a clean endpoint-to-endpoint segment.
+    if _poly_len(out) > straight * 1.35:
+        return [pts[0], pts[-1]]
+    return out
+
+
 def _parse_tfl_journey(j: dict) -> dict:
     """One TfL journey object → {minutes, km, route, legs, source, mode}."""
     route: list = []
@@ -136,14 +173,17 @@ def _parse_tfl_journey(j: dict) -> dict:
     for leg in j.get("legs") or []:
         leg_pts = 0
         ls = (leg.get("path") or {}).get("lineString")
+        mode_name = (leg.get("mode") or {}).get("name") or ""
         if ls:
             try:
-                for p in json.loads(ls):  # TfL lineString is [[lat,lng]...]
-                    route.append([p[0], p[1]])
-                    leg_pts += 1
+                raw = [[p[0], p[1]] for p in json.loads(ls)]  # TfL is [[lat,lng]...]
+                # Clean up broken rail geometry (walk legs are short & fine).
+                if "walk" not in mode_name.lower():
+                    raw = _detangle(raw)
+                route.extend(raw)
+                leg_pts = len(raw)
             except (ValueError, TypeError, IndexError):
                 pass
-        mode_name = (leg.get("mode") or {}).get("name") or ""
         line = ""
         opts = leg.get("routeOptions") or []
         if opts:
