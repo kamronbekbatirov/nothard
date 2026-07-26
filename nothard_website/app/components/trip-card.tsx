@@ -19,7 +19,17 @@ const LiveMap = dynamic(() => import('./live-map'), {
  * the destination and the route, plus a headline ETA. Shared by the client
  * cabinet and the read-only family page.
  */
-export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: boolean }) {
+export function TripCard({
+  trip,
+  minimal = false,
+  runnerView = false,
+}: {
+  trip: TripLive
+  minimal?: boolean
+  // The driver's own view — titles read from the runner's POV ("you're heading
+  // to pick up / driving to the destination"), not "{name} is coming to you".
+  runnerView?: boolean
+}) {
   const t = useTranslations('Tracking')
   const arrived = trip.status === 'arrived'
   const eta = trip.eta
@@ -33,18 +43,26 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
 
   const toPickup = trip.phase === 'toPickup'
   const atPickup = toPickup && trip.atPickup
-  // The client's phase-1 view frames it as "your host will meet you" (the runner
-  // is coming to the airport), then "your host has arrived & is waiting" once
-  // they're at the airport; phase 2 is "on the way to your destination".
+  // Titles depend on who's looking:
+  //  - runnerView (the driver): self-POV — heading to pick up / waiting / driving.
+  //  - client (minimal): "your host will meet you" → "arrived & waiting" → "on the
+  //    way to your destination".
+  //  - family/admin (non-minimal): "{name} is on the way to you".
   const title = arrived
     ? t('arrivedTitle')
-    : minimal && atPickup
-      ? t('clientAtPickup', { name: trip.runner.name })
-      : minimal && toPickup
-        ? t('clientOnWayPickup', { name: trip.runner.name })
-        : minimal
-          ? t('clientOnWayDest')
-          : t('onWayTitle', { name: trip.runner.name })
+    : runnerView
+      ? atPickup
+        ? t('runnerWaiting')
+        : toPickup
+          ? t('runnerToPickup')
+          : t('runnerToDest')
+      : minimal && atPickup
+        ? t('clientAtPickup', { name: trip.runner.name })
+        : minimal && toPickup
+          ? t('clientOnWayPickup', { name: trip.runner.name })
+          : minimal
+            ? t('clientOnWayDest')
+            : t('onWayTitle', { name: trip.runner.name })
   // The client (like the runner) sees the route line + the current leg's endpoint
   // marker — the airport ✈️ while the host is coming, home 🏠 once travelling. In
   // phase 1 the client's label is hidden (they just watch the host approach); the

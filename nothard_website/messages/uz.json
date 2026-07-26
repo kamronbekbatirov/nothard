@@ -423,8 +423,8 @@
         "desc": "Sizni chiqishda kutib olamiz va yuklaringizga yordam beramiz"
       },
       "transfer": {
-        "title": "Turar joyga transfer",
-        "desc": "Vaqtinchalik turar joyingizga olib boramiz"
+        "title": "Manzilingizga transfer",
+        "desc": "Kutib olamiz va yashash manzilingizga yetkazamiz"
       },
       "tempStay": {
         "title": "Vaqtinchalik uy",
@@ -1236,6 +1236,9 @@
     "routeChosen": "Marshrut tanlandi",
     "hereBtn": "Yetib keldim",
     "phaseWaiting": "Mijozni kutmoqda:",
-    "clientAtPickup": "{name} yetib keldi va sizni kutmoqda"
+    "clientAtPickup": "{name} chiqishda ismingiz yozilgan lavha bilan kutmoqda",
+    "runnerToPickup": "Mijozni kutib olishga ketyapsiz",
+    "runnerWaiting": "Yetib keldingiz — mijozni kutyapsiz",
+    "runnerToDest": "Manzilga ketyapsiz"
   }
 }

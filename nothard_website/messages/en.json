@@ -423,8 +423,8 @@
         "desc": "We'll meet you at arrivals and help with your bags"
       },
       "transfer": {
-        "title": "Transfer to your stay",
-        "desc": "We'll take you to your temporary accommodation"
+        "title": "Transfer to your destination",
+        "desc": "We'll meet you and drive you to your address"
       },
       "tempStay": {
         "title": "Temporary stay",
@@ -1236,6 +1236,9 @@
     "routeChosen": "Route chosen",
     "hereBtn": "I've arrived",
     "phaseWaiting": "Waiting for the client:",
-    "clientAtPickup": "{name} has arrived and is waiting for you"
+    "clientAtPickup": "{name} is waiting for you at the exit with a sign",
+    "runnerToPickup": "Heading to pick up the client",
+    "runnerWaiting": "You've arrived — waiting for the client",
+    "runnerToDest": "Driving to the destination"
   }
 }
