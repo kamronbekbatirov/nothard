@@ -2409,12 +2409,12 @@ def create_app() -> Flask:
                 "at": ping.recorded_at.isoformat() if ping.recorded_at else None,
                 "bearing": ping.bearing, "battery": ping.battery,
             }
-        # The runner sees the route LINE in both phases (how they're driving); the
-        # client only from phase 2. The step-by-step transit LEGS ("take the Elizabeth
-        # line…") are the client's own journey — shown to everyone ONLY in phase 2,
-        # once they've met, never while the runner is still coming to the airport.
+        # The RUNNER sees the route line AND its transit legs in both phases (they
+        # need to follow whatever route they picked — incl. taking transit to the
+        # airport). The CLIENT sees nothing until phase 2: no line, and the
+        # step-by-step legs ("take the Elizabeth line…") only once they've met.
         show_route = (not for_client) or phase == "toDestination"
-        show_legs = phase == "toDestination"
+        show_legs = (not for_client) or phase == "toDestination"
         tgt_lat, tgt_lng, _ = _phase_target(trip)
         return {
             "id": trip.id,

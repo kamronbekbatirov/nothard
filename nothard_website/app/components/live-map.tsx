@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { Crosshair, Maximize2, X } from 'lucide-react'
 import type { LatLng } from '@/app/lib/api'
 
 // Emoji pin icons built as div-icons — avoids Leaflet's default marker-image
@@ -19,7 +20,8 @@ function pin(emoji: string, ring: string) {
   })
 }
 const RUNNER_ICON = pin('🧍', '#2f5d45')
-const DEST_ICON = pin('🏠', '#c26a3d')
+const HOME_ICON = pin('🏠', '#c26a3d')
+const AIRPORT_ICON = pin('✈️', '#2f5d45')
 
 // Small accent dot for the current transit waypoint (next station).
 const WAYPOINT_ICON = L.divIcon({
@@ -33,9 +35,10 @@ const WAYPOINT_ICON = L.divIcon({
 /**
  * Leaflet renders grey tiles when its container is sized after mount (e.g. the
  * trip card appears in an already-open cabinet). Nudging invalidateSize() after
- * mount + on resize fixes it, so the map is correct without a page reload.
+ * mount + on resize fixes it. `bump` re-invalidates when the container resizes
+ * (e.g. entering/leaving fullscreen).
  */
-function Resizer() {
+function Resizer({ bump }: { bump: unknown }) {
   const map = useMap()
   useEffect(() => {
     const t1 = setTimeout(() => map.invalidateSize(), 150)
@@ -47,23 +50,24 @@ function Resizer() {
       clearTimeout(t2)
       window.removeEventListener('resize', onResize)
     }
-  }, [map])
+  }, [map, bump])
   return null
 }
 
-/** Keeps the whole route (runner + destination) in view as positions change. */
-function FitBounds({ points }: { points: LatLng[] }) {
+/** Keeps the whole route (runner + destination) in view as positions change.
+ *  Exposes the fit function to the parent so the "recenter" button can reuse it. */
+function FitBounds({ points, onReady }: { points: LatLng[]; onReady: (fit: () => void) => void }) {
   const map = useMap()
   const key = JSON.stringify(points)
   useEffect(() => {
-    if (points.length === 1) {
-      map.setView(points[0], 14)
-    } else if (points.length > 1) {
-      map.fitBounds(L.latLngBounds(points as [number, number][]), {
-        padding: [42, 42],
-        maxZoom: 15,
-      })
+    const fit = () => {
+      if (points.length === 1) map.setView(points[0], 14)
+      else if (points.length > 1) {
+        map.fitBounds(L.latLngBounds(points as [number, number][]), { padding: [42, 42], maxZoom: 15 })
+      }
     }
+    onReady(fit)
+    fit()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
   return null
@@ -74,18 +78,23 @@ export default function LiveMap({
   dest,
   route,
   waypoint = null,
+  destKind = 'home',
   estimate = false,
   height = 260,
 }: {
   position: { lat: number; lng: number } | null
   dest: { lat: number | null; lng: number | null } | null
   route: LatLng[]
-  /** Current transit waypoint (next station) — an accent dot on the route. */
   waypoint?: { lat: number; lng: number } | null
+  /** Which pin to use for the leg endpoint: the airport (going to pick up) or home. */
+  destKind?: 'home' | 'airport'
   /** Dash the line to signal an estimated (not real-router) route. */
   estimate?: boolean
   height?: number
 }) {
+  const [fullscreen, setFullscreen] = useState(false)
+  const fitRef = useRef<(() => void) | null>(null)
+
   const runnerPt: LatLng | null = position ? [position.lat, position.lng] : null
   const destPt: LatLng | null =
     dest && dest.lat != null && dest.lng != null ? [dest.lat, dest.lng] : null
@@ -101,38 +110,72 @@ export default function LiveMap({
   }, [JSON.stringify(route), JSON.stringify(runnerPt), JSON.stringify(destPt)])
 
   const center: LatLng = runnerPt || destPt || [51.5074, -0.1278] // London fallback
-  // Dashed = estimated route (no dedicated router for this mode); solid = real.
-  const isEstimate = estimate
+
+  // Esc closes fullscreen; lock body scroll while open.
+  useEffect(() => {
+    if (!fullscreen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFullscreen(false)
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [fullscreen])
+
+  const CtrlBtn = ({ onClick, label, children }: { onClick: () => void; label: string; children: ReactNode }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-ink shadow-md ring-1 ring-black/5 transition hover:bg-white"
+    >
+      {children}
+    </button>
+  )
 
   return (
-    // `isolate` + z-0 keep Leaflet's high internal pane/control z-indexes (400/1000)
-    // contained in their own stacking context, below the sticky header (z-30).
-    <div style={{ height }} className="isolate relative z-0 overflow-hidden rounded-xl border border-line">
+    // `isolate` + z-0 keep Leaflet's high internal pane/control z-indexes contained
+    // below the sticky header. In fullscreen the wrapper covers the viewport.
+    <div
+      style={fullscreen ? undefined : { height }}
+      className={
+        fullscreen
+          ? 'fixed inset-0 z-[100000] bg-paper'
+          : 'isolate relative z-0 overflow-hidden rounded-xl border border-line'
+      }
+    >
       <MapContainer
         center={center}
         zoom={13}
         scrollWheelZoom
-        style={{ height: '100%', width: '100%' }}
+        style={{ height: fullscreen ? '100vh' : '100%', width: '100%' }}
         attributionControl={false}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />
         {route.length > 1 && (
           <Polyline
             positions={route as [number, number][]}
-            pathOptions={{
-              color: '#2f5d45',
-              weight: 5,
-              opacity: 0.85,
-              dashArray: isEstimate ? '8 10' : undefined,
-            }}
+            pathOptions={{ color: '#2f5d45', weight: 5, opacity: 0.85, dashArray: estimate ? '8 10' : undefined }}
           />
         )}
         {wayPt && <Marker position={wayPt} icon={WAYPOINT_ICON} />}
-        {destPt && <Marker position={destPt} icon={DEST_ICON} />}
+        {destPt && <Marker position={destPt} icon={destKind === 'airport' ? AIRPORT_ICON : HOME_ICON} />}
         {runnerPt && <Marker position={runnerPt} icon={RUNNER_ICON} />}
-        <Resizer />
-        <FitBounds points={fitPoints} />
+        <Resizer bump={fullscreen} />
+        <FitBounds points={fitPoints} onReady={(fit) => (fitRef.current = fit)} />
       </MapContainer>
+
+      {/* Controls — recenter (find the route again) + fullscreen toggle. */}
+      <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-2">
+        <CtrlBtn onClick={() => fitRef.current?.()} label="recenter">
+          <Crosshair size={17} className="text-accent" />
+        </CtrlBtn>
+        <CtrlBtn onClick={() => setFullscreen((f) => !f)} label="fullscreen">
+          {fullscreen ? <X size={18} /> : <Maximize2 size={16} />}
+        </CtrlBtn>
+      </div>
     </div>
   )
 }

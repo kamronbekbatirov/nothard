@@ -93,6 +93,7 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
         dest={showDestPin ? legEnd : null}
         route={trip.route}
         waypoint={waypoint}
+        destKind={toPickup ? 'airport' : 'home'}
         estimate={isEstimate}
         height={arrived ? 200 : 260}
       />
