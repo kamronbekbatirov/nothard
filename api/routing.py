@@ -19,6 +19,8 @@ from typing import Optional
 
 import requests
 
+import osm_rail
+
 # Public demo endpoints — good enough to develop against. For production set
 # `osrm_url` / `nominatim_url` in operator settings to your own instances.
 DEFAULT_OSRM_URL = "https://router.project-osrm.org"
@@ -273,12 +275,26 @@ def _parse_tfl_journey(j: dict, base=None, app_key=None) -> dict:
             line_id = ident.get("id") or ""
         is_walk = "walk" in mode_name.lower()
         raw: list = []
-        # Rail legs: draw through the real stations (clean); walk legs use their
-        # own short lineString; fall back to de-tangling the raw geometry.
+        # Rail legs, best geometry first:
+        #  1) exact OSM track between the leg's stations (real curves), then
+        #  2) a smoothed line through the real stations, then
+        #  3) the de-tangled raw TfL geometry.
         if not is_walk and line_id:
-            via = _rail_leg_via_stations(leg, line_id, base, app_key)
-            if via:
-                raw = via
+            dp = leg.get("departurePoint") or {}
+            ap = leg.get("arrivalPoint") or {}
+            if dp.get("lat") is not None and ap.get("lat") is not None:
+                try:
+                    seg = osm_rail.rail_segment(
+                        line_id, (dp["lat"], dp["lon"]), (ap["lat"], ap["lon"])
+                    )
+                    if seg:
+                        raw = _smooth(seg, iterations=1)
+                except Exception:
+                    raw = []
+            if not raw:
+                via = _rail_leg_via_stations(leg, line_id, base, app_key)
+                if via:
+                    raw = via
         if not raw and ls:
             try:
                 raw = [[p[0], p[1]] for p in json.loads(ls)]  # TfL is [[lat,lng]...]
