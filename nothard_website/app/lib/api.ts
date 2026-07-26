@@ -694,6 +694,7 @@ export type SharedRelocation = {
   progress: { done: number; total: number }
   path: { key: string; status: string }[]
   services: { id: string; done: boolean }[]
+  destLabel: string
   manager: { name: string; photoUrl: string | null } | null
   runner: { name: string; photoUrl: string | null } | null
 }

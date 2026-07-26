@@ -1108,7 +1108,8 @@
     "done": "Bajarildi",
     "inProgress": "Jarayonda",
     "pending": "Kutilmoqda",
-    "cta": "Nothard haqida"
+    "cta": "Nothard haqida",
+    "completedNote": "Hammasi bajarildi. Ko‘chishni Nothard’ga ishonganingiz uchun rahmat."
   },
   "Duplicate": {
     "title": "Bu paketga allaqachon kiritilgan",

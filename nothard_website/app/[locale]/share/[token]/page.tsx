@@ -102,37 +102,53 @@ export default function SharePage() {
               {data.clientName ? t('heading', { name: data.clientName }) : t('headingNoName')}
             </h1>
 
-            {data.package && (
-              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-accent-bg px-3 py-1 text-[13px] font-medium text-accent">
-                {t('packageLabel')}: {tp(`${data.package.id}.name` as any)}
-              </div>
-            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {data.package ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-accent-bg px-3 py-1 text-[13px] font-medium text-accent">
+                  {t('packageLabel')}: {tp(`${data.package.id}.name` as any)}
+                </span>
+              ) : data.services.length > 0 ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-accent-bg px-3 py-1 text-[13px] font-medium text-accent">
+                  {ts(`items.${data.services[0].id}.name` as any)}
+                </span>
+              ) : null}
+              {data.destLabel && (
+                <span className="inline-flex items-center gap-1 text-[13px] text-muted">
+                  🏠 {data.destLabel}
+                </span>
+              )}
+            </div>
 
+            {/* Live "on the way" map + route (only during an active pickup) */}
             {trip && trip.status !== 'cancelled' && (
               <div className="mt-6">
                 <TripCard trip={trip} minimal />
               </div>
             )}
 
-            {/* Progress */}
-            {data.progress.total > 0 && (
-              <div className="mt-6">
-                <div className="flex items-end justify-between">
-                  <span className="text-[13px] text-muted">
-                    {t('progress', { done: data.progress.done, total: data.progress.total })}
-                  </span>
-                  <span className="font-display text-[26px] text-accent">{percent}%</span>
-                </div>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-track">
-                  <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${percent}%` }} />
-                </div>
+            {/* Finished — a prominent completed banner takes over from progress */}
+            {data.packageComplete ? (
+              <div className="mt-6 rounded-2xl bg-accent px-6 py-8 text-center text-white">
+                <div className="text-[34px]">🎉</div>
+                <div className="mt-1 font-display text-[22px]">{t('completed')}</div>
+                <p className="mx-auto mt-1.5 max-w-[36ch] text-[13.5px] leading-relaxed text-white/80">
+                  {t('completedNote')}
+                </p>
               </div>
-            )}
-
-            {data.packageComplete && (
-              <div className="mt-6 rounded-2xl bg-accent px-6 py-6 text-center text-white">
-                <div className="font-display text-[20px]">{t('completed')}</div>
-              </div>
+            ) : (
+              data.progress.total > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-end justify-between">
+                    <span className="text-[13px] text-muted">
+                      {t('progress', { done: data.progress.done, total: data.progress.total })}
+                    </span>
+                    <span className="font-display text-[26px] text-accent">{percent}%</span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-track">
+                    <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${percent}%` }} />
+                  </div>
+                </div>
+              )
             )}
 
             {/* People */}

@@ -1108,7 +1108,8 @@
     "done": "Готово",
     "inProgress": "В работе",
     "pending": "Ожидает",
-    "cta": "Узнать о Nothard"
+    "cta": "Узнать о Nothard",
+    "completedNote": "Все услуги выполнены. Спасибо, что доверили переезд Nothard."
   },
   "Duplicate": {
     "title": "Это уже входит в пакет",

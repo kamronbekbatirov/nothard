@@ -932,15 +932,29 @@ def create_app() -> Flask:
         pkg_steps = [
             t for t in tasks if t.kind == "step" and pkg_order and t.order_id == pkg_order.id
         ]
-        # The cabinet path shows ALL step tasks (a package's steps AND the arrival
-        # steps a standalone airport service creates), ordered by position, so a
-        # lone airport buy gets the same two dashboard points as the meet package.
+        # Standalone airport-service orders (their steps ARE the relocation path,
+        # like the meet package). Reviewed → archived → they drop out of the path.
+        airport_orders = [
+            o for o in orders
+            if o.item_type == "service" and o.item_id in AIRPORT_SERVICE_STEPS and not o.archived
+        ]
+        active_order_ids = {o.id for o in orders if not o.archived}
+        # The cabinet path shows step tasks of NON-archived orders (a package's steps
+        # AND a standalone airport service's arrival steps), ordered by position — so
+        # a lone airport buy gets the same dashboard points, and once its order is
+        # reviewed/archived the path clears (→ completed → buy component).
         path_steps = sorted(
-            [t for t in tasks if t.kind == "step"], key=lambda t: (t.position, t.id)
+            [t for t in tasks if t.kind == "step" and t.order_id in active_order_ids],
+            key=lambda t: (t.position, t.id),
         )
         package_complete = bool(pkg_order) and bool(pkg_steps) and all(
             t.status == "done" for t in pkg_steps
         )
+
+        # An airport-service order is complete when all its step tasks are done.
+        def _airport_order_complete(o: Order) -> bool:
+            sts = [t for t in tasks if t.kind == "step" and t.order_id == o.id]
+            return bool(sts) and all(t.status == "done" for t in sts)
 
         # A runner (field companion) is only relevant while there's ACTIVE in-person
         # work left: a not-yet-done runner step (airport meet / viewings / move-in) or
@@ -957,8 +971,8 @@ def create_app() -> Flask:
         # Any incomplete step (incl. airport-service steps) means active work.
         has_active_steps = any(t.status != "done" for t in path_steps)
 
-        # Review prompt queue: a completed-but-unacknowledged package, then any
-        # completed-but-unacknowledged service. (archived == acknowledged.)
+        # Review prompt queue (archived == acknowledged): a completed package, then a
+        # completed airport-service (its steps done), then any completed plain service.
         pending_review = None
         if pkg_order and package_complete:
             pending_review = {
@@ -966,13 +980,21 @@ def create_app() -> Flask:
                 "itemId": pkg_order.item_id, "amountGBP": pkg_order.amount_gbp,
             }
         else:
-            for o in svc_active:
-                if svc_done(o):
+            for o in airport_orders:
+                if _airport_order_complete(o):
                     pending_review = {
                         "orderId": o.id, "itemType": "service",
                         "itemId": o.item_id, "amountGBP": o.amount_gbp,
                     }
                     break
+            if not pending_review:
+                for o in svc_active:
+                    if svc_done(o):
+                        pending_review = {
+                            "orderId": o.id, "itemType": "service",
+                            "itemId": o.item_id, "amountGBP": o.amount_gbp,
+                        }
+                        break
 
         def svc_row(o: Order) -> dict:
             return {
@@ -1116,11 +1138,15 @@ def create_app() -> Flask:
         pkg_order = next(
             (o for o in reversed(orders) if o.item_type == "package" and not o.archived), None
         )
-        pkg_steps = [
-            t for t in tasks if t.kind == "step" and pkg_order and t.order_id == pkg_order.id
-        ]
-        done = sum(1 for t in pkg_steps if t.status == "done")
-        total = len(pkg_steps)
+        # The relocation path = steps of NON-archived orders (package OR a standalone
+        # airport service), so a service-only client's family also sees the journey.
+        active_order_ids = {o.id for o in orders if not o.archived}
+        path_steps = sorted(
+            [t for t in tasks if t.kind == "step" and t.order_id in active_order_ids],
+            key=lambda t: (t.position, t.id),
+        )
+        done = sum(1 for t in path_steps if t.status == "done")
+        total = len(path_steps)
 
         def person(uid):
             if not uid:
@@ -1135,13 +1161,27 @@ def create_app() -> Flask:
             for o in orders if o.item_type == "service" and not o.archived
             and o.item_id not in AIRPORT_SERVICE_STEPS
         ]
+        # Everything finished = there are orders but no active (non-archived) ones,
+        # or all path steps done and no active services.
+        active_svc = any(not (svc_task_by_order.get(o.id) and svc_task_by_order[o.id].status == "done")
+                         for o in orders if o.item_type == "service" and not o.archived
+                         and o.item_id not in AIRPORT_SERVICE_STEPS)
+        all_done = bool(orders) and not active_svc and (total == 0 or done == total)
+        # Where they're going (drop-off) — for a bit of context on the family page.
+        dest_label = ""
+        for o in orders:
+            dl = (o.details or {}).get("dropoff")
+            if dl:
+                dest_label = dl
+                break
         return jsonify({
             "clientName": _first_name(c.name),
             "package": ({"id": pkg_order.item_id} if pkg_order else None),
-            "packageComplete": bool(pkg_steps) and done == total and total > 0,
+            "packageComplete": all_done,
             "progress": {"done": done, "total": total},
-            "path": [{"key": t.key, "status": t.status} for t in pkg_steps],
+            "path": [{"key": t.key, "status": t.status} for t in path_steps],
             "services": services,
+            "destLabel": dest_label,
             "manager": person(c.manager_id),
             "runner": person(c.runner_id),
         })
@@ -1795,16 +1835,20 @@ def create_app() -> Flask:
         # Airport services render as arrival STEPS (above), not service cards.
         svc = [o for o in orders if o.item_type == "service" and o.item_id not in AIRPORT_SERVICE_STEPS]
         tasks = client_tasks(c.id)
-        step_tasks = [t for t in tasks if t.kind == "step" and pkg and t.order_id == pkg.id]
-        # All step tasks (package + standalone airport steps) for the drawer's path,
-        # ordered by position; step_tasks above stays package-only for completion.
-        all_steps = sorted([t for t in tasks if t.kind == "step"], key=lambda t: (t.position, t.id))
+        # The relocation path = step tasks of NON-archived orders (a package's steps
+        # AND a standalone airport service's arrival steps), so the board's "next
+        # step" + progress work for a service-only client too, and clear once done.
+        active_order_ids = {o.id for o in orders if not o.archived}
+        all_steps = sorted(
+            [t for t in tasks if t.kind == "step" and t.order_id in active_order_ids],
+            key=lambda t: (t.position, t.id),
+        )
         # Per-order (not per-key) so a re-bought service resolves to its own task.
         svc_task_by_order = {t.order_id: t for t in tasks if t.kind == "service" and t.order_id}
         u = SessionLocal.get(User, c.user_id) if c.user_id else None
-        idx = active_step_index(step_tasks) if step_tasks else 0
+        idx = active_step_index(all_steps) if all_steps else 0
         all_paid = all(o.paid for o in orders) if orders else True
-        steps_done = bool(step_tasks) and all(t.status == "done" for t in step_tasks)
+        steps_done = bool(all_steps) and all(t.status == "done" for t in all_steps)
         active = any(t.status != "done" for t in tasks)
         attach_map = order_attachments([o.id for o in svc])
         step_att = task_attachments([t.id for t in all_steps])
@@ -1859,7 +1903,7 @@ def create_app() -> Flask:
             "package": pkg.item_id if pkg else None,
             "amount": sum(o.amount_gbp for o in orders),
             "stepIndex": idx,
-            "stepTotal": len(step_tasks),
+            "stepTotal": len(all_steps),
             "hasPackage": pkg is not None,
             "packageOrderId": pkg.id if pkg else None,
             "packageComplete": steps_done,

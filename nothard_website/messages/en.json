@@ -1108,7 +1108,8 @@
     "done": "Done",
     "inProgress": "In progress",
     "pending": "Pending",
-    "cta": "Learn about Nothard"
+    "cta": "Learn about Nothard",
+    "completedNote": "Everything is done. Thank you for trusting Nothard with the move."
   },
   "Duplicate": {
     "title": "Already included in the package",
