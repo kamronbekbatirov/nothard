@@ -271,6 +271,13 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(opt),
       }),
+    // Pick the airport→drop-off route before the trip: applied to a live trip if
+    // one exists, else saved on the booking and used when the runner drives it.
+    chooseClientRoute: (clientId: number, opt: RouteOption) =>
+      req<{ applied: string; trip?: TripLive }>(`/admin/clients/${clientId}/choose-route`, {
+        method: 'POST',
+        body: JSON.stringify(opt),
+      }),
     setTripDestination: (tripId: number, body: { dest_label?: string; dest_lat?: number; dest_lng?: number }) =>
       req<{ trip: TripLive; located: boolean }>(`/admin/trips/${tripId}/destination`, {
         method: 'POST',

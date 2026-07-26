@@ -42,6 +42,7 @@ import {
   type TripLive,
   type TravelMode,
   type RoutePreview,
+  type RouteOption,
 } from '@/app/lib/api'
 import { fmtGBP, PACKAGES, SERVICES, LONDON_AIRPORT_TERMINALS, LONDON_FLIGHTS } from '@/app/lib/data'
 import { useTaskLabel } from '@/app/lib/task-label'
@@ -2761,6 +2762,7 @@ function AdminTripSection({ clientId }: { clientId: number }) {
   >(null)
   const [previewMode, setPreviewMode] = useState<TravelMode | undefined>(undefined)
   const [showRoutes, setShowRoutes] = useState(false)
+  const [chosen, setChosen] = useState<RouteOption | null>(null)
 
   const load = () => api.admin.clientTrip(clientId).then((r) => setTrip(r.trip)).catch(() => {})
   useEffect(() => {
@@ -2779,7 +2781,12 @@ function AdminTripSection({ clientId }: { clientId: number }) {
 
   if (!hasTrip) {
     if (!preview || !preview.eta) return null
-    const isEstimate = preview.routeSource === 'approx' || preview.routeSource === 'line'
+    // Show the operator's chosen route if they picked one, else the default (fastest).
+    const shownRoute = chosen?.route ?? preview.route
+    const shownLegs = chosen?.legs ?? preview.legs
+    const shownEta = chosen ? { minutes: chosen.minutes, km: chosen.km } : preview.eta
+    const shownSource = chosen?.source ?? preview.routeSource
+    const isEstimate = shownSource === 'approx' || shownSource === 'line'
     return (
       <div className="mt-4 rounded-lg border border-accent/25 bg-accent-bg/40 p-3">
         <div className="mb-2 text-[11px] uppercase tracking-wide text-accent">{t('adminPlannedTitle')}</div>
@@ -2787,16 +2794,39 @@ function AdminTripSection({ clientId }: { clientId: number }) {
           {preview.pickup && <div>✈️ {preview.pickup}</div>}
           {preview.destLabel && <div>🏠 {preview.destLabel}</div>}
         </div>
-        <ModeSelector value={preview.mode} onChange={(m: TravelMode) => setPreviewMode(m)} />
-        <div className="mt-1.5 text-[12px] font-medium text-accent">
-          {t('etaMin', { min: preview.eta.minutes })} · {t('kmLeft', { km: preview.eta.km })}
+        <div className="mb-1.5 text-[12px] font-medium text-accent">
+          {t('etaMin', { min: shownEta.minutes })} · {t('kmLeft', { km: shownEta.km })}
+          {chosen && <span className="ml-1.5 text-[11px] text-gray">· {t('routeChosen')}</span>}
         </div>
-        <div className="mt-2">
-          <AdminLiveMap position={null} dest={preview.dest ?? null} route={preview.route} estimate={isEstimate} height={200} />
-        </div>
-        {preview.legs.length > 0 && (
+
+        {/* Operator picks the airport→home route now — saved for the trip. */}
+        {showRoutes ? (
+          <div className="mb-2 rounded-lg border border-line bg-card p-2.5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[12px] font-medium text-ink-2">{t('chooseRoute')}</span>
+              <button onClick={() => setShowRoutes(false)} className="text-[12px] text-gray hover:text-ink">
+                {t('back')}
+              </button>
+            </div>
+            <RouteOptions
+              load={() => api.admin.routeOptions(clientId).then((r) => r.options)}
+              onChoose={async (opt) => {
+                await api.admin.chooseClientRoute(clientId, opt).catch(() => {})
+                setChosen(opt)
+                setShowRoutes(false)
+              }}
+            />
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" className="mb-2 w-full gap-1.5" onClick={() => setShowRoutes(true)}>
+            {t('chooseRoute')}
+          </Button>
+        )}
+
+        <AdminLiveMap position={null} dest={preview.dest ?? null} route={shownRoute} estimate={isEstimate} height={200} />
+        {shownLegs.length > 0 && (
           <div className="mt-2 rounded-lg border border-line bg-card p-2.5">
-            <TransitLegs legs={preview.legs} />
+            <TransitLegs legs={shownLegs} />
           </div>
         )}
         <p className="mt-2 text-[11.5px] text-gray">{t('adminPlannedHint')}</p>

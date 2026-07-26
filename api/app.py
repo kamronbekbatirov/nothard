@@ -2882,15 +2882,20 @@ def create_app() -> Flask:
             return jsonify({"error": "not found"}), 404
         trip.phase = "toDestination"
         _invalidate_route(trip)  # replan pickup→dest from the current position
-        # Replan immediately from the runner's current position (they're at the
-        # airport now) so the client sees the route without waiting for a ping.
-        p = latest_ping(trip.id)
-        if p:
-            plan_trip_route(trip, p.lat, p.lng)
-        elif user.last_lat is not None and user.last_lng is not None:
-            plan_trip_route(trip, user.last_lat, user.last_lng)
-        elif trip.pickup_lat is not None:
-            plan_trip_route(trip, trip.pickup_lat, trip.pickup_lng)
+        # Use the operator's pre-chosen airport→drop-off route if there is one;
+        # otherwise plan from the runner's current position (they're at the airport
+        # now) so the client sees the route without waiting for a ping.
+        pref = client_preferred_route(trip.client_id)
+        if pref:
+            apply_route_choice(trip, pref)
+        else:
+            p = latest_ping(trip.id)
+            if p:
+                plan_trip_route(trip, p.lat, p.lng)
+            elif user.last_lat is not None and user.last_lng is not None:
+                plan_trip_route(trip, user.last_lat, user.last_lng)
+            elif trip.pickup_lat is not None:
+                plan_trip_route(trip, trip.pickup_lat, trip.pickup_lng)
         SessionLocal.commit()
         return jsonify({"trip": trip_live_payload(trip)})
 
@@ -3166,6 +3171,50 @@ def create_app() -> Flask:
             return jsonify({"error": "bad route"}), 400
         SessionLocal.commit()
         return jsonify({"trip": trip_live_payload(trip)})
+
+    def _arrival_order(client_id: int):
+        """The order that carries the client's arrival — the meet package, else a
+        standalone airport service (where the preferred route is stored)."""
+        orders = client_orders(client_id)
+        o = next((o for o in reversed(orders) if o.item_type == "package" and not o.archived), None)
+        if o is None:
+            o = next((o for o in reversed(orders)
+                      if o.item_type == "service" and o.item_id in AIRPORT_SERVICE_STEPS and not o.archived), None)
+        return o
+
+    def client_preferred_route(client_id: int) -> dict | None:
+        """The operator's pre-chosen airport → drop-off route, if any."""
+        o = _arrival_order(client_id)
+        pr = (o.details or {}).get("preferredRoute") if o else None
+        return pr if isinstance(pr, dict) and pr.get("route") else None
+
+    @app.post("/admin/clients/<int:client_id>/choose-route")
+    def admin_client_choose_route(client_id: int):
+        """Operator picks the airport → drop-off route BEFORE the trip starts. If a
+        trip is already live it's applied to it; otherwise it's saved on the client's
+        booking and used automatically when the runner reaches the drop-off leg."""
+        user, err = require_role("operator")
+        if err:
+            return err
+        body = request.get_json(silent=True) or {}
+        if not isinstance(body.get("route"), list) or len(body["route"]) < 2:
+            return jsonify({"error": "bad route"}), 400
+        trip = active_trip_for_client(client_id)
+        if trip:
+            apply_route_choice(trip, body)
+            SessionLocal.commit()
+            return jsonify({"applied": "trip", "trip": trip_live_payload(trip)})
+        o = _arrival_order(client_id)
+        if not o:
+            return jsonify({"error": "no arrival order", "code": "no_arrival"}), 404
+        # Keep only what's needed to replay the route later (cap geometry).
+        o.details = {**(o.details or {}), "preferredRoute": {
+            "mode": body.get("mode"), "source": body.get("source"),
+            "minutes": body.get("minutes"), "km": body.get("km"),
+            "route": body["route"][:4000], "legs": body.get("legs") or [],
+        }}
+        SessionLocal.commit()
+        return jsonify({"applied": "preference"})
 
     # ---- Runner detail + payouts (operator) -------------------------------
     @app.get("/admin/runners/<int:runner_id>")
