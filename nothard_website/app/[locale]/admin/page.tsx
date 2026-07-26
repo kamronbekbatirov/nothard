@@ -10,6 +10,7 @@ import { DateTimeInput, Field, Input, PickOrType } from '@/app/components/field'
 import { AddressField } from '@/app/components/address-field'
 import { TripCard } from '@/app/components/trip-card'
 import { TransitLegs } from '@/app/components/transit-legs'
+import { RouteOptions } from '@/app/components/route-options'
 import { ModeSelector } from '@/app/components/travel-mode'
 
 // Leaflet needs `window` → client-only. Used for the operator's planned-route preview.
@@ -2759,6 +2760,7 @@ function AdminTripSection({ clientId }: { clientId: number }) {
     (RoutePreview & { mode: TravelMode; pickup: string | null; destLabel: string | null }) | null
   >(null)
   const [previewMode, setPreviewMode] = useState<TravelMode | undefined>(undefined)
+  const [showRoutes, setShowRoutes] = useState(false)
 
   const load = () => api.admin.clientTrip(clientId).then((r) => setTrip(r.trip)).catch(() => {})
   useEffect(() => {
@@ -2843,6 +2845,29 @@ function AdminTripSection({ clientId }: { clientId: number }) {
         value={trip.mode}
         onChange={(m: TravelMode) => api.admin.setTripMode(trip.id, m).then((r) => setTrip(r.trip)).catch(() => {})}
       />
+      {/* Pick a specific route (all modes/alternatives) instead of the auto one. */}
+      {showRoutes ? (
+        <div className="mt-2 rounded-lg border border-line bg-card p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[12px] font-medium text-ink-2">{t('chooseRoute')}</span>
+            <button onClick={() => setShowRoutes(false)} className="text-[12px] text-gray hover:text-ink">
+              {t('back')}
+            </button>
+          </div>
+          <RouteOptions
+            load={() => api.admin.routeOptions(clientId).then((r) => r.options)}
+            onChoose={async (opt) => {
+              const r = await api.admin.chooseRoute(trip.id, opt)
+              setTrip(r.trip)
+              setShowRoutes(false)
+            }}
+          />
+        </div>
+      ) : (
+        <Button variant="outline" size="sm" className="mt-2 w-full gap-1.5" onClick={() => setShowRoutes(true)}>
+          {t('chooseRoute')}
+        </Button>
+      )}
       <div className="mt-2">
         <TripCard trip={trip} />
       </div>

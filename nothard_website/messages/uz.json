@@ -1221,6 +1221,11 @@
     "clientOnWayDest": "Manzil sari yo‘ldamiz",
     "adminPlannedTitle": "Rejalashtirilgan marshrut",
     "adminPlannedHint": "Marshrut hamroh safarni boshlaganda avtomatik quriladi.",
-    "cancelYes": "Ha, bekor qilish"
+    "cancelYes": "Ha, bekor qilish",
+    "routeNone": "Marshrutlar mavjud emas",
+    "routeFastest": "eng tez",
+    "routeChanges": "{count} almashish",
+    "chooseRoute": "Marshrutni tanlash",
+    "routeChosen": "Marshrut tanlandi"
   }
 }

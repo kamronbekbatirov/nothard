@@ -1221,6 +1221,11 @@
     "clientOnWayDest": "Манзил сари йўлдамиз",
     "adminPlannedTitle": "Режалаштирилган маршрут",
     "adminPlannedHint": "Маршрут ҳамроҳ сафарни бошлаганда автоматик қурилади.",
-    "cancelYes": "Ҳа, бекор қилиш"
+    "cancelYes": "Ҳа, бекор қилиш",
+    "routeNone": "Маршрутлар мавжуд эмас",
+    "routeFastest": "энг тез",
+    "routeChanges": "{count} алмашиш",
+    "chooseRoute": "Маршрутни танлаш",
+    "routeChosen": "Маршрут танланди"
   }
 }

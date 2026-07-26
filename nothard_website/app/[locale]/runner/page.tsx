@@ -10,7 +10,7 @@ import { ChatModal } from '@/app/components/chat'
 import { LangSwitcher } from '@/app/components/lang-switcher'
 import { AddressField } from '@/app/components/address-field'
 import { TripCard } from '@/app/components/trip-card'
-import { ModeSelector } from '@/app/components/travel-mode'
+import { RouteOptions } from '@/app/components/route-options'
 import { useToast } from '@/app/components/toast'
 import { useRequireRole } from '@/app/lib/use-require-role'
 import { useTaskLabel } from '@/app/lib/task-label'
@@ -23,6 +23,7 @@ import {
   type TripLive,
   type TrackConfig,
   type TravelMode,
+  type RouteOption,
 } from '@/app/lib/api'
 import { fmtGBP } from '@/app/lib/data'
 import { cn } from '@/app/lib/utils'
@@ -101,6 +102,12 @@ export default function RunnerPage() {
       if (!trip) return
       await api.runner.rebuildTrip(trip.id).catch(() => {})
       loadTrip()
+    },
+    routeOptions: () => (trip ? api.runner.routeOptions(trip.id).then((r) => r.options) : Promise.resolve([])),
+    chooseRoute: async (opt: RouteOption) => {
+      if (!trip) return
+      const r = await api.runner.chooseRoute(trip.id, opt)
+      setTrip((c) => (c ? { ...r.trip, client: c.client } : c))
     },
     arrive: async () => {
       if (!trip) return
@@ -280,6 +287,8 @@ type TripCtl = {
   setMode: (m: TravelMode) => void
   setDest: (label: string, coords: { lat: number; lng: number } | null) => Promise<void>
   rebuild: () => void
+  routeOptions: () => Promise<RouteOption[]>
+  chooseRoute: (opt: RouteOption) => Promise<void>
   arrive: () => void
   cancel: () => void
 }
@@ -406,6 +415,7 @@ function TripArea({
   const [newDest, setNewDest] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [showRoutes, setShowRoutes] = useState(false)
 
   if (!trip) {
     return (
@@ -435,7 +445,28 @@ function TripArea({
         </span>
       </div>
 
-      <ModeSelector value={trip.mode} onChange={tripCtl.setMode} />
+      {/* Choose the route (all modes/alternatives) instead of an auto-picked one. */}
+      {showRoutes ? (
+        <div className="rounded-lg border border-line bg-surface p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[12px] font-medium text-ink-2">{t('chooseRoute')}</span>
+            <button onClick={() => setShowRoutes(false)} className="text-[12px] text-gray hover:text-ink">
+              {t('back')}
+            </button>
+          </div>
+          <RouteOptions
+            load={tripCtl.routeOptions}
+            onChoose={async (opt) => {
+              await tripCtl.chooseRoute(opt)
+              setShowRoutes(false)
+            }}
+          />
+        </div>
+      ) : (
+        <Button variant="outline" size="block" className="gap-1.5" onClick={() => setShowRoutes(true)}>
+          <Navigation size={13} /> {t('chooseRoute')}
+        </Button>
+      )}
       <TripCard trip={trip} />
 
       {trip.offRoute && (

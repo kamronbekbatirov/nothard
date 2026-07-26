@@ -1221,6 +1221,11 @@
     "clientOnWayDest": "On the way to your destination",
     "adminPlannedTitle": "Planned route",
     "adminPlannedHint": "The route is built automatically once the companion starts the trip.",
-    "cancelYes": "Yes, cancel"
+    "cancelYes": "Yes, cancel",
+    "routeNone": "No routes available",
+    "routeFastest": "fastest",
+    "routeChanges": "{count} changes",
+    "chooseRoute": "Choose route",
+    "routeChosen": "Route chosen"
   }
 }

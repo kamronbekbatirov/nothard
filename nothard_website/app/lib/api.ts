@@ -263,6 +263,14 @@ export const api = {
       req<RoutePreview & { mode: TravelMode; pickup: string | null; destLabel: string | null }>(
         `/admin/clients/${clientId}/route-preview${mode ? `?mode=${mode}` : ''}`
       ),
+    // All route options for the operator to pick from (active trip or planned).
+    routeOptions: (clientId: number) =>
+      req<{ options: RouteOption[]; tripId: number | null }>(`/admin/clients/${clientId}/route-options`),
+    chooseRoute: (tripId: number, opt: RouteOption) =>
+      req<{ trip: TripLive }>(`/admin/trips/${tripId}/choose-route`, {
+        method: 'POST',
+        body: JSON.stringify(opt),
+      }),
     setTripDestination: (tripId: number, body: { dest_label?: string; dest_lat?: number; dest_lng?: number }) =>
       req<{ trip: TripLive; located: boolean }>(`/admin/trips/${tripId}/destination`, {
         method: 'POST',
@@ -492,6 +500,14 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(body),
       }),
+    // All route options for the current leg (runner picks instead of auto-select).
+    routeOptions: (tripId: number) =>
+      req<{ options: RouteOption[]; current: RouteSource | null }>(`/runner/trips/${tripId}/route-options`),
+    chooseRoute: (tripId: number, opt: RouteOption) =>
+      req<{ trip: TripLive }>(`/runner/trips/${tripId}/choose-route`, {
+        method: 'POST',
+        body: JSON.stringify(opt),
+      }),
     // Runner met the client at the airport → advance to phase 2 (to destination).
     met: (tripId: number) => req<{ trip: TripLive }>(`/runner/trips/${tripId}/met`, { method: 'POST' }),
     arrive: (tripId: number) => req<{ ok: boolean }>(`/runner/trips/${tripId}/arrive`, { method: 'POST' }),
@@ -550,6 +566,17 @@ export type RoutePreview = {
   eta: { minutes: number; km: number } | null
   origin?: { lat: number; lng: number }
   dest?: { lat: number; lng: number }
+}
+
+// One candidate route the runner/operator can pick instead of auto-selecting.
+export type RouteOption = {
+  id: string
+  mode: TravelMode
+  source: RouteSource
+  minutes: number
+  km: number
+  route: LatLng[]
+  legs: TripLeg[]
 }
 
 export type TrackConfig = {

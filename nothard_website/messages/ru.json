@@ -1221,6 +1221,11 @@
     "clientOnWayDest": "Едем к месту назначения",
     "adminPlannedTitle": "Планируемый маршрут",
     "adminPlannedHint": "Маршрут построится автоматически, когда сопровождающий начнёт поездку.",
-    "cancelYes": "Да, отменить"
+    "cancelYes": "Да, отменить",
+    "routeNone": "Маршруты недоступны",
+    "routeFastest": "быстрее",
+    "routeChanges": "{count} пересадок",
+    "chooseRoute": "Выбрать маршрут",
+    "routeChosen": "Маршрут выбран"
   }
 }

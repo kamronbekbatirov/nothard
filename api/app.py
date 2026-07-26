@@ -2758,6 +2758,81 @@ def create_app() -> Flask:
         SessionLocal.commit()
         return jsonify({"trip": trip_live_payload(trip)})
 
+    def _trip_options_origin(trip: Trip):
+        """Where the current phase starts FROM, for computing route options."""
+        p = latest_ping(trip.id)
+        if p:
+            return p.lat, p.lng
+        if (trip.phase or "toPickup") == "toDestination" and trip.pickup_lat is not None:
+            return trip.pickup_lat, trip.pickup_lng
+        if trip.origin_lat is not None:
+            return trip.origin_lat, trip.origin_lng
+        runner = SessionLocal.get(User, trip.runner_id)
+        if runner and runner.last_lat is not None:
+            return runner.last_lat, runner.last_lng
+        return None, None
+
+    def trip_route_options(trip: Trip) -> list:
+        cfg = tracking_cfg()
+        o_lat, o_lng = _trip_options_origin(trip)
+        t_lat, t_lng, _ = _phase_target(trip)
+        if o_lat is None or t_lat is None:
+            return []
+        return routing.route_options(
+            o_lat, o_lng, t_lat, t_lng,
+            osrm_url=cfg["osrm_url"], walk_url=cfg["osrm_walk_url"] or None,
+            bike_url=cfg["osrm_bike_url"] or None, tfl_key=cfg["tfl_app_key"] or None,
+            fallback_kmh=cfg["fallback_kmh"],
+        )
+
+    def apply_route_choice(trip: Trip, body: dict) -> bool:
+        """Store an explicitly-chosen route option on the trip (freezes geometry,
+        ETA, mode). Returns False if the option is malformed."""
+        route = body.get("route")
+        if not isinstance(route, list) or len(route) < 2:
+            return False
+        mode = body.get("mode") if body.get("mode") in routing.MODE_SPEED_KMH else (trip.mode or "car")
+        now = datetime.utcnow()
+        o_lat, o_lng = _trip_options_origin(trip)
+        trip.origin_lat, trip.origin_lng = o_lat, o_lng
+        trip.route_json = route[:4000]
+        trip.legs_json = body.get("legs") or None
+        trip.eta_source = body.get("source") or "osrm"
+        trip.mode = mode
+        trip.route_at = now
+        try:
+            trip.eta_minutes = int(body.get("minutes"))
+            trip.eta_km = float(body.get("km"))
+        except (TypeError, ValueError):
+            pass
+        trip.eta_at = now
+        return True
+
+    @app.get("/runner/trips/<int:trip_id>/route-options")
+    def runner_trip_route_options(trip_id: int):
+        """All the ways to travel the current leg — the runner picks instead of us
+        auto-choosing the fastest."""
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        return jsonify({"options": trip_route_options(trip), "current": trip.eta_source})
+
+    @app.post("/runner/trips/<int:trip_id>/choose-route")
+    def runner_trip_choose_route(trip_id: int):
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        if not apply_route_choice(trip, request.get_json(silent=True) or {}):
+            return jsonify({"error": "bad route"}), 400
+        SessionLocal.commit()
+        return jsonify({"trip": trip_live_payload(trip)})
+
     @app.post("/runner/route-preview")
     def runner_route_preview():
         """Compute a route origin→destination WITHOUT starting a trip, so the
@@ -3043,6 +3118,52 @@ def create_app() -> Flask:
             return jsonify({"error": "bad mode"}), 400
         trip.mode = d["mode"]
         _invalidate_route(trip)
+        SessionLocal.commit()
+        return jsonify({"trip": trip_live_payload(trip)})
+
+    @app.get("/admin/clients/<int:client_id>/route-options")
+    def admin_route_options(client_id: int):
+        """All available routes for the operator to pick from. For an active trip
+        that's the current leg; before a trip it's the planned airport → drop-off."""
+        user, err = require_role("operator")
+        if err:
+            return err
+        trip = active_trip_for_client(client_id)
+        if trip:
+            return jsonify({"options": trip_route_options(trip), "tripId": trip.id})
+        # No trip yet → airport → drop-off options from the client's booking.
+        cfg = tracking_cfg()
+        arr = client_arrival_info(client_id)
+        pu = airport_coords(arr["airport"]) if arr["airport"] else None
+        if not pu and arr["airport"]:
+            geo = routing.geocode(arr["airport"], nominatim_url=cfg["nominatim_url"])
+            if geo:
+                pu = (geo["lat"], geo["lng"])
+        d_lat, d_lng = arr["dropoff_lat"], arr["dropoff_lng"]
+        if (d_lat is None or d_lng is None) and arr["dropoff"]:
+            geo = routing.geocode(arr["dropoff"], nominatim_url=cfg["nominatim_url"])
+            if geo:
+                d_lat, d_lng = geo["lat"], geo["lng"]
+        if not pu or d_lat is None:
+            return jsonify({"options": [], "tripId": None})
+        opts = routing.route_options(
+            pu[0], pu[1], float(d_lat), float(d_lng),
+            osrm_url=cfg["osrm_url"], walk_url=cfg["osrm_walk_url"] or None,
+            bike_url=cfg["osrm_bike_url"] or None, tfl_key=cfg["tfl_app_key"] or None,
+            fallback_kmh=cfg["fallback_kmh"],
+        )
+        return jsonify({"options": opts, "tripId": None})
+
+    @app.post("/admin/trips/<int:trip_id>/choose-route")
+    def admin_trip_choose_route(trip_id: int):
+        user, err = require_role("operator")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip:
+            return jsonify({"error": "not found"}), 404
+        if not apply_route_choice(trip, request.get_json(silent=True) or {}):
+            return jsonify({"error": "bad route"}), 400
         SessionLocal.commit()
         return jsonify({"trip": trip_live_payload(trip)})
 

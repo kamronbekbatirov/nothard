@@ -124,68 +124,143 @@ def tfl_journey(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
     error / no journey (e.g. outside London → caller estimates instead). Distance
     is computed from the geometry (TfL's per-leg `distance` is unreliable for rail).
     """
+    js = tfl_journeys(from_lat, from_lng, to_lat, to_lng, app_key=app_key, base=base,
+                      timeout=timeout, limit=1)
+    return js[0] if js else None
+
+
+def _parse_tfl_journey(j: dict) -> dict:
+    """One TfL journey object → {minutes, km, route, legs, source, mode}."""
+    route: list = []
+    legs: list = []
+    for leg in j.get("legs") or []:
+        leg_pts = 0
+        ls = (leg.get("path") or {}).get("lineString")
+        if ls:
+            try:
+                for p in json.loads(ls):  # TfL lineString is [[lat,lng]...]
+                    route.append([p[0], p[1]])
+                    leg_pts += 1
+            except (ValueError, TypeError, IndexError):
+                pass
+        mode_name = (leg.get("mode") or {}).get("name") or ""
+        line = ""
+        opts = leg.get("routeOptions") or []
+        if opts:
+            line = opts[0].get("name") or ""
+            ident = (opts[0].get("lineIdentifier") or {})
+            line = ident.get("name") or line
+        to_lat = to_lng = None
+        ap = leg.get("arrivalPoint") or {}
+        if ap.get("lat") is not None and ap.get("lon") is not None:
+            to_lat, to_lng = ap["lat"], ap["lon"]
+        elif route:
+            to_lat, to_lng = route[-1][0], route[-1][1]
+        legs.append({
+            "mode": mode_name, "line": line,
+            "summary": (leg.get("instruction") or {}).get("summary") or "",
+            "from": (leg.get("departurePoint") or {}).get("commonName") or "",
+            "to": (leg.get("arrivalPoint") or {}).get("commonName") or "",
+            "minutes": int(round(leg.get("duration") or 0)),
+            "points": leg_pts, "toLat": to_lat, "toLng": to_lng,
+        })
+    km = sum(
+        haversine_km(route[i][0], route[i][1], route[i + 1][0], route[i + 1][1])
+        for i in range(len(route) - 1)
+    )
+    return {
+        "minutes": int(round(j.get("duration") or 0)), "km": round(km, 2),
+        "route": route, "legs": legs, "source": "tfl", "mode": "transit",
+    }
+
+
+def tfl_journeys(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
+                 app_key: Optional[str] = None, base: Optional[str] = None,
+                 timeout: float = 8.0, limit: int = 3) -> list:
+    """Up to `limit` alternative London transit journeys (each parsed like
+    tfl_journey). Empty list on error / no journey (e.g. outside London)."""
     b = (base or DEFAULT_TFL_URL).rstrip("/")
     url = f"{b}/Journey/JourneyResults/{from_lat},{from_lng}/to/{to_lat},{to_lng}"
     params = {"app_key": app_key} if app_key else {}
     try:
         resp = requests.get(url, params=params, headers=_UA, timeout=timeout)
         data = resp.json()
-        journeys = data.get("journeys") or []
-        if journeys:
-            j = journeys[0]
-            route: list = []
-            legs: list = []
-            for leg in j.get("legs") or []:
-                leg_pts = 0
-                ls = (leg.get("path") or {}).get("lineString")
-                if ls:
-                    try:
-                        for p in json.loads(ls):  # TfL lineString is [[lat,lng]...]
-                            route.append([p[0], p[1]])
-                            leg_pts += 1
-                    except (ValueError, TypeError, IndexError):
-                        pass
-                # Step-by-step summary (Google-Maps-style): mode, line, stations.
-                mode_name = (leg.get("mode") or {}).get("name") or ""
-                line = ""
-                opts = leg.get("routeOptions") or []
-                if opts:
-                    line = opts[0].get("name") or ""
-                    ident = (opts[0].get("lineIdentifier") or {})
-                    line = ident.get("name") or line
-                # End coordinate of the leg (the station you arrive at) — for the
-                # "next waypoint" map dot and progressive highlighting.
-                to_lat = to_lng = None
-                ap = leg.get("arrivalPoint") or {}
-                if ap.get("lat") is not None and ap.get("lon") is not None:
-                    to_lat, to_lng = ap["lat"], ap["lon"]
-                elif route:
-                    to_lat, to_lng = route[-1][0], route[-1][1]
-                legs.append({
-                    "mode": mode_name,                              # walking | tube | bus | elizabeth-line…
-                    "line": line,                                   # e.g. "Jubilee", "Elizabeth line"
-                    "summary": (leg.get("instruction") or {}).get("summary") or "",
-                    "from": (leg.get("departurePoint") or {}).get("commonName") or "",
-                    "to": (leg.get("arrivalPoint") or {}).get("commonName") or "",
-                    "minutes": int(round(leg.get("duration") or 0)),
-                    "points": leg_pts,                              # route points in this leg
-                    "toLat": to_lat, "toLng": to_lng,              # arrival-station coords
-                })
-            km = sum(
-                haversine_km(route[i][0], route[i][1], route[i + 1][0], route[i + 1][1])
-                for i in range(len(route) - 1)
-            )
-            return {
-                "minutes": int(round(j.get("duration") or 0)),
-                "km": round(km, 2),
-                "route": route,
-                "legs": legs,
-                "source": "tfl",
-                "mode": "transit",
-            }
+        out = []
+        for j in (data.get("journeys") or [])[:limit]:
+            parsed = _parse_tfl_journey(j)
+            if parsed["route"]:
+                out.append(parsed)
+        return out
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        return []
+
+
+def _osrm_routes(base: str, profile: str, from_lat: float, from_lng: float,
+                 to_lat: float, to_lng: float, timeout: float = 3.5, alternatives: int = 2) -> list:
+    """OSRM `/route` with alternatives → list of {minutes, km, route}."""
+    coords = f"{from_lng},{from_lat};{to_lng},{to_lat}"
+    url = f"{base.rstrip('/')}/route/v1/{profile}/{coords}"
+    try:
+        resp = requests.get(
+            url,
+            params={"overview": "full", "geometries": "geojson", "alternatives": str(alternatives)},
+            headers=_UA, timeout=timeout,
+        )
+        data = resp.json()
+        if resp.status_code == 200 and data.get("code") == "Ok" and data.get("routes"):
+            return [{
+                "minutes": int(round(r["duration"] / 60)),
+                "km": round(r["distance"] / 1000, 2),
+                "route": [[c[1], c[0]] for c in r["geometry"]["coordinates"]],
+            } for r in data["routes"]]
     except (requests.RequestException, ValueError, KeyError, TypeError):
         pass
-    return None
+    return []
+
+
+def route_options(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
+                  osrm_url: Optional[str] = None, walk_url: Optional[str] = None,
+                  bike_url: Optional[str] = None, tfl_key: Optional[str] = None,
+                  fallback_kmh: float = DEFAULT_FALLBACK_KMH) -> list:
+    """All the ways to get from A to B, for the operator/runner to pick from —
+    instead of auto-choosing the fastest. Returns a list of options, each:
+    ``{id, mode, source, minutes, km, route, legs}`` (legs only for transit).
+    Sorted fastest-first within/across kinds so the top one is the default hint."""
+    osrm = osrm_url or DEFAULT_OSRM_URL
+    opts: list = []
+
+    # Real London transit alternatives (TfL) — usually the meaningful choices.
+    for i, j in enumerate(tfl_journeys(from_lat, from_lng, to_lat, to_lng, app_key=tfl_key)):
+        opts.append({**j, "id": f"transit-{i}"})
+
+    # Car — the driving route + any alternatives OSRM returns.
+    for i, r in enumerate(_osrm_routes(osrm, "driving", from_lat, from_lng, to_lat, to_lng)):
+        opts.append({**r, "id": f"car-{i}", "mode": "car", "source": "osrm", "legs": []})
+
+    # Walk / cycle — a dedicated server if configured, else a road-following estimate.
+    for mode, url in (("walk", walk_url), ("cycle", bike_url)):
+        rs = _osrm_routes(url, MODE_PROFILE[mode], from_lat, from_lng, to_lat, to_lng) if url else []
+        if rs:
+            opts.append({**rs[0], "id": mode, "mode": mode, "source": "osrm", "legs": []})
+        else:
+            # Estimate from the car road path at the mode's speed (dashed on the map).
+            car = _osrm_routes(osrm, "driving", from_lat, from_lng, to_lat, to_lng)
+            if car:
+                km = car[0]["km"]
+                spd = MODE_SPEED_KMH.get(mode, fallback_kmh)
+                opts.append({
+                    "id": mode, "mode": mode, "source": "approx",
+                    "minutes": int(round((km / spd) * 60)) if km else 0,
+                    "km": km, "route": car[0]["route"], "legs": [],
+                })
+
+    # Nothing from any router → a single straight-line estimate.
+    if not opts:
+        sl = _straight_line(from_lat, from_lng, to_lat, to_lng, fallback_kmh)
+        opts.append({**sl, "id": "line-0", "mode": "car", "legs": []})
+
+    opts.sort(key=lambda o: o.get("minutes") or 9999)
+    return opts
 
 
 def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
