@@ -38,6 +38,42 @@ MODE_SPEED_KMH = {"car": 25.0, "walk": 4.8, "cycle": 15.0, "transit": 30.0}
 
 _UA = {"User-Agent": "Nothard/1.0 (+https://nothard.uz)"}
 
+# Per-line station coordinates {line_id: {normalized_name: (lat, lng)}}, fetched
+# once from the TfL Line Route Sequence API and cached for the process lifetime
+# (a line's stations rarely change). Used to redraw rail legs cleanly through the
+# real stations, because TfL's raw per-leg `lineString` geometry is often tangled.
+_LINE_STATIONS: dict = {}
+
+
+def _station_key(name: str) -> str:
+    n = (name or "").lower()
+    for junk in (" underground station", " rail station", " dlr station", " station"):
+        n = n.replace(junk, "")
+    return n.strip()
+
+
+def _line_stations(line_id: str, base: Optional[str] = None, app_key: Optional[str] = None,
+                   timeout: float = 6.0) -> dict:
+    """{normalized station name: (lat, lng)} for a TfL line (cached). Empty on error."""
+    if not line_id:
+        return {}
+    if line_id in _LINE_STATIONS:
+        return _LINE_STATIONS[line_id]
+    b = (base or DEFAULT_TFL_URL).rstrip("/")
+    out: dict = {}
+    try:
+        params = {"app_key": app_key} if app_key else {}
+        seq = requests.get(f"{b}/Line/{line_id}/Route/Sequence/all",
+                           params=params, headers=_UA, timeout=timeout).json()
+        for sps in seq.get("stopPointSequences", []) or []:
+            for sp in sps.get("stopPoint", []) or []:
+                if sp.get("lat") and sp.get("lon"):
+                    out.setdefault(_station_key(sp.get("name", "")), (sp["lat"], sp["lon"]))
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        out = {}
+    _LINE_STATIONS[line_id] = out
+    return out
+
 
 def _decode_polyline(s: str, precision: int = 5) -> list:
     """Decode a Google-encoded polyline (OTP leg geometry) → [[lat, lng], ...]."""
@@ -166,7 +202,40 @@ def _detangle(pts: list) -> list:
     return out
 
 
-def _parse_tfl_journey(j: dict) -> dict:
+def _rail_leg_via_stations(leg: dict, line_id: str, base, app_key) -> Optional[list]:
+    """Rebuild a rail leg's geometry by drawing through its ordered stations'
+    real coordinates (clean, like a transit map) instead of TfL's tangled
+    per-leg lineString. Returns the point list, or None if not enough stations
+    resolve (caller then falls back to de-tangling the raw geometry)."""
+    stops = (leg.get("path") or {}).get("stopPoints") or []
+    if len(stops) < 2:
+        return None
+    coords = _line_stations(line_id, base=base, app_key=app_key)
+    if not coords:
+        return None
+    pts: list = []
+    # Start from the actual departure point so the line connects to the walk leg.
+    dp = leg.get("departurePoint") or {}
+    if dp.get("lat") is not None and dp.get("lon") is not None:
+        pts.append([dp["lat"], dp["lon"]])
+    resolved = 0
+    for sp in stops:
+        c = coords.get(_station_key(sp.get("name", "")))
+        if c:
+            if not pts or (pts[-1][0], pts[-1][1]) != c:
+                pts.append([c[0], c[1]])
+            resolved += 1
+    ap = leg.get("arrivalPoint") or {}
+    if ap.get("lat") is not None and ap.get("lon") is not None:
+        if not pts or (pts[-1][0], pts[-1][1]) != (ap["lat"], ap["lon"]):
+            pts.append([ap["lat"], ap["lon"]])
+    # Need most stations resolved and a sensible line.
+    if resolved < max(2, len(stops) - 2) or len(pts) < 2:
+        return None
+    return pts
+
+
+def _parse_tfl_journey(j: dict, base=None, app_key=None) -> dict:
     """One TfL journey object → {minutes, km, route, legs, source, mode}."""
     route: list = []
     legs: list = []
@@ -174,22 +243,31 @@ def _parse_tfl_journey(j: dict) -> dict:
         leg_pts = 0
         ls = (leg.get("path") or {}).get("lineString")
         mode_name = (leg.get("mode") or {}).get("name") or ""
-        if ls:
-            try:
-                raw = [[p[0], p[1]] for p in json.loads(ls)]  # TfL is [[lat,lng]...]
-                # Clean up broken rail geometry (walk legs are short & fine).
-                if "walk" not in mode_name.lower():
-                    raw = _detangle(raw)
-                route.extend(raw)
-                leg_pts = len(raw)
-            except (ValueError, TypeError, IndexError):
-                pass
         line = ""
+        line_id = ""
         opts = leg.get("routeOptions") or []
         if opts:
             line = opts[0].get("name") or ""
             ident = (opts[0].get("lineIdentifier") or {})
             line = ident.get("name") or line
+            line_id = ident.get("id") or ""
+        is_walk = "walk" in mode_name.lower()
+        raw: list = []
+        # Rail legs: draw through the real stations (clean); walk legs use their
+        # own short lineString; fall back to de-tangling the raw geometry.
+        if not is_walk and line_id:
+            via = _rail_leg_via_stations(leg, line_id, base, app_key)
+            if via:
+                raw = via
+        if not raw and ls:
+            try:
+                raw = [[p[0], p[1]] for p in json.loads(ls)]  # TfL is [[lat,lng]...]
+                if not is_walk:
+                    raw = _detangle(raw)
+            except (ValueError, TypeError, IndexError):
+                raw = []
+        route.extend(raw)
+        leg_pts = len(raw)
         to_lat = to_lng = None
         ap = leg.get("arrivalPoint") or {}
         if ap.get("lat") is not None and ap.get("lon") is not None:
@@ -227,7 +305,7 @@ def tfl_journeys(from_lat: float, from_lng: float, to_lat: float, to_lng: float,
         data = resp.json()
         out = []
         for j in (data.get("journeys") or [])[:limit]:
-            parsed = _parse_tfl_journey(j)
+            parsed = _parse_tfl_journey(j, base=b, app_key=app_key)
             if parsed["route"]:
                 out.append(parsed)
         return out
