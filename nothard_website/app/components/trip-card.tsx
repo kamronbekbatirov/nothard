@@ -41,9 +41,11 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
       : minimal
         ? t('clientOnWayDest')
         : t('onWayTitle', { name: trip.runner.name })
-  // In the client's phase-1 view, don't pin the final home yet (the route is
-  // hidden too) — just show the host approaching.
-  const showDestPin = !(minimal && toPickup)
+  // The client (like the runner) sees the route line + the current leg's endpoint
+  // marker — the airport ✈️ while the host is coming, home 🏠 once travelling. In
+  // phase 1 the client's label is hidden (they just watch the host approach); the
+  // step-by-step legs stay hidden for the client until phase 2 (backend).
+  const showDestPin = true
   const subLabel = minimal && toPickup ? null : trip.dest.label
   // Mark the CURRENT leg's endpoint (the airport in phase 1, home in phase 2) —
   // not the far-away home while still driving to the airport, which made the map
