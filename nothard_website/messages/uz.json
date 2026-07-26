@@ -672,7 +672,8 @@
       "total": "Jami",
       "owned": "Allaqachon faol"
     },
-    "managerRole": "Qolgan hammasini yuritadi: bank, NHS, uy-joy, hujjatlar"
+    "managerRole": "Qolgan hammasini yuritadi: bank, NHS, uy-joy, hujjatlar",
+    "greetingHi": "Xush kelibsiz"
   },
   "Admin": {
     "badge": "Operator",

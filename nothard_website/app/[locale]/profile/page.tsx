@@ -1643,9 +1643,9 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
   const ts = useTranslations('Services')
   const label = useTaskLabel()
   const [open, setOpen] = useState(false)
-  // Only surface the history once the client has at least one COMPLETED order —
-  // there's nothing to look back on before that. Once shown, it stays.
-  if (!items || !items.some((it) => it.status === 'done')) return null
+  // Always available once the client has bought anything (active or done), so
+  // they can look back on every order + payment at any time.
+  if (!items || items.length === 0) return null
 
   const nameOf = (it: OrderHistoryItem) =>
     it.type === 'package'
@@ -2011,7 +2011,15 @@ function PopulatedCabinet({
 
       {/* Main — leads on mobile (order-1), right column on desktop */}
       <section className="order-1 lg:order-2">
-        <p className="text-[14px] text-muted">{t('greeting', { name: data.user.name })}</p>
+        {/* Warm greeting hero — clear breathing room before the content below */}
+        <div className="mb-7">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent/70">
+            {t('greetingHi')}
+          </div>
+          <h2 className="mt-1 font-display text-[24px] leading-tight text-ink sm:text-[27px]">
+            {data.user.name} <span className="ml-0.5 align-middle">👋</span>
+          </h2>
+        </div>
 
         {hasPath ? (
           <>

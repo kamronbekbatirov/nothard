@@ -672,7 +672,8 @@
       "total": "Total",
       "owned": "Already active"
     },
-    "managerRole": "Handles everything else: bank, NHS, housing, documents"
+    "managerRole": "Handles everything else: bank, NHS, housing, documents",
+    "greetingHi": "Welcome back"
   },
   "Admin": {
     "badge": "Operator",
