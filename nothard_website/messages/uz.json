@@ -971,7 +971,7 @@
     "actions": {
       "onWay": "Yo‘ldaman",
       "arrived": "Yetib keldim",
-      "complete": "Ko‘rik yakunlandi ✓",
+      "complete": "Tayyor ✓",
       "route": "Marshrut",
       "photo": "Foto"
     },

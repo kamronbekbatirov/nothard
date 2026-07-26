@@ -1023,10 +1023,12 @@ def create_app() -> Flask:
                 "type": o.item_type, "id": o.item_id, "amountGBP": o.amount_gbp,
                 "paid": o.paid, "createdAt": _iso_z(o.created_at),
             }
-            if o.item_type == "package":
-                osteps = sorted(steps_by_order.get(o.id, []), key=lambda x: (x.position, x.id))
+            osteps = sorted(steps_by_order.get(o.id, []), key=lambda x: (x.position, x.id))
+            if osteps:
+                # Package OR a standalone airport service — show its steps + the
+                # time each one was completed (e.g. airport meet, then transfer).
                 comp = [s.completed_at for s in osteps if s.completed_at]
-                done = bool(osteps) and all(s.status == "done" for s in osteps)
+                done = all(s.status == "done" for s in osteps)
                 row["status"] = "done" if done else "active"
                 row["completedAt"] = _iso_z(max(comp)) if (done and comp) else None
                 row["steps"] = [

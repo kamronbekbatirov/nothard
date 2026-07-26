@@ -1643,9 +1643,9 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
   const ts = useTranslations('Services')
   const label = useTaskLabel()
   const [open, setOpen] = useState(false)
-  // Always available once the client has bought anything (active or done), so
-  // they can look back on every order + payment at any time.
-  if (!items || items.length === 0) return null
+  // Show only once the client has at least one COMPLETED order — nothing to look
+  // back on before that. Once shown, it stays (includes active orders too).
+  if (!items || !items.some((it) => it.status === 'done')) return null
 
   const nameOf = (it: OrderHistoryItem) =>
     it.type === 'package'

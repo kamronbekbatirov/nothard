@@ -971,7 +971,7 @@
     "actions": {
       "onWay": "On my way",
       "arrived": "I've arrived",
-      "complete": "Viewing done ✓",
+      "complete": "Done ✓",
       "route": "Route",
       "photo": "Photo"
     },
