@@ -1770,8 +1770,9 @@ function PopulatedCabinet({
   return (
     <div className="grid gap-8 lg:grid-cols-[296px_1fr]">
       {/* Left rail — on mobile it drops BELOW the main path (what's happening now
-          leads), on desktop it stays as the left column. */}
-      <aside className="order-2 flex flex-col gap-5 lg:order-1">
+          leads), on desktop it stays as the left column. min-w-0 so wide content
+          (order history) can't push the grid column past the viewport on a phone. */}
+      <aside className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
         {data.package ? (
           <div className="rounded-xl bg-accent p-5 text-white">
             <div className="flex items-center justify-between">
@@ -2010,7 +2011,7 @@ function PopulatedCabinet({
       </aside>
 
       {/* Main — leads on mobile (order-1), right column on desktop */}
-      <section className="order-1 lg:order-2">
+      <section className="order-1 min-w-0 lg:order-2">
         {/* Warm greeting — clear breathing room before the content below */}
         <div className="mb-7">
           <h2 className="font-display text-[24px] leading-tight text-ink sm:text-[27px]">
