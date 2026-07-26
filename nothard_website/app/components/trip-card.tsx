@@ -45,6 +45,13 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
   // hidden too) — just show the host approaching.
   const showDestPin = !(minimal && toPickup)
   const subLabel = minimal && toPickup ? null : trip.dest.label
+  // Mark the CURRENT leg's endpoint (the airport in phase 1, home in phase 2) —
+  // not the far-away home while still driving to the airport, which made the map
+  // zoom out and the route look crooked.
+  const legEnd =
+    trip.target.lat != null && trip.target.lng != null
+      ? { lat: trip.target.lat, lng: trip.target.lng }
+      : trip.dest
 
   // Which transit leg is in progress (from the live position along the route),
   // plus the next-station dot to drop on the map.
@@ -83,7 +90,7 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
 
       <LiveMap
         position={trip.position}
-        dest={showDestPin ? trip.dest : null}
+        dest={showDestPin ? legEnd : null}
         route={trip.route}
         waypoint={waypoint}
         estimate={isEstimate}

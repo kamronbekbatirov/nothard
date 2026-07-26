@@ -525,13 +525,13 @@ function TripArea({
 
       {confirmCancel ? (
         // Inline confirm — window.confirm is unreliable inside the Telegram WebView.
+        // Buttons stacked full-width so long labels never overflow on a phone.
         <div className="rounded-lg border border-terracotta/40 bg-terracotta/5 p-3">
-          <p className="mb-2 text-center text-[13px] text-ink-2">{t('cancelConfirm')}</p>
-          <div className="flex gap-2">
+          <p className="mb-2.5 text-center text-[13px] text-ink-2">{t('cancelConfirm')}</p>
+          <div className="flex flex-col gap-2">
             <Button
-              variant="solid"
+              variant="danger"
               size="block"
-              className="flex-1 !bg-terracotta"
               onClick={() => {
                 setConfirmCancel(false)
                 tripCtl.cancel()
@@ -539,26 +539,25 @@ function TripArea({
             >
               {t('cancelYes')}
             </Button>
-            <Button variant="outline" size="block" className="flex-1" onClick={() => setConfirmCancel(false)}>
+            <Button variant="outline" size="block" onClick={() => setConfirmCancel(false)}>
               {t('back')}
             </Button>
           </div>
         </div>
       ) : (
-        <div className="flex gap-2">
-          {toPickup ? (
-            <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.met}>
-              {t('metBtn')}
-            </Button>
-          ) : (
-            <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.arrive}>
-              {t('arriveBtn')}
-            </Button>
-          )}
-          <Button variant="outline" size="block" className="flex-1" onClick={() => setConfirmCancel(true)}>
-            {t('cancelBtn')}
+        // Primary action is full-width on its own line; cancel is a quiet text
+        // button below — two wide nowrap buttons side by side overflowed on phones.
+        <>
+          <Button variant="solid" size="block" onClick={toPickup ? tripCtl.met : tripCtl.arrive}>
+            {toPickup ? t('metBtn') : t('arriveBtn')}
           </Button>
-        </div>
+          <button
+            onClick={() => setConfirmCancel(true)}
+            className="mx-auto text-[12.5px] text-gray underline underline-offset-2 hover:text-terracotta"
+          >
+            {t('cancelBtn')}
+          </button>
+        </>
       )}
     </div>
   )

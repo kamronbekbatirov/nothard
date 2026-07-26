@@ -2,10 +2,40 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Check } from 'lucide-react'
+import { Check, ChevronRight, PersonStanding, Bus } from 'lucide-react'
 import { MODE_ICON } from './travel-mode'
-import type { RouteOption } from '@/app/lib/api'
+import type { RouteOption, TripLeg } from '@/app/lib/api'
 import { cn } from '@/app/lib/utils'
+
+/** Compact "🚶 › Piccadilly › Elizabeth line › 🚶" strip so a transit option is
+ *  legible at a glance — which lines it uses — before picking it. */
+function LegStrip({ legs }: { legs: TripLeg[] }) {
+  if (!legs.length) return null
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1">
+      {legs.map((leg, i) => {
+        const walk = leg.mode.toLowerCase().includes('walk')
+        const bus = leg.mode.toLowerCase().includes('bus')
+        return (
+          <span key={i} className="flex items-center gap-1">
+            {i > 0 && <ChevronRight size={11} className="text-gray-lt" />}
+            {walk ? (
+              <PersonStanding size={14} className="text-gray" />
+            ) : bus ? (
+              <span className="flex items-center gap-0.5 rounded bg-[#d3341c]/12 px-1.5 py-0.5 text-[11px] font-medium text-[#d3341c]">
+                <Bus size={11} /> {leg.line || ''}
+              </span>
+            ) : (
+              <span className="rounded bg-accent/12 px-1.5 py-0.5 text-[11px] font-medium text-accent">
+                {leg.line || leg.mode}
+              </span>
+            )}
+          </span>
+        )
+      })}
+    </span>
+  )
+}
 
 /**
  * A list of candidate routes (car / transit alternatives / walk / cycle) the
@@ -81,8 +111,9 @@ export function RouteOptions({
               </span>
               <span className="text-[12px] text-muted">
                 {t('etaMin', { min: o.minutes })} · {t('kmLeft', { km: o.km })}
-                {o.legs.length > 0 && ` · ${t('routeChanges', { count: Math.max(0, o.legs.filter((l) => !l.mode.toLowerCase().includes('walk')).length) })}`}
               </span>
+              {/* Which lines the route uses — walk icon + line chips. */}
+              {o.legs.length > 0 && <LegStrip legs={o.legs} />}
             </span>
             {busy && <span className="shrink-0 text-[11px] text-accent">…</span>}
             <Check size={15} className="shrink-0 text-gray-lt" />
