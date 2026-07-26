@@ -1006,7 +1006,8 @@
     "historyTitle": "Тарих · {count}",
     "hide": "Яшириш",
     "show": "Кўрсатиш",
-    "visitsDoneCount": "{count} бажарилди"
+    "visitsDoneCount": "{count} бажарилди",
+    "flightShort": "рейс"
   },
   "Footer": {
     "tagline": "Лондонга тўлиқ кўчиш хизмати. Хотиржам, инсоний, сизнинг тилингизда.",
@@ -1219,6 +1220,7 @@
     "clientOnWayPickup": "{name} сизни тез орада кутиб олади",
     "clientOnWayDest": "Манзил сари йўлдамиз",
     "adminPlannedTitle": "Режалаштирилган маршрут",
-    "adminPlannedHint": "Маршрут ҳамроҳ сафарни бошлаганда автоматик қурилади."
+    "adminPlannedHint": "Маршрут ҳамроҳ сафарни бошлаганда автоматик қурилади.",
+    "cancelYes": "Ҳа, бекор қилиш"
   }
 }

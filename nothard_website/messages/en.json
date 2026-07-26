@@ -1006,7 +1006,8 @@
     "historyTitle": "History · {count}",
     "hide": "Hide",
     "show": "Show",
-    "visitsDoneCount": "{count} done"
+    "visitsDoneCount": "{count} done",
+    "flightShort": "flight"
   },
   "Footer": {
     "tagline": "End-to-end relocation to London. Calm, human, in your language.",
@@ -1219,6 +1220,7 @@
     "clientOnWayPickup": "{name} will meet you shortly",
     "clientOnWayDest": "On the way to your destination",
     "adminPlannedTitle": "Planned route",
-    "adminPlannedHint": "The route is built automatically once the companion starts the trip."
+    "adminPlannedHint": "The route is built automatically once the companion starts the trip.",
+    "cancelYes": "Yes, cancel"
   }
 }

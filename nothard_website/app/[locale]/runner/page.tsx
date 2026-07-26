@@ -40,7 +40,6 @@ export default function RunnerPage() {
   // live map/route can live inside the matching client's card.
   const [trip, setTrip] = useState<(TripLive & { client: { id: number; name: string } | null }) | null>(null)
   const [cfg, setCfg] = useState<TrackConfig | null>(null)
-  const tt = useTranslations('Tracking')
   const loadTrip = () => api.runner.trip().then((r) => setTrip(r.trip)).catch(() => {})
   useEffect(() => {
     if (!ready) return
@@ -109,7 +108,9 @@ export default function RunnerPage() {
       loadTrip()
     },
     cancel: async () => {
-      if (!trip || !window.confirm(tt('cancelConfirm'))) return
+      // Confirmation is handled inline in TripArea (window.confirm is flaky in
+      // the Telegram WebView).
+      if (!trip) return
       await api.runner.cancel(trip.id).catch(() => {})
       loadTrip()
     },
@@ -339,6 +340,33 @@ function ClientCard({
         </div>
       </div>
 
+      {/* Arrival details the runner needs (when / airport / flight / where to). */}
+      {(c.arrival.arrivalDate || c.arrival.airport || c.arrival.dropoff) && (
+        <div className="border-b border-line bg-accent-bg/30 px-4 py-3 text-[13px] text-ink-2">
+          {(c.arrival.arrivalDate || c.arrival.flight) && (
+            <div className="flex items-start gap-2">
+              <span className="shrink-0">✈️</span>
+              <span>
+                {c.arrival.arrivalDate && (
+                  <>
+                    {fmtDate(c.arrival.arrivalDate)}
+                    {c.arrival.arrivalTime ? ` · ${c.arrival.arrivalTime}` : ''}
+                  </>
+                )}
+                {c.arrival.airport ? ` · ${c.arrival.airport}` : ''}
+                {c.arrival.flight ? ` · ${t('flightShort')} ${c.arrival.flight}` : ''}
+              </span>
+            </div>
+          )}
+          {c.arrival.dropoff && (
+            <div className="mt-1 flex items-start gap-2">
+              <span className="shrink-0">🏠</span>
+              <span className="min-w-0">{c.arrival.dropoff}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Visits */}
       <div className="flex flex-col divide-y divide-line">
         {c.tasks.length === 0 && <div className="p-4 text-[13px] text-muted">{t('noVisits')}</div>}
@@ -377,6 +405,7 @@ function TripArea({
   const [editDest, setEditDest] = useState(false)
   const [newDest, setNewDest] = useState('')
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [confirmCancel, setConfirmCancel] = useState(false)
 
   if (!trip) {
     return (
@@ -463,20 +492,43 @@ function TripArea({
         </Button>
       )}
 
-      <div className="flex gap-2">
-        {toPickup ? (
-          <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.met}>
-            {t('metBtn')}
+      {confirmCancel ? (
+        // Inline confirm — window.confirm is unreliable inside the Telegram WebView.
+        <div className="rounded-lg border border-terracotta/40 bg-terracotta/5 p-3">
+          <p className="mb-2 text-center text-[13px] text-ink-2">{t('cancelConfirm')}</p>
+          <div className="flex gap-2">
+            <Button
+              variant="solid"
+              size="block"
+              className="flex-1 !bg-terracotta"
+              onClick={() => {
+                setConfirmCancel(false)
+                tripCtl.cancel()
+              }}
+            >
+              {t('cancelYes')}
+            </Button>
+            <Button variant="outline" size="block" className="flex-1" onClick={() => setConfirmCancel(false)}>
+              {t('back')}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          {toPickup ? (
+            <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.met}>
+              {t('metBtn')}
+            </Button>
+          ) : (
+            <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.arrive}>
+              {t('arriveBtn')}
+            </Button>
+          )}
+          <Button variant="outline" size="block" className="flex-1" onClick={() => setConfirmCancel(true)}>
+            {t('cancelBtn')}
           </Button>
-        ) : (
-          <Button variant="solid" size="block" className="flex-1" onClick={tripCtl.arrive}>
-            {t('arriveBtn')}
-          </Button>
-        )}
-        <Button variant="outline" size="block" className="flex-1" onClick={tripCtl.cancel}>
-          {t('cancelBtn')}
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -578,6 +630,12 @@ function fmtDateTime(iso: string): string {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return ''
   return d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })
 }
 
 export function PanelLoading() {

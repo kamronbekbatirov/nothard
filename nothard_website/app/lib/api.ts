@@ -957,6 +957,14 @@ export type RunnerClientRow = {
   phone: string | null
   telegram: string | null
   package: string | null
+  // Arrival facts the runner needs: when, which airport, flight, where to take them.
+  arrival: {
+    arrivalDate?: string
+    arrivalTime?: string
+    airport?: string
+    flight?: string
+    dropoff?: string
+  }
   tasks: RunnerVisitRow[]
 }
 export type RunnerDashboard = {

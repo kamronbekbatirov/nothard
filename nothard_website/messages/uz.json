@@ -1006,7 +1006,8 @@
     "historyTitle": "Tarix · {count}",
     "hide": "Yashirish",
     "show": "Ko‘rsatish",
-    "visitsDoneCount": "{count} bajarildi"
+    "visitsDoneCount": "{count} bajarildi",
+    "flightShort": "reys"
   },
   "Footer": {
     "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",
@@ -1219,6 +1220,7 @@
     "clientOnWayPickup": "{name} sizni tez orada kutib oladi",
     "clientOnWayDest": "Manzil sari yo‘ldamiz",
     "adminPlannedTitle": "Rejalashtirilgan marshrut",
-    "adminPlannedHint": "Marshrut hamroh safarni boshlaganda avtomatik quriladi."
+    "adminPlannedHint": "Marshrut hamroh safarni boshlaganda avtomatik quriladi.",
+    "cancelYes": "Ha, bekor qilish"
   }
 }

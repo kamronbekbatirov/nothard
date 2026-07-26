@@ -2409,8 +2409,12 @@ def create_app() -> Flask:
                 "at": ping.recorded_at.isoformat() if ping.recorded_at else None,
                 "bearing": ping.bearing, "battery": ping.battery,
             }
-        # The client sees the route+legs only in phase 2 (travelling together).
+        # The runner sees the route LINE in both phases (how they're driving); the
+        # client only from phase 2. The step-by-step transit LEGS ("take the Elizabeth
+        # line…") are the client's own journey — shown to everyone ONLY in phase 2,
+        # once they've met, never while the runner is still coming to the airport.
         show_route = (not for_client) or phase == "toDestination"
+        show_legs = phase == "toDestination"
         tgt_lat, tgt_lng, _ = _phase_target(trip)
         return {
             "id": trip.id,
@@ -2436,7 +2440,7 @@ def create_app() -> Flask:
             # The drawn line's engine — dashed when it's an estimate (approx/line).
             "routeSource": trip.eta_source,
             "route": (trip.route_json or []) if show_route else [],
-            "legs": (trip.legs_json or []) if show_route else [],
+            "legs": (trip.legs_json or []) if show_legs else [],
             "offRoute": _off_route(trip, ping),
             "startedAt": trip.started_at.isoformat() if trip.started_at else None,
         }
@@ -4013,6 +4017,16 @@ def create_app() -> Flask:
                 "fee": runner_fee_for(t.key),
             }
 
+        def arrival_of(client_id: int) -> dict:
+            """The client's arrival facts the runner needs (when/airport/flight/where)."""
+            out = {}
+            for o in client_orders(client_id):
+                dd = o.details or {}
+                for k in ("arrivalDate", "arrivalTime", "airport", "flight", "dropoff"):
+                    if dd.get(k) and not out.get(k):
+                        out[k] = dd[k]
+            return out
+
         clients = []
         # Clients currently assigned to this runner, plus any with leftover tasks.
         assigned = SessionLocal.execute(
@@ -4031,6 +4045,7 @@ def create_app() -> Flask:
                 "phone": (cu.phone if cu else None),
                 "telegram": (cu.telegram_username if cu else None),
                 "package": pkg.item_id if pkg else None,
+                "arrival": arrival_of(c.id),
                 "tasks": [task_row(t) for t in by_client.get(c.id, [])],
             })
         for cid, ct in by_client.items():
@@ -4045,8 +4060,16 @@ def create_app() -> Flask:
                 "phone": (cu.phone if cu else None),
                 "telegram": (cu.telegram_username if cu else None),
                 "package": None,
+                "arrival": arrival_of(cid),
                 "tasks": [task_row(t) for t in ct],
             })
+
+        # Soonest arrival first (today before tomorrow); clients with no date last.
+        def _arrival_key(cl):
+            d = (cl.get("arrival") or {}).get("arrivalDate")
+            t = (cl.get("arrival") or {}).get("arrivalTime") or "99:99"
+            return (0, f"{d}T{t}") if d else (1, "")
+        clients.sort(key=_arrival_key)
 
         done = [t for t in tasks if t.status == "done"]
         active = [t for t in tasks if t.status not in ("done",)]

@@ -1769,8 +1769,9 @@ function PopulatedCabinet({
 
   return (
     <div className="grid gap-8 lg:grid-cols-[296px_1fr]">
-      {/* Left rail */}
-      <aside className="flex flex-col gap-5">
+      {/* Left rail — on mobile it drops BELOW the main path (what's happening now
+          leads), on desktop it stays as the left column. */}
+      <aside className="order-2 flex flex-col gap-5 lg:order-1">
         {data.package ? (
           <div className="rounded-xl bg-accent p-5 text-white">
             <div className="flex items-center justify-between">
@@ -2008,8 +2009,8 @@ function PopulatedCabinet({
         <OrderHistory items={data.history} />
       </aside>
 
-      {/* Main */}
-      <section>
+      {/* Main — leads on mobile (order-1), right column on desktop */}
+      <section className="order-1 lg:order-2">
         <p className="text-[14px] text-muted">{t('greeting', { name: data.user.name })}</p>
 
         {hasPath ? (
