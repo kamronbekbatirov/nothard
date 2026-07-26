@@ -1679,9 +1679,9 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
             return (
               <div key={`${it.type}-${it.id}-${i}`} className="rounded-xl border border-line bg-card p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-[14.5px] font-semibold text-ink">{nameOf(it)}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="min-w-0 truncate text-[14.5px] font-semibold text-ink">{nameOf(it)}</span>
                       <span
                         className={cn(
                           'shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide',
@@ -1691,7 +1691,7 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
                         {done ? t('history.done') : t('history.active')}
                       </span>
                     </div>
-                    <div className="mt-0.5 text-[12px] text-muted">
+                    <div className="mt-0.5 text-[12px] leading-snug text-muted">
                       {it.createdAt && <>{t('history.bought')}: {fmtDateTime(it.createdAt)}</>}
                       {done && it.completedAt && (
                         <> · {t('history.completed')}: {fmtDateTime(it.completedAt)}</>
@@ -2011,13 +2011,10 @@ function PopulatedCabinet({
 
       {/* Main — leads on mobile (order-1), right column on desktop */}
       <section className="order-1 lg:order-2">
-        {/* Warm greeting hero — clear breathing room before the content below */}
+        {/* Warm greeting — clear breathing room before the content below */}
         <div className="mb-7">
-          <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-accent/70">
-            {t('greetingHi')}
-          </div>
-          <h2 className="mt-1 font-display text-[24px] leading-tight text-ink sm:text-[27px]">
-            {data.user.name} <span className="ml-0.5 align-middle">👋</span>
+          <h2 className="font-display text-[24px] leading-tight text-ink sm:text-[27px]">
+            {t('greetingHi')}, {data.user.name.split(' ')[0]} <span className="ml-0.5 align-middle">👋</span>
           </h2>
         </div>
 
