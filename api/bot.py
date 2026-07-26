@@ -19,7 +19,7 @@ from sqlalchemy import select
 
 from config import settings
 from db import SessionLocal, init_db
-from models import User
+from models import User, PhoneShare
 
 API = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}"
 
@@ -45,6 +45,14 @@ TEXTS = {
     ),
     "phone_bad": (
         "Не удалось сохранить номер. Откройте кабинет и введите его вручную."
+    ),
+    "phone_ask": (
+        "Нажмите кнопку ниже, чтобы поделиться своим номером телефона — он "
+        "автоматически подставится в форму на сайте."
+    ),
+    "phone_share_btn": "📱 Поделиться номером",
+    "phone_share_saved": (
+        "✅ Номер получен. Вернитесь на сайт — он подставится в форму автоматически."
     ),
 }
 
@@ -83,6 +91,27 @@ def set_menu_button():
         print(f"set_menu_button error: {e}")
 
 
+def _contact_markup() -> dict:
+    """A one-tap reply keyboard that asks the user to share their phone number."""
+    return {
+        "keyboard": [[{"text": TEXTS["phone_share_btn"], "request_contact": True}]],
+        "resize_keyboard": True,
+        "one_time_keyboard": True,
+    }
+
+
+def _claim_phone_code(code: str, frm: dict) -> None:
+    """Bind a pending phone-share code to this Telegram user, so their next shared
+    contact fills it. Ignores unknown/expired codes."""
+    row = SessionLocal.execute(
+        select(PhoneShare).where(PhoneShare.code == code, PhoneShare.phone.is_(None))
+    ).scalar_one_or_none()
+    if row:
+        row.tg_id = str(frm.get("id"))
+        SessionLocal.commit()
+    SessionLocal.remove()
+
+
 def _link_account(code: str, frm: dict) -> bool:
     tg_id = str(frm.get("id"))
     username = frm.get("username")
@@ -103,28 +132,51 @@ def _link_account(code: str, frm: dict) -> bool:
     return True
 
 
-def _save_contact_phone(contact: dict, frm: dict) -> bool:
-    """Store a phone number shared from the Mini App's ``requestContact()``.
-
-    Telegram hands the shared contact to the BOT (never to the Mini App itself),
-    so this is where the number actually lands. Only trust it when the contact is
-    the sender's OWN card — ``contact.user_id`` must match the sender — otherwise
-    anyone could forward someone else's contact and overwrite their phone.
-    """
+def _clean_contact_phone(contact: dict, frm: dict) -> str | None:
+    """Validate a shared contact is the sender's OWN card and return the number
+    (never trust a forwarded contact — it could overwrite someone else's phone)."""
     sender = frm.get("id")
     owner = contact.get("user_id")
     phone = (contact.get("phone_number") or "").strip()
     if not phone or sender is None or owner is None or str(owner) != str(sender):
+        return None
+    return ("+" + phone if not phone.startswith("+") else phone)[:64]
+
+
+def _save_contact_phone(contact: dict, frm: dict) -> bool:
+    """Store a phone number shared from the Mini App's ``requestContact()`` onto
+    the sender's linked account. Telegram hands the shared contact to the BOT (not
+    the Mini App), so this is where the number actually lands."""
+    phone = _clean_contact_phone(contact, frm)
+    if not phone:
         return False
-    if not phone.startswith("+"):
-        phone = "+" + phone
     user = SessionLocal.execute(
-        select(User).where(User.telegram_id == str(sender))
+        select(User).where(User.telegram_id == str(frm.get("id")))
     ).scalar_one_or_none()
     if not user:
         SessionLocal.remove()
         return False
-    user.phone = phone[:64]
+    user.phone = phone
+    SessionLocal.commit()
+    SessionLocal.remove()
+    return True
+
+
+def _save_share_phone(contact: dict, frm: dict) -> bool:
+    """Fill the most recent pending phone-share code for this sender (web sign-up
+    'take from Telegram' — the account may not exist yet, so we key by code)."""
+    phone = _clean_contact_phone(contact, frm)
+    if not phone:
+        return False
+    row = SessionLocal.execute(
+        select(PhoneShare)
+        .where(PhoneShare.tg_id == str(frm.get("id")), PhoneShare.phone.is_(None))
+        .order_by(PhoneShare.id.desc())
+    ).scalars().first()
+    if not row:
+        SessionLocal.remove()
+        return False
+    row.phone = phone
     SessionLocal.commit()
     SessionLocal.remove()
     return True
@@ -140,11 +192,14 @@ def handle_update(update: dict):
     if chat_id is None:
         return
 
-    # Phone shared from the Mini App onboarding ("take from Telegram").
+    # Phone shared ("take from Telegram"): fill a linked account (Mini App) AND/OR
+    # a pending web sign-up share code (desktop). Confirm if either landed.
     contact = message.get("contact")
     if contact:
         ok = _save_contact_phone(contact, frm)
-        send_message(chat_id, TEXTS["phone_saved"] if ok else TEXTS["phone_bad"], _launch_markup())
+        shared = _save_share_phone(contact, frm)
+        msg = TEXTS["phone_share_saved"] if shared else (TEXTS["phone_saved"] if ok else TEXTS["phone_bad"])
+        send_message(chat_id, msg, _launch_markup())
         return
 
     if text.startswith("/start"):
@@ -156,6 +211,13 @@ def handle_update(update: dict):
                 send_message(chat_id, TEXTS["linked"], _launch_markup())
             else:
                 send_message(chat_id, TEXTS["link_bad"])
+            return
+        if param.startswith("phone_"):
+            # Desktop sign-up asked for the phone via Telegram — remember which code
+            # this chat is answering, then prompt them to share their number.
+            code = param[len("phone_"):]
+            _claim_phone_code(code, frm)
+            send_message(chat_id, TEXTS["phone_ask"], _contact_markup())
             return
         send_message(chat_id, TEXTS["welcome"], _launch_markup())
         return

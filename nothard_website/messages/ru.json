@@ -398,7 +398,11 @@
     "codeSent": "Код отправлен на почту",
     "invalidCode": "Неверный или просроченный код",
     "registerByEmail": "Регистрация по email",
-    "openCabinet": "Открыть кабинет"
+    "openCabinet": "Открыть кабинет",
+    "phoneFromTelegram": "Взять из Telegram",
+    "phoneTelegramHint": "Откроется бот — поделитесь номером, и он подставится сюда автоматически.",
+    "phoneTelegramWaiting": "Ждём номер из Telegram…",
+    "phoneTelegramTimeout": "Номер пока не пришёл. Введите его вручную."
   },
   "Profile": {
     "greeting": "Здравствуйте, {name}",
@@ -1008,7 +1012,8 @@
     "hide": "Скрыть",
     "show": "Показать",
     "visitsDoneCount": "{count} выполнено",
-    "flightShort": "рейс"
+    "flightShort": "рейс",
+    "drivenByTrip": "Меняется автоматически по ходу поездки"
   },
   "Footer": {
     "tagline": "Сервис релокации в Лондон «под ключ». Спокойно, по-человечески, на вашем языке.",
@@ -1228,6 +1233,9 @@
     "routeFastest": "быстрее",
     "routeChanges": "{count} пересадок",
     "chooseRoute": "Выбрать маршрут",
-    "routeChosen": "Маршрут выбран"
+    "routeChosen": "Маршрут выбран",
+    "hereBtn": "Я на месте",
+    "phaseWaiting": "Ждёт клиента:",
+    "clientAtPickup": "{name} на месте и ждёт вас"
   }
 }

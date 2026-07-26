@@ -398,7 +398,11 @@
     "codeSent": "Kod pochtangizga yuborildi",
     "invalidCode": "Noto‘g‘ri yoki muddati o‘tgan kod",
     "registerByEmail": "Email orqali ro'yxatdan o'tish",
-    "openCabinet": "Kabinetni ochish"
+    "openCabinet": "Kabinetni ochish",
+    "phoneFromTelegram": "Telegramdan olish",
+    "phoneTelegramHint": "Bot ochiladi — raqamingizni ulashing, u shu yerga avtomatik qo‘yiladi.",
+    "phoneTelegramWaiting": "Telegramdan raqam kutilmoqda…",
+    "phoneTelegramTimeout": "Raqam hali kelmadi. Qo‘lda kiriting."
   },
   "Profile": {
     "greeting": "Salom, {name}",
@@ -1008,7 +1012,8 @@
     "hide": "Yashirish",
     "show": "Ko‘rsatish",
     "visitsDoneCount": "{count} bajarildi",
-    "flightShort": "reys"
+    "flightShort": "reys",
+    "drivenByTrip": "Safar davomida avtomatik yangilanadi"
   },
   "Footer": {
     "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",
@@ -1228,6 +1233,9 @@
     "routeFastest": "eng tez",
     "routeChanges": "{count} almashish",
     "chooseRoute": "Marshrutni tanlash",
-    "routeChosen": "Marshrut tanlandi"
+    "routeChosen": "Marshrut tanlandi",
+    "hereBtn": "Yetib keldim",
+    "phaseWaiting": "Mijozni kutmoqda:",
+    "clientAtPickup": "{name} yetib keldi va sizni kutmoqda"
   }
 }

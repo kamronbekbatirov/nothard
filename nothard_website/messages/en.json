@@ -398,7 +398,11 @@
     "codeSent": "Code sent to your email",
     "invalidCode": "Wrong or expired code",
     "registerByEmail": "Sign up with email",
-    "openCabinet": "Open cabinet"
+    "openCabinet": "Open cabinet",
+    "phoneFromTelegram": "Take from Telegram",
+    "phoneTelegramHint": "The bot opens — share your number and it fills in here automatically.",
+    "phoneTelegramWaiting": "Waiting for the number from Telegram…",
+    "phoneTelegramTimeout": "No number yet. Please enter it manually."
   },
   "Profile": {
     "greeting": "Hi, {name}",
@@ -1008,7 +1012,8 @@
     "hide": "Hide",
     "show": "Show",
     "visitsDoneCount": "{count} done",
-    "flightShort": "flight"
+    "flightShort": "flight",
+    "drivenByTrip": "Advances automatically as the trip progresses"
   },
   "Footer": {
     "tagline": "End-to-end relocation to London. Calm, human, in your language.",
@@ -1228,6 +1233,9 @@
     "routeFastest": "fastest",
     "routeChanges": "{count} changes",
     "chooseRoute": "Choose route",
-    "routeChosen": "Route chosen"
+    "routeChosen": "Route chosen",
+    "hereBtn": "I've arrived",
+    "phaseWaiting": "Waiting for the client:",
+    "clientAtPickup": "{name} has arrived and is waiting for you"
   }
 }

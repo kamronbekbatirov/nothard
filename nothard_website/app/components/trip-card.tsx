@@ -32,15 +32,19 @@ export function TripCard({ trip, minimal = false }: { trip: TripLive; minimal?: 
   // to see them once they're travelling together).
 
   const toPickup = trip.phase === 'toPickup'
+  const atPickup = toPickup && trip.atPickup
   // The client's phase-1 view frames it as "your host will meet you" (the runner
-  // is coming to the airport); phase 2 is "on the way to your destination".
+  // is coming to the airport), then "your host has arrived & is waiting" once
+  // they're at the airport; phase 2 is "on the way to your destination".
   const title = arrived
     ? t('arrivedTitle')
-    : minimal && toPickup
-      ? t('clientOnWayPickup', { name: trip.runner.name })
-      : minimal
-        ? t('clientOnWayDest')
-        : t('onWayTitle', { name: trip.runner.name })
+    : minimal && atPickup
+      ? t('clientAtPickup', { name: trip.runner.name })
+      : minimal && toPickup
+        ? t('clientOnWayPickup', { name: trip.runner.name })
+        : minimal
+          ? t('clientOnWayDest')
+          : t('onWayTitle', { name: trip.runner.name })
   // The client (like the runner) sees the route line + the current leg's endpoint
   // marker — the airport ✈️ while the host is coming, home 🏠 once travelling. In
   // phase 1 the client's label is hidden (they just watch the host approach); the

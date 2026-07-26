@@ -398,7 +398,11 @@
     "codeSent": "Код почтангизга юборилди",
     "invalidCode": "Нотўғри ёки муддати ўтган код",
     "registerByEmail": "Email орқали рўйхатдан ўтиш",
-    "openCabinet": "Кабинетни очиш"
+    "openCabinet": "Кабинетни очиш",
+    "phoneFromTelegram": "Telegramдан олиш",
+    "phoneTelegramHint": "Бот очилади — рақамингизни улашинг, у шу ерга автоматик қўйилади.",
+    "phoneTelegramWaiting": "Telegramдан рақам кутилмоқда…",
+    "phoneTelegramTimeout": "Рақам ҳали келмади. Қўлда киритинг."
   },
   "Profile": {
     "greeting": "Салом, {наме}",
@@ -1008,7 +1012,8 @@
     "hide": "Яшириш",
     "show": "Кўрсатиш",
     "visitsDoneCount": "{count} бажарилди",
-    "flightShort": "рейс"
+    "flightShort": "рейс",
+    "drivenByTrip": "Сафар давомида автоматик янгиланади"
   },
   "Footer": {
     "tagline": "Лондонга тўлиқ кўчиш хизмати. Хотиржам, инсоний, сизнинг тилингизда.",
@@ -1228,6 +1233,9 @@
     "routeFastest": "энг тез",
     "routeChanges": "{count} алмашиш",
     "chooseRoute": "Маршрутни танлаш",
-    "routeChosen": "Маршрут танланди"
+    "routeChosen": "Маршрут танланди",
+    "hereBtn": "Етиб келдим",
+    "phaseWaiting": "Мижозни кутмоқда:",
+    "clientAtPickup": "{name} етиб келди ва сизни кутмоқда"
   }
 }

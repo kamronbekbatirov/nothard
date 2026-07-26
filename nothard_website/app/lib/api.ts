@@ -159,6 +159,12 @@ export const api = {
       ),
     linkStart: () => req<{ url: string }>('/auth/telegram/link-start'),
     unlink: () => req<{ ok: boolean }>('/auth/telegram/unlink', { method: 'POST' }),
+    // Web (desktop) "take phone from Telegram": open the bot with the returned
+    // url, the user shares their number, then poll the code until it lands.
+    phoneStart: () =>
+      req<{ code: string; url: string }>('/auth/telegram/phone-start', { method: 'POST' }),
+    phonePoll: (code: string) =>
+      req<{ phone: string | null }>(`/auth/telegram/phone/${code}`),
     // existing_only=true → resume a returning user without creating an account
     // (response is { exists: false } when there is no account yet).
     miniapp: (body: { init_data: string; existing_only?: boolean }) =>
@@ -515,6 +521,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(opt),
       }),
+    // Runner reached the airport and is waiting for the client (phase-1 sub-state).
+    here: (tripId: number) => req<{ trip: TripLive }>(`/runner/trips/${tripId}/here`, { method: 'POST' }),
     // Runner met the client at the airport → advance to phase 2 (to destination).
     met: (tripId: number) => req<{ trip: TripLive }>(`/runner/trips/${tripId}/met`, { method: 'POST' }),
     arrive: (tripId: number) => req<{ ok: boolean }>(`/runner/trips/${tripId}/arrive`, { method: 'POST' }),
@@ -548,6 +556,8 @@ export type TripLive = {
   id: number
   status: 'active' | 'arrived' | 'cancelled'
   phase: TripPhase
+  // Phase-1 sub-state: the host has reached the airport and is waiting.
+  atPickup: boolean
   mode: TravelMode
   runner: { name: string; photoUrl: string | null }
   origin: { lat: number | null; lng: number | null; label: string | null }

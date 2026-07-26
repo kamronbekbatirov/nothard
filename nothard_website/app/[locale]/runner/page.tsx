@@ -72,6 +72,15 @@ export default function RunnerPage() {
         setStartingFor(null)
       }
     },
+    here: async () => {
+      if (!trip) return
+      try {
+        const r = await api.runner.here(trip.id)
+        setTrip((c) => (c ? { ...r.trip, client: c.client } : c))
+      } catch {
+        loadTrip()
+      }
+    },
     met: async () => {
       if (!trip) return
       try {
@@ -283,6 +292,7 @@ function Stat({ value, label, tone }: { value?: number; label: string; tone?: 'a
 type TripWithClient = TripLive & { client: { id: number; name: string } | null }
 type TripCtl = {
   start: (clientId: number) => void
+  here: () => void
   met: () => void
   setMode: (m: TravelMode) => void
   setDest: (label: string, coords: { lat: number; lng: number } | null) => Promise<void>
@@ -376,11 +386,17 @@ function ClientCard({
         </div>
       )}
 
-      {/* Visits */}
+      {/* Visits. Airport steps (meet/transfer) are DRIVEN by the trip buttons
+          below — shown read-only here so the runner doesn't advance them twice. */}
       <div className="flex flex-col divide-y divide-line">
         {c.tasks.length === 0 && <div className="p-4 text-[13px] text-muted">{t('noVisits')}</div>}
         {c.tasks.map((v) => (
-          <VisitRow key={v.id} v={v} onAdvance={() => onAdvance(v.id)} />
+          <VisitRow
+            key={v.id}
+            v={v}
+            driven={v.kind === 'step' && (v.key === 'airportMeet' || v.key === 'transfer')}
+            onAdvance={() => onAdvance(v.id)}
+          />
         ))}
       </div>
 
@@ -432,13 +448,14 @@ function TripArea({
   }
 
   const toPickup = trip.phase === 'toPickup'
+  const waiting = toPickup && trip.atPickup
 
   return (
     <div className="flex flex-col gap-3 border-t border-line bg-accent-bg/30 p-4">
-      {/* Phase banner — going to the airport, or taking the client home */}
+      {/* Phase banner — going to the airport, waiting there, or taking the client home */}
       <div className="rounded-lg bg-card px-3 py-2 text-[12.5px] leading-snug">
         <span className="font-semibold text-accent">
-          {toPickup ? t('phasePickup') : t('phaseDest')}
+          {waiting ? t('phaseWaiting') : toPickup ? t('phasePickup') : t('phaseDest')}
         </span>{' '}
         <span className="text-ink-2">
           {toPickup ? trip.pickup.label || '—' : trip.dest.label || '—'}
@@ -547,9 +564,16 @@ function TripArea({
       ) : (
         // Primary action is full-width on its own line; cancel is a quiet text
         // button below — two wide nowrap buttons side by side overflowed on phones.
+        // Phase 1 is a two-tap flow: "I'm at the airport" (here) → "Met the client"
+        // (met); phase 2 is a single "Arrived" — each tap also advances the client's
+        // step status, so the runner never ticks the steps off separately.
         <>
-          <Button variant="solid" size="block" onClick={toPickup ? tripCtl.met : tripCtl.arrive}>
-            {toPickup ? t('metBtn') : t('arriveBtn')}
+          <Button
+            variant="solid"
+            size="block"
+            onClick={waiting ? tripCtl.met : toPickup ? tripCtl.here : tripCtl.arrive}
+          >
+            {waiting ? t('metBtn') : toPickup ? t('hereBtn') : t('arriveBtn')}
           </Button>
           <button
             onClick={() => setConfirmCancel(true)}
@@ -563,7 +587,7 @@ function TripArea({
   )
 }
 
-function VisitRow({ v, onAdvance }: { v: RunnerVisitRow; onAdvance: () => void }) {
+function VisitRow({ v, onAdvance, driven = false }: { v: RunnerVisitRow; onAdvance: () => void; driven?: boolean }) {
   const t = useTranslations('Runner')
   const label = useTaskLabel()
   const title = label(v.kind, v.key).title
@@ -603,7 +627,12 @@ function VisitRow({ v, onAdvance }: { v: RunnerVisitRow; onAdvance: () => void }
             {v.addr ? ` · ${v.addr}` : ''}
           </div>
 
-          {!done && (
+          {/* Airport steps are advanced by the trip buttons below — show a hint
+              instead of a duplicate action here. */}
+          {!done && driven && (
+            <div className="mt-2 text-[12px] text-muted">{t('drivenByTrip')}</div>
+          )}
+          {!done && !driven && (
             <div className="mt-3 flex flex-wrap gap-2">
               <Button variant="solid" size="sm" onClick={onAdvance}>
                 {actionLabel}

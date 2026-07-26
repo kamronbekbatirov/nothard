@@ -19,7 +19,38 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', confirm: '' })
   const [busy, setBusy] = useState(false)
   const [tgBusy, setTgBusy] = useState(false)
+  const [phoneTg, setPhoneTg] = useState<'idle' | 'waiting' | 'timeout'>('idle')
   const [error, setError] = useState('')
+
+  /**
+   * "Take phone from Telegram" on the web (desktop): open the bot, the user taps
+   * "share number" there, and we poll the one-time code until the bot stores it —
+   * then fill the field. Telegram gives the number to the BOT, never to the page.
+   */
+  async function takePhoneFromTelegram() {
+    setPhoneTg('waiting')
+    let code = ''
+    try {
+      const r = await api.telegram.phoneStart()
+      code = r.code
+      window.open(r.url, '_blank', 'noopener')
+    } catch {
+      setPhoneTg('timeout')
+      return
+    }
+    for (let i = 0; i < 40; i++) {
+      await new Promise((res) => setTimeout(res, 2000))
+      try {
+        const { phone } = await api.telegram.phonePoll(code)
+        if (phone) {
+          setForm((f) => ({ ...f, phone }))
+          setPhoneTg('idle')
+          return
+        }
+      } catch {}
+    }
+    setPhoneTg('timeout')
+  }
 
   async function signInWithTelegram() {
     setTgBusy(true)
@@ -71,6 +102,23 @@ export default function RegisterPage() {
         </Field>
         <Field label={t('phone')} htmlFor="phone">
           <Input id="phone" type="tel" value={form.phone} onChange={set('phone')} placeholder="+998…" />
+          {/* Desktop web has no Mini App requestContact — bounce to the bot instead. */}
+          {!inTg && (
+            <>
+              <button
+                type="button"
+                onClick={takePhoneFromTelegram}
+                disabled={phoneTg === 'waiting'}
+                className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline disabled:opacity-60"
+              >
+                <TelegramIcon />{' '}
+                {phoneTg === 'waiting' ? t('phoneTelegramWaiting') : t('phoneFromTelegram')}
+              </button>
+              <p className="mt-1 text-[12px] leading-snug text-gray">
+                {phoneTg === 'timeout' ? t('phoneTelegramTimeout') : t('phoneTelegramHint')}
+              </p>
+            </>
+          )}
         </Field>
         <Field label={t('email')} htmlFor="email">
           <Input

@@ -278,6 +278,9 @@ class Trip(Base):
     status: Mapped[str] = mapped_column(String(16), default="active", index=True)
     # Journey phase: toPickup (runner → airport) | toDestination (airport → home).
     phase: Mapped[str] = mapped_column(String(16), default="toPickup")
+    # In phase 1, set once the runner has reached the airport and is waiting for
+    # the client ("I'm here") — the client then sees "your host has arrived".
+    at_pickup: Mapped[bool] = mapped_column(Boolean, default=False)
     # Travel mode for the ETA/route: car | walk | cycle | transit.
     mode: Mapped[str] = mapped_column(String(12), default="car")
 
@@ -324,4 +327,21 @@ class TripPing(Base):
     accuracy_m: Mapped[float | None] = mapped_column(nullable=True)
     battery: Mapped[int | None] = mapped_column(Integer, nullable=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class PhoneShare(Base):
+    """A one-time code used to pull a phone number from Telegram during web
+    (desktop) sign-up, where the Mini App's ``requestContact`` isn't available.
+
+    The site opens the bot with ``/start phone_<code>``; the user taps "share
+    number" in Telegram; the bot stores the shared phone here keyed by the code;
+    the still-open sign-up page polls the code and fills the field in."""
+
+    __tablename__ = "phone_shares"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    tg_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

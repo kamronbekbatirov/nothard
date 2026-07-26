@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
-import { Check, CheckCircle2, ChevronDown, ExternalLink, History, Home, Paperclip, Plus, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react'
+import { Check, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, History, Home, Paperclip, Plus, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react'
 import { Link, useRouter } from '@/i18n/navigation'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
@@ -254,14 +254,12 @@ export default function ProfilePage() {
       />
 
       <main className="mx-auto max-w-[1240px] px-5 py-8 sm:px-8">
-        {trip && trip.status !== 'cancelled' && (
-          <div className="mb-6">
-            <TripCard trip={trip} minimal />
-          </div>
-        )}
         {data.hasOrders ? (
+          // Greeting + live map live INSIDE the populated cabinet so the mobile
+          // order is: greeting → map → package/arrival → path → people.
           <PopulatedCabinet
             data={data}
+            trip={trip}
             onChat={(who = 'manager') => setChatWith(who)}
             onBuy={buyPackage}
             onCheckout={buySelection}
@@ -269,7 +267,14 @@ export default function ProfilePage() {
             onRefresh={refresh}
           />
         ) : (
-          <EmptyCabinet onCheckout={buySelection} buying={buying} initialPkg={presetPkg} />
+          <>
+            {trip && trip.status !== 'cancelled' && (
+              <div className="mb-6">
+                <TripCard trip={trip} minimal />
+              </div>
+            )}
+            <EmptyCabinet onCheckout={buySelection} buying={buying} initialPkg={presetPkg} />
+          </>
         )}
       </main>
 
@@ -492,13 +497,13 @@ function ConsentGate({
                     href="/privacy"
                     className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-[13.5px] font-medium text-accent transition-colors hover:border-accent/40"
                   >
-                    {t('privacy')} <span aria-hidden>→</span>
+                    {t('privacy')} <ChevronRight size={16} className="shrink-0 text-accent/70" />
                   </Link>
                   <Link
                     href="/terms"
                     className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-4 py-2.5 text-[13.5px] font-medium text-accent transition-colors hover:border-accent/40"
                   >
-                    {t('terms')} <span aria-hidden>→</span>
+                    {t('terms')} <ChevronRight size={16} className="shrink-0 text-accent/70" />
                   </Link>
                 </div>
 
@@ -1730,6 +1735,7 @@ function OrderHistory({ items }: { items: OrderHistoryItem[] }) {
 
 function PopulatedCabinet({
   data,
+  trip,
   onChat,
   onBuy,
   onCheckout,
@@ -1737,6 +1743,7 @@ function PopulatedCabinet({
   onRefresh,
 }: {
   data: DashboardData
+  trip: TripLive | null
   onChat: (who?: 'manager' | 'runner') => void
   onBuy: (id: string) => void
   onCheckout: (pkgId: string | null, serviceIds: string[]) => void
@@ -1768,11 +1775,28 @@ function PopulatedCabinet({
   const manager = data.manager
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[296px_1fr]">
-      {/* Left rail — on mobile it drops BELOW the main path (what's happening now
-          leads), on desktop it stays as the left column. min-w-0 so wide content
-          (order history) can't push the grid column past the viewport on a phone. */}
-      <aside className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
+    <>
+      {/* Greeting — always first, on mobile and desktop */}
+      <div className="mb-6">
+        <h2 className="font-display text-[24px] leading-tight text-ink sm:text-[27px]">
+          {t('greetingHi')}, {data.user.name.split(' ')[0]} <span className="ml-0.5 align-middle">👋</span>
+        </h2>
+      </div>
+
+      {/* Live "your host is on the way" map — right under the greeting */}
+      {trip && trip.status !== 'cancelled' && (
+        <div className="mb-6">
+          <TripCard trip={trip} minimal />
+        </div>
+      )}
+
+      {/* Mobile order: package/arrival → path → people. Desktop: a two-column grid
+          where package (top) + people (below) share the left rail and the path
+          spans the right. Explicit grid placement + `order-*` gives both layouts. */}
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[296px_1fr] lg:items-start">
+        {/* Block 1 — your package / arrival details (min-w-0 so wide content can't
+            push a grid column past a phone's viewport). */}
+        <div className="order-1 flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1">
         {data.package ? (
           <div className="rounded-xl bg-accent p-5 text-white">
             <div className="flex items-center justify-between">
@@ -1898,7 +1922,11 @@ function PopulatedCabinet({
             </ul>
           </div>
         )}
+        </div>
 
+        {/* Block 3 — people & extras (manager, companion, documents, share,
+            history): after the path on mobile, the lower-left rail on desktop. */}
+        <div className="order-3 flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-2">
         {/* Manager — shown while there's active work; hidden once everything is
             done (the completed banner + order history take over) until a new buy. */}
         {data.state === 'active' && (
@@ -2008,17 +2036,11 @@ function PopulatedCabinet({
 
         {/* Order history — collapsible, tucked in the side rail (out of the main flow) */}
         <OrderHistory items={data.history} />
-      </aside>
-
-      {/* Main — leads on mobile (order-1), right column on desktop */}
-      <section className="order-1 min-w-0 lg:order-2">
-        {/* Warm greeting — clear breathing room before the content below */}
-        <div className="mb-7">
-          <h2 className="font-display text-[24px] leading-tight text-ink sm:text-[27px]">
-            {t('greetingHi')}, {data.user.name.split(' ')[0]} <span className="ml-0.5 align-middle">👋</span>
-          </h2>
         </div>
 
+        {/* Block 2 — your relocation path (leads after the map on mobile; the right
+            column, spanning both left-rail rows, on desktop). */}
+        <section className="order-2 min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
         {hasPath ? (
           <>
             <h1 className="mt-1 font-display text-[28px] text-ink sm:text-[30px]">{t('heading')}</h1>
@@ -2189,6 +2211,7 @@ function PopulatedCabinet({
         )}
 
       </section>
+      </div>
 
       {arrivalOpen && (data.package || data.arrival.hasAirportMeet) && (
         <ArrivalEditModal
@@ -2203,7 +2226,7 @@ function PopulatedCabinet({
       )}
 
       {shareOpen && <ShareModal onClose={() => setShareOpen(false)} />}
-    </div>
+    </>
   )
 }
 
@@ -2271,9 +2294,9 @@ function ShareModal({ onClose }: { onClose: () => void }) {
               href={url}
               target="_blank"
               rel="noreferrer"
-              className="text-center text-[13px] font-medium text-accent hover:underline"
+              className="inline-flex items-center justify-center gap-1.5 text-center text-[13px] font-medium text-accent hover:underline"
             >
-              {t('share.open')} →
+              {t('share.open')} <ExternalLink size={13} className="shrink-0" />
             </a>
           )}
         </div>

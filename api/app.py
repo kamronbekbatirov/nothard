@@ -18,7 +18,7 @@ from db import SessionLocal, init_db
 from models import (
     User, Client, Order, Task, Listing, Message, Review,
     HousingItem, HousingMedia, Attachment, Session, Setting,
-    Trip, TripPing,
+    Trip, TripPing, PhoneShare,
 )
 import routing
 from catalog import (
@@ -773,6 +773,23 @@ def create_app() -> Flask:
         user.tg_link_code = code
         SessionLocal.commit()
         return jsonify({"url": bot_deeplink(f"link_{code}")})
+
+    # ---- Take phone from Telegram during WEB sign-up ----------------------
+    # (Desktop has no Mini App requestContact, so we bounce the user to the bot,
+    #  they tap "share number", the bot stores it here, the page polls it back.)
+    @app.post("/auth/telegram/phone-start")
+    def tg_phone_start():
+        code = secrets.token_urlsafe(10)
+        SessionLocal.add(PhoneShare(code=code))
+        SessionLocal.commit()
+        return jsonify({"code": code, "url": bot_deeplink(f"phone_{code}")})
+
+    @app.get("/auth/telegram/phone/<code>")
+    def tg_phone_poll(code: str):
+        row = SessionLocal.execute(
+            select(PhoneShare).where(PhoneShare.code == code)
+        ).scalar_one_or_none()
+        return jsonify({"phone": row.phone if row else None})
 
     @app.get("/auth/telegram/callback")
     def tg_callback():
@@ -2403,7 +2420,11 @@ def create_app() -> Flask:
             if trip.origin_lat is not None and trip.origin_lng is not None:
                 plan_trip_route(trip, trip.origin_lat, trip.origin_lng)
                 SessionLocal.commit()
-            elif ping:
+            # Phase 1 (runner → airport) does NOT auto-draw: the map stays clean
+            # until the runner's live location arrives and they pick a route. Only
+            # the drop-off leg auto-plans from a bare ping (so the client sees the
+            # ride start without waiting on the runner to tap "choose route").
+            elif ping and (trip.phase or "toPickup") == "toDestination":
                 plan_trip_route(trip, ping.lat, ping.lng)
                 SessionLocal.commit()
             return
@@ -2440,6 +2461,27 @@ def create_app() -> Flask:
             return False
         return d > 0.4
 
+    def _client_step_task(client_id: int, key: str) -> Task | None:
+        """The client's not-yet-done airport step task (airportMeet/transfer). The
+        trip flow drives these so the runner doesn't tick them off by hand too."""
+        return SessionLocal.execute(
+            select(Task).where(
+                Task.client_id == client_id, Task.kind == "step",
+                Task.key == key, Task.status != "done",
+            ).order_by(Task.position, Task.id)
+        ).scalars().first()
+
+    def _drive_step(client_id: int, key: str, status: str) -> None:
+        """Advance a client's airport step task as the runner moves the trip along
+        (start → onWay, here → arrived, met → done). Caller commits."""
+        t = _client_step_task(client_id, key)
+        if not t or t.status == status:
+            return
+        t.status = status
+        if status == "done":
+            t.completed_at = datetime.utcnow()
+            notify_task_done(SessionLocal.get(Client, client_id), t)
+
     def trip_live_payload(trip: Trip, for_client: bool = False) -> dict:
         """Live trip snapshot. `for_client` hides the phase-1 route/legs: while the
         runner is still coming to the airport the client only sees 'host on the way
@@ -2467,6 +2509,8 @@ def create_app() -> Flask:
             "id": trip.id,
             "status": trip.status,
             "phase": phase,
+            # Phase-1 sub-state: the host has reached the airport and is waiting.
+            "atPickup": bool(trip.at_pickup) and phase == "toPickup",
             "mode": trip.mode or "car",
             "runner": {
                 "name": _first_name(runner.name) if runner else "",
@@ -2734,10 +2778,14 @@ def create_app() -> Flask:
             dest_lat=float(dest_lat) if dest_lat is not None else None,
             dest_lng=float(dest_lng) if dest_lng is not None else None,
         )
-        # Plan the first route from the runner's last known position (Traccar), if any.
-        if user.last_lat is not None and user.last_lng is not None and _has_target(trip):
-            plan_trip_route(trip, user.last_lat, user.last_lng)
+        # Phase 1 draws NO route yet: it appears once the runner's live location
+        # comes in (Traccar) and they pick how to travel — not an auto Woolwich→
+        # Heathrow line the moment they tap start.
         SessionLocal.add(trip)
+        SessionLocal.commit()
+        # The airport-meet step goes live ("on the way") the moment the trip starts,
+        # so the runner doesn't tick it off separately.
+        _drive_step(c.id, "airportMeet", "onWay")
         SessionLocal.commit()
         ensure_track_token(user)
         cu = SessionLocal.get(User, c.user_id) if c.user_id else None
@@ -2917,6 +2965,28 @@ def create_app() -> Flask:
             "dest": {"lat": float(dst_lat), "lng": float(dst_lng)},
         })
 
+    @app.post("/runner/trips/<int:trip_id>/here")
+    def runner_trip_here(trip_id: int):
+        """Runner has reached the airport and is waiting for the client. Marks the
+        airport-meet step 'arrived' and tells the client their host has arrived."""
+        user, err = require_role("runner")
+        if err:
+            return err
+        trip = SessionLocal.get(Trip, trip_id)
+        if not trip or trip.runner_id != user.id:
+            return jsonify({"error": "not found"}), 404
+        trip.at_pickup = True
+        _drive_step(trip.client_id, "airportMeet", "arrived")
+        SessionLocal.commit()
+        c = SessionLocal.get(Client, trip.client_id)
+        cu = SessionLocal.get(User, c.user_id) if c and c.user_id else None
+        if cu:
+            try:
+                notify.send(cu, "host_arrived", name=_first_name(user.name) or "Сопровождающий")
+            except Exception:
+                pass
+        return jsonify({"trip": trip_live_payload(trip)})
+
     @app.post("/runner/trips/<int:trip_id>/met")
     def runner_trip_met(trip_id: int):
         """Runner has met the client at the airport → switch to phase 2 and replan
@@ -2928,6 +2998,10 @@ def create_app() -> Flask:
         if not trip or trip.runner_id != user.id:
             return jsonify({"error": "not found"}), 404
         trip.phase = "toDestination"
+        trip.at_pickup = False
+        # The airport meet is done; the ride/transfer step goes live.
+        _drive_step(trip.client_id, "airportMeet", "done")
+        _drive_step(trip.client_id, "transfer", "onWay")
         _invalidate_route(trip)  # replan pickup→dest from the current position
         # Use the operator's pre-chosen airport→drop-off route if there is one;
         # otherwise plan from the runner's current position (they're at the airport
@@ -2956,6 +3030,8 @@ def create_app() -> Flask:
             return jsonify({"error": "not found"}), 404
         trip.status = "arrived"
         trip.ended_at = datetime.utcnow()
+        # Dropped the client off → the transfer step is done.
+        _drive_step(trip.client_id, "transfer", "done")
         SessionLocal.commit()
         return jsonify({"ok": True})
 
