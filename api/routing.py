@@ -202,6 +202,25 @@ def _detangle(pts: list) -> list:
     return out
 
 
+def _smooth(pts: list, iterations: int = 2) -> list:
+    """Chaikin corner-cutting: turns an angular station-to-station polyline into a
+    gently flowing curve (like a maps app draws a metro line) without following the
+    exact OSM track. Endpoints are kept fixed."""
+    if len(pts) < 3:
+        return pts
+    out = pts
+    for _ in range(iterations):
+        new = [out[0]]
+        for i in range(len(out) - 1):
+            a, b = out[i], out[i + 1]
+            # Quarter/three-quarter points along each segment cut the corners.
+            new.append([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25])
+            new.append([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75])
+        new.append(out[-1])
+        out = new
+    return out
+
+
 def _rail_leg_via_stations(leg: dict, line_id: str, base, app_key) -> Optional[list]:
     """Rebuild a rail leg's geometry by drawing through its ordered stations'
     real coordinates (clean, like a transit map) instead of TfL's tangled
@@ -232,7 +251,8 @@ def _rail_leg_via_stations(leg: dict, line_id: str, base, app_key) -> Optional[l
     # Need most stations resolved and a sensible line.
     if resolved < max(2, len(stops) - 2) or len(pts) < 2:
         return None
-    return pts
+    # Smooth the angular station-to-station line into a flowing curve.
+    return _smooth(pts, iterations=3)
 
 
 def _parse_tfl_journey(j: dict, base=None, app_key=None) -> dict:
