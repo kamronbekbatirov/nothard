@@ -1247,5 +1247,10 @@
     "runnerToPickup": "Mijozni kutib olishga ketyapsiz",
     "runnerWaiting": "Yetib keldingiz — mijozni kutyapsiz",
     "runnerToDest": "Manzilga ketyapsiz"
+  },
+  "Cookies": {
+    "text": "Sayt to‘g‘ri ishlashi va tilingizni eslab qolishi uchun cookie’dan foydalanamiz.",
+    "accept": "Tushunarli",
+    "learnMore": "Batafsil"
   }
 }

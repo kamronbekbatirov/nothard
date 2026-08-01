@@ -11,6 +11,7 @@ import { LangSwitcher } from '@/app/components/lang-switcher'
 import { AddressField } from '@/app/components/address-field'
 import { TripCard } from '@/app/components/trip-card'
 import { RouteOptions } from '@/app/components/route-options'
+import { AppShellSkeleton } from '@/app/components/skeleton'
 import { useToast } from '@/app/components/toast'
 import { useRequireRole } from '@/app/lib/use-require-role'
 import { useTaskLabel } from '@/app/lib/task-label'
@@ -698,9 +699,7 @@ function fmtDate(iso: string): string {
 }
 
 export function PanelLoading() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-paper text-[15px] text-muted">…</div>
-  )
+  return <AppShellSkeleton />
 }
 
 /* ---------- Live tracking: phone setup + trip control ---------- */

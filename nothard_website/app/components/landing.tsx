@@ -7,6 +7,7 @@ import { Link, useRouter } from '@/i18n/navigation'
 import { Button } from './button'
 import { SiteNav, dashHref } from './site-nav'
 import { Footer } from './footer'
+import { LandingSkeleton } from './skeleton'
 import { TelegramIcon } from './field'
 import { useToast } from './toast'
 import { useAuth } from '@/app/lib/use-auth'
@@ -100,12 +101,10 @@ export default function Landing() {
     router.push(`/profile?pkg=${id}`)
   }
 
-  // While resuming a returning user's session inside Telegram, show a spinner
+  // While resuming a returning user's session inside Telegram, show a skeleton
   // instead of flashing the landing before the redirect to the cabinet.
   if (mounted && inTelegram && tgResuming) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-paper text-[15px] text-muted">…</div>
-    )
+    return <LandingSkeleton />
   }
 
   return (

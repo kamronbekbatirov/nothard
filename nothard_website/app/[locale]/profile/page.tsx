@@ -12,6 +12,7 @@ import { Avatar } from '@/app/components/avatar'
 import { SettingsModal } from '@/app/components/settings-modal'
 import { DuplicateWarningModal } from '@/app/components/duplicate-warning'
 import { TripCard } from '@/app/components/trip-card'
+import { AppShellSkeleton } from '@/app/components/skeleton'
 import { AddressField } from '@/app/components/address-field'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
@@ -214,9 +215,7 @@ export default function ProfilePage() {
   }
 
   if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-paper text-[15px] text-muted">…</div>
-    )
+    return <AppShellSkeleton />
   }
 
   // First-time users must accept Privacy + Terms before using the cabinet.
@@ -238,9 +237,7 @@ export default function ProfilePage() {
   }
 
   if (!data) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-paper text-[15px] text-muted">…</div>
-    )
+    return <AppShellSkeleton />
   }
 
   return (
