@@ -1929,10 +1929,22 @@ function PopulatedCabinet({
             <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">
               {t('arrival.title')}
             </div>
-            {/* Name the exact service the client bought (transport vs taxi) rather
-                than a generic "airport meet". */}
-            <div className="mt-2 font-display text-[19px] leading-tight text-white">
-              {data.arrival.serviceId ? ts(`items.${data.arrival.serviceId}.name` as any) : t('arrival.serviceCard')}
+            {/* A clean title + a transfer-mode pill (taxi / public transport) —
+                nicer than the raw service name with its "→ домой на …" arrow. */}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="font-display text-[19px] leading-tight text-white">
+                {t('arrival.serviceCard')}
+              </span>
+              {data.arrival.serviceId === 'airportTaxi' && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-medium text-white">
+                  🚕 {t('arrival.byTaxi')}
+                </span>
+              )}
+              {data.arrival.serviceId === 'airportTransport' && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-medium text-white">
+                  🚆 {t('arrival.byTransport')}
+                </span>
+              )}
             </div>
             <div className="mt-3 rounded-lg bg-white/10 p-3">
               <div className="flex items-center justify-between">

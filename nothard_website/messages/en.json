@@ -632,7 +632,9 @@
       "saved": "Arrival details saved",
       "editTitle": "Edit arrival details",
       "serviceCard": "Airport meet",
-      "details": "Arrival details"
+      "details": "Arrival details",
+      "byTaxi": "By taxi",
+      "byTransport": "By public transport"
     },
     "upgrade": {
       "cta": "Upgrade package",

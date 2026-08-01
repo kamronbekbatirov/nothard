@@ -632,7 +632,9 @@
       "saved": "Uchib kelish ma'lumotlari saqlandi",
       "editTitle": "Uchib kelish ma'lumotlarini tahrirlash",
       "serviceCard": "Aeroportda kutib olish",
-      "details": "Kelish tafsilotlari"
+      "details": "Kelish tafsilotlari",
+      "byTaxi": "Taksida",
+      "byTransport": "Jamoat transportida"
     },
     "upgrade": {
       "cta": "Paketni yaxshilash",
