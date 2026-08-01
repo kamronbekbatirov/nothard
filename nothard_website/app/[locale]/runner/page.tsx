@@ -740,11 +740,10 @@ function PhoneSetupCard({
 }) {
   const t = useTranslations('Tracking')
   const { toast } = useToast()
-  const [open, setOpen] = useState(true)
+  // Collapsed by default — the runner opens the setup instructions themselves
+  // instead of them re-expanding on every visit.
+  const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState('')
-  useEffect(() => {
-    setOpen(localStorage.getItem('nh_track_setup_done') !== '1')
-  }, [])
   async function copy(text: string, which: string) {
     try {
       await navigator.clipboard.writeText(text)
@@ -800,10 +799,7 @@ function PhoneSetupCard({
               {t('regenToken')}
             </button>
             <button
-              onClick={() => {
-                localStorage.setItem('nh_track_setup_done', '1')
-                setOpen(false)
-              }}
+              onClick={() => setOpen(false)}
               className="text-[12.5px] font-medium text-accent hover:underline"
             >
               {t('setupDone')}

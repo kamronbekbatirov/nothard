@@ -676,8 +676,14 @@
       "total": "Total",
       "owned": "Already active"
     },
-    "managerRole": "Handles everything else: bank, NHS, housing, documents",
-    "greetingHi": "Welcome back"
+    "managerRole": "Coordinates your relocation: housing, bank, NHS and documents",
+    "greetingHi": "Welcome back",
+    "contact": {
+      "telegram": "Telegram",
+      "phone": "Phone",
+      "copy": "Copy",
+      "copied": "Number copied"
+    }
   },
   "Admin": {
     "badge": "Operator",
@@ -1094,7 +1100,8 @@
       "fromTelegram": "Take from Telegram",
       "waiting": "Waiting for the number…",
       "declined": "You didn't share the number — you can type it in instead.",
-      "timeout": "The number hasn't arrived yet. Please type it in."
+      "timeout": "The number hasn't arrived yet. Please type it in.",
+      "hintWeb": "The bot opens — tap “Share number” and it fills in here automatically."
     },
     "declineConfirm": "Cancel registration? The account will be deleted — you can sign up again any time.",
     "declineYes": "Yes, cancel"

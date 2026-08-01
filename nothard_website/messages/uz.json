@@ -676,8 +676,14 @@
       "total": "Jami",
       "owned": "Allaqachon faol"
     },
-    "managerRole": "Qolgan hammasini yuritadi: bank, NHS, uy-joy, hujjatlar",
-    "greetingHi": "Xush kelibsiz"
+    "managerRole": "Ko‘chishingizni muvofiqlashtiradi: uy-joy, bank, NHS va hujjatlar",
+    "greetingHi": "Xush kelibsiz",
+    "contact": {
+      "telegram": "Telegram",
+      "phone": "Telefon",
+      "copy": "Nusxalash",
+      "copied": "Raqam nusxalandi"
+    }
   },
   "Admin": {
     "badge": "Operator",
@@ -1094,7 +1100,8 @@
       "fromTelegram": "Telegram'dan olish",
       "waiting": "Raqam kutilmoqda…",
       "declined": "Raqamni ulashmadingiz — uni qo'lda kiritsangiz bo'ladi.",
-      "timeout": "Raqam hali kelmadi. Iltimos, qo'lda kiriting."
+      "timeout": "Raqam hali kelmadi. Iltimos, qo'lda kiriting.",
+      "hintWeb": "Bot ochiladi — “Raqamni ulashish”ni bosing, u shu yerga avtomatik qo‘yiladi."
     },
     "declineConfirm": "Ro'yxatdan o'tish bekor qilinsinmi? Hisob o'chiriladi — istalgan vaqtda qayta ro'yxatdan o'tsangiz bo'ladi.",
     "declineYes": "Ha, bekor qilish"

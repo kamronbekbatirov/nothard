@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
-import { Check, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, History, Home, Paperclip, Plus, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react'
+import { Check, CheckCircle2, ChevronDown, ChevronRight, Copy, ExternalLink, History, Home, Paperclip, Phone, Plus, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react'
 import { Link, useRouter } from '@/i18n/navigation'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
@@ -397,24 +397,54 @@ function ConsentGate({
   const greetName = (name || tgName || '').split(' ')[0]
 
   /**
-   * "Take from Telegram": the native prompt only tells us whether the user
-   * agreed — Telegram sends the actual number to the BOT — so once they agree we
-   * poll the profile until the bot has stored it.
+   * "Take from Telegram" — two paths:
+   *  - Inside the Mini App: native requestContact(); Telegram sends the number to
+   *    the BOT, so we poll our profile until the bot has stored it.
+   *  - On the web (desktop): bounce to the bot with a one-time code, the user taps
+   *    "share number" there, and we poll the code until it lands.
    */
   async function takePhoneFromTelegram() {
     setPhoneNote('')
-    const shared = await requestTelegramContact()
-    if (!shared) {
-      setPhoneNote(t('phone.declined'))
+    if (inTelegram && canRequestContact()) {
+      const shared = await requestTelegramContact()
+      if (!shared) {
+        setPhoneNote(t('phone.declined'))
+        return
+      }
+      setWaitingPhone(true)
+      for (let i = 0; i < 15; i++) {
+        await new Promise((r) => setTimeout(r, 1200))
+        try {
+          const me = await api.whoami()
+          if (me.phone) {
+            setPhone(me.phone)
+            setWaitingPhone(false)
+            return
+          }
+        } catch {}
+      }
+      setWaitingPhone(false)
+      setPhoneNote(t('phone.timeout'))
       return
     }
+    // Web path — open the bot, poll the one-time code.
     setWaitingPhone(true)
-    for (let i = 0; i < 15; i++) {
-      await new Promise((r) => setTimeout(r, 1200))
+    let code = ''
+    try {
+      const r = await api.telegram.phoneStart()
+      code = r.code
+      window.open(r.url, '_blank', 'noopener')
+    } catch {
+      setWaitingPhone(false)
+      setPhoneNote(t('phone.timeout'))
+      return
+    }
+    for (let i = 0; i < 40; i++) {
+      await new Promise((r) => setTimeout(r, 2000))
       try {
-        const me = await api.whoami()
-        if (me.phone) {
-          setPhone(me.phone)
+        const { phone: p } = await api.telegram.phonePoll(code)
+        if (p) {
+          setPhone(p)
           setWaitingPhone(false)
           return
         }
@@ -591,7 +621,10 @@ function ConsentGate({
                   placeholder="+998 90 123 45 67"
                   inputMode="tel"
                 />
-                {inTelegram && canRequestContact() && (
+                {/* Mini App → native requestContact; web → bounce to the bot. Both
+                    land in takePhoneFromTelegram. Hidden only on an old Mini App
+                    client that supports neither. */}
+                {(canRequestContact() || !inTelegram) && (
                   <Button
                     variant="outline"
                     size="block"
@@ -603,7 +636,7 @@ function ConsentGate({
                   </Button>
                 )}
                 <p className="mt-2 text-[12.5px] leading-snug text-gray">
-                  {phoneNote || t('phone.hint')}
+                  {phoneNote || (inTelegram ? t('phone.hint') : t('phone.hintWeb'))}
                 </p>
                 <Button
                   variant="solid"
@@ -905,23 +938,64 @@ function PersonAvatar({ url, name }: { url?: string | null; name?: string | null
 }
 
 function PersonContact({ telegram, phone }: { telegram?: string | null; phone?: string | null }) {
+  const t = useTranslations('Profile')
+  const { toast } = useToast()
+  const [copied, setCopied] = useState(false)
   if (!telegram && !phone) return null
+
+  async function copyPhone() {
+    if (!phone) return
+    try {
+      await navigator.clipboard.writeText(phone)
+      setCopied(true)
+      toast(t('contact.copied'))
+      setTimeout(() => setCopied(false), 1500)
+    } catch {}
+  }
+
   return (
-    <div className="mt-3 flex flex-col gap-1.5 text-[13px]">
+    <div className="mt-3 flex flex-col gap-2">
       {telegram && (
         <a
           href={`https://t.me/${telegram}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 font-medium text-accent hover:underline"
+          className="flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2 text-[13px] transition-colors hover:border-accent/40"
         >
-          @{telegram}
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-bg text-accent">
+            <TelegramIcon />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10.5px] font-medium uppercase tracking-wide text-gray">
+              {t('contact.telegram')}
+            </span>
+            <span className="block truncate font-medium text-accent">@{telegram}</span>
+          </span>
+          <ExternalLink size={13} className="shrink-0 text-gray" />
         </a>
       )}
       {phone && (
-        <a href={`tel:${phone}`} className="inline-flex items-center gap-1.5 text-ink-2 hover:text-accent">
-          {phone}
-        </a>
+        // tel: opens the dialer on a phone; the copy button makes the number
+        // usable on desktop and inside the Telegram WebView (where tel: is inert).
+        <div className="flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2 text-[13px]">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-bg text-accent">
+            <Phone size={14} />
+          </span>
+          <a href={`tel:${phone}`} className="min-w-0 flex-1">
+            <span className="block text-[10.5px] font-medium uppercase tracking-wide text-gray">
+              {t('contact.phone')}
+            </span>
+            <span className="block truncate font-medium text-ink">{phone}</span>
+          </a>
+          <button
+            type="button"
+            onClick={copyPhone}
+            aria-label={t('contact.copy')}
+            className="shrink-0 text-gray transition-colors hover:text-accent"
+          >
+            {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
+          </button>
+        </div>
       )}
     </div>
   )
