@@ -738,6 +738,9 @@ export type DashboardData = {
   // service): whether there's an airport meet, and the saved arrival details.
   arrival: {
     hasAirportMeet: boolean
+    // Which airport service was bought (airportTransport | airportTaxi); null for
+    // the meet package.
+    serviceId: string | null
     details: Record<string, string>
     orderId: number | null
   }

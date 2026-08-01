@@ -1071,6 +1071,14 @@ def create_app() -> Flask:
         # (not just the meet package) shows the "we'll meet you" card + countdown.
         # hasAirportMeet = there's an airport-meet step OR the airport-meet order.
         has_airport_meet = any(t.key == "airportMeet" for t in path_steps)
+        # The standalone airport SERVICE the client actually bought (transport vs
+        # taxi), so the cabinet can name it instead of a generic "airport meet".
+        airport_svc = next(
+            (o for o in reversed(orders)
+             if o.item_type == "service" and o.item_id in AIRPORT_SERVICE_STEPS
+             and not o.archived),
+            None,
+        )
         arrival_details = {}
         arrival_order_id = None
         for o in orders:
@@ -1093,6 +1101,9 @@ def create_app() -> Flask:
             # Top-level arrival context (works with or without a package).
             "arrival": {
                 "hasAirportMeet": has_airport_meet,
+                # Which airport service was bought (airportTransport | airportTaxi),
+                # so the cabinet shows the real name; None for the meet package.
+                "serviceId": airport_svc.item_id if airport_svc else None,
                 "details": arrival_details,
                 "orderId": arrival_order_id,
             },

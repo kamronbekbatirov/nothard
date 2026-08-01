@@ -1929,7 +1929,11 @@ function PopulatedCabinet({
             <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/60">
               {t('arrival.title')}
             </div>
-            <div className="mt-2 font-display text-[19px] leading-tight text-white">{t('arrival.serviceCard')}</div>
+            {/* Name the exact service the client bought (transport vs taxi) rather
+                than a generic "airport meet". */}
+            <div className="mt-2 font-display text-[19px] leading-tight text-white">
+              {data.arrival.serviceId ? ts(`items.${data.arrival.serviceId}.name` as any) : t('arrival.serviceCard')}
+            </div>
             <div className="mt-3 rounded-lg bg-white/10 p-3">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
