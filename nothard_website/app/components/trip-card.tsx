@@ -11,7 +11,7 @@ import type { TripLive } from '@/app/lib/api'
 // Leaflet touches `window`, so the map is loaded client-side only.
 const LiveMap = dynamic(() => import('./live-map'), {
   ssr: false,
-  loading: () => <div className="h-[260px] animate-pulse rounded-xl border border-line bg-card" />,
+  loading: () => <div className="nd-skeleton h-[260px] rounded-xl" />,
 })
 
 /**

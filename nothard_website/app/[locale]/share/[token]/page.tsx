@@ -85,8 +85,8 @@ export default function SharePage() {
       <main className="mx-auto max-w-[760px] px-5 py-10 sm:px-8">
         {state === 'loading' && (
           <div className="space-y-4">
-            <div className="h-8 w-2/3 animate-pulse rounded bg-track" />
-            <div className="h-40 animate-pulse rounded-2xl bg-track" />
+            <div className="nd-skeleton h-8 w-2/3 rounded" />
+            <div className="nd-skeleton h-40 rounded-2xl" />
           </div>
         )}
 

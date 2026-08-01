@@ -23,6 +23,7 @@
   --gray-lt2: 184 178 164;
   --line: 208 201 187;
   --track: 226 221 210;
+  --sk-hi: 241 238 231;
   --capsule: 231 227 218;
   --accent: 47 93 69;
   --accent-bg: 231 237 231;
@@ -50,6 +51,7 @@
   --gray-lt2: 106 100 90;
   --line: 62 57 50;
   --track: 52 47 41;
+  --sk-hi: 74 68 60;
   --capsule: 47 43 37;
   --accent: 92 171 131;
   --accent-bg: 34 49 42;
@@ -79,6 +81,7 @@
     --gray-lt2: 106 100 90;
     --line: 62 57 50;
     --track: 52 47 41;
+    --sk-hi: 74 68 60;
     --capsule: 47 43 37;
     --accent: 92 171 131;
     --accent-bg: 34 49 42;
@@ -270,4 +273,34 @@
 }
 .nd-pulse {
   animation: ndPulse 2s infinite;
+}
+
+/* Skeleton shimmer — a soft highlight band sweeps across the placeholder (nicer
+   than a flat opacity pulse). Theme-aware via --track (base) and --sk-hi (band). */
+@keyframes ndShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.nd-skeleton {
+  background-color: rgb(var(--track));
+  background-image: linear-gradient(
+    90deg,
+    rgb(var(--track)) 0%,
+    rgb(var(--track)) 35%,
+    rgb(var(--sk-hi)) 50%,
+    rgb(var(--track)) 65%,
+    rgb(var(--track)) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: ndShimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nd-skeleton {
+    animation: none;
+  }
 }

@@ -89,8 +89,8 @@ export default function ListingDetailPage() {
 
         {state === 'loading' && (
           <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-            <div className="h-[340px] animate-pulse rounded-2xl bg-track" />
-            <div className="h-[340px] animate-pulse rounded-2xl bg-track" />
+            <div className="nd-skeleton h-[340px] rounded-2xl" />
+            <div className="nd-skeleton h-[340px] rounded-2xl" />
           </div>
         )}
 

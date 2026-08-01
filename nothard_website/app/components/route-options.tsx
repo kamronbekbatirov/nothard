@@ -67,7 +67,7 @@ export function RouteOptions({
   }, [])
 
   if (options === null) {
-    return <div className="h-16 animate-pulse rounded-lg border border-line bg-card" />
+    return <div className="nd-skeleton h-16 rounded-lg" />
   }
   if (options.length === 0) {
     return <p className="text-center text-[12.5px] text-muted">{t('routeNone')}</p>

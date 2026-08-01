@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Check, CheckCircle2, ChevronDown, ChevronRight, Copy, ExternalLink, History, Home, Paperclip, Phone, Plus, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react'
 import { Link, useRouter } from '@/i18n/navigation'
@@ -13,6 +13,7 @@ import { SettingsModal } from '@/app/components/settings-modal'
 import { DuplicateWarningModal } from '@/app/components/duplicate-warning'
 import { TripCard } from '@/app/components/trip-card'
 import { AppShellSkeleton } from '@/app/components/skeleton'
+import { PackagePicker } from '@/app/components/package-picker'
 import { AddressField } from '@/app/components/address-field'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
@@ -100,6 +101,25 @@ export default function ProfilePage() {
     const p = new URLSearchParams(window.location.search).get('pkg')
     if (p && PACKAGES.some((x) => x.id === p)) setPresetPkg(p)
   }, [])
+
+  // A selection built on the /services page (?buy=1&pkg=…&add=a,b) — complete the
+  // purchase here (the cabinet owns arrival intake + checkout) once we're signed
+  // in, then clear the query so a refresh doesn't re-buy.
+  const boughtFromUrl = useRef(false)
+  useEffect(() => {
+    if (!user || boughtFromUrl.current) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('buy') !== '1') return
+    boughtFromUrl.current = true
+    const pkg = params.get('pkg')
+    const pkgId = pkg && PACKAGES.some((x) => x.id === pkg) ? pkg : null
+    const svcIds = (params.get('add') || '')
+      .split(',')
+      .filter((id) => id && SERVICES.some((s) => s.id === id))
+    window.history.replaceState(null, '', window.location.pathname)
+    if (pkgId || svcIds.length) buySelection(pkgId, svcIds)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   // Live "your host is on the way" trip — polled while the cabinet is open.
   const [trip, setTrip] = useState<TripLive | null>(null)
@@ -1273,277 +1293,6 @@ function HousingSection({ items, onRefresh }: { items: HousingItem[]; onRefresh:
 }
 
 /* ---------- Package + services picker ---------- */
-/**
- * The shared "choose a package and/or services" UI. A package and any extra
- * services are chosen together and paid for in ONE checkout. Used both as the
- * first-run empty cabinet (`barMode="fixed"`, full page) and inside the
- * re-purchase sheet opened from the populated cabinet (`barMode="inline"`).
- * `ownedServices` are shown as already-active and can't be re-picked.
- */
-function PackagePicker({
-  onCheckout,
-  buying,
-  initialPkg,
-  ownedServices = [],
-  heading,
-  barMode = 'fixed',
-}: {
-  onCheckout: (pkgId: string | null, serviceIds: string[]) => void
-  buying: boolean
-  initialPkg?: string | null
-  ownedServices?: string[]
-  heading?: React.ReactNode
-  barMode?: 'fixed' | 'inline'
-}) {
-  const t = useTranslations('Profile')
-  const tp = useTranslations('Packages')
-  const ts = useTranslations('Services')
-  const tl = useTranslations('Landing')
-  const td = useTranslations('Duplicate')
-  const [pkg, setPkg] = useState<string | null>(initialPkg ?? null)
-  const [services, setServices] = useState<string[]>([])
-  const [warnDupes, setWarnDupes] = useState(false)
-  // The landing's "?pkg=" arrives after mount (read from the URL in an effect).
-  useEffect(() => {
-    if (initialPkg) setPkg(initialPkg)
-  }, [initialPkg])
-
-  // Services the chosen package already covers — warned about, never blocked.
-  const dupes = coveredServices(pkg, services)
-
-  function submit() {
-    if (dupes.length) setWarnDupes(true)
-    else onCheckout(pkg, services)
-  }
-
-  const toggleService = (id: string) =>
-    setServices((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
-
-  const pkgPrice = pkg ? (PACKAGES.find((p) => p.id === pkg)?.gbp ?? 0) : 0
-  const svcPrice = services.reduce(
-    (sum, id) => sum + (SERVICES.find((s) => s.id === id)?.price ?? 0),
-    0
-  )
-  const total = pkgPrice + svcPrice
-  const nothingPicked = !pkg && services.length === 0
-
-  return (
-    <div className={cn('mx-auto max-w-[1000px]', barMode === 'fixed' ? 'pb-44' : 'pb-4')}>
-      {heading}
-
-      {/* ---- Step 1 — pick a package (or skip straight to services) ---- */}
-      <div className="mt-10">
-        <div className="mb-4 flex items-baseline gap-2.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[12px] font-bold text-white">
-            1
-          </span>
-          <h2 className="font-display text-[19px] text-ink">{t('pick.packagesTitle')}</h2>
-        </div>
-
-        <div className="grid items-stretch gap-4 md:grid-cols-3">
-          {PACKAGES.map((p) => {
-            const selected = pkg === p.id
-            const features = Array.from({ length: p.featureCount }, (_, i) =>
-              tp(`${p.id}.features.${i}`)
-            )
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPkg(selected ? null : p.id)}
-                className={cn(
-                  'relative flex flex-col rounded-xl border p-5 text-left transition-all',
-                  selected
-                    ? 'border-accent bg-accent-bg ring-2 ring-accent'
-                    : 'border-line bg-card hover:border-accent/40'
-                )}
-              >
-                {p.popular && !selected && (
-                  <span className="absolute -top-2.5 left-5 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-white">
-                    {tl('popular')}
-                  </span>
-                )}
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-display text-[19px] text-ink">{tp(`${p.id}.name`)}</span>
-                  <span
-                    className={cn(
-                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
-                      selected ? 'border-accent bg-accent' : 'border-line bg-surface'
-                    )}
-                  >
-                    {selected && <Check size={13} strokeWidth={3.5} className="text-white" />}
-                  </span>
-                </div>
-                <div className="mt-2 font-display text-[27px] text-ink">{fmtGBP(p.gbp)}</div>
-                <div className="text-[12px] text-gray">{fmtUZS(p.gbp)}</div>
-                <div className="mt-3 flex flex-col gap-1.5">
-                  {features.map((f, i) => (
-                    <span key={i} className="flex gap-1.5 text-[12.5px] leading-snug text-ink-2">
-                      <span className="font-bold text-accent">✓</span>
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-        <p className="mt-3 text-center text-[13px] text-gray">{t('pick.packagesHint')}</p>
-      </div>
-
-      {/* ---- Step 2 — optional extra services ---- */}
-      <div className="mt-10">
-        <div className="mb-4 flex items-baseline gap-2.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[12px] font-bold text-white">
-            2
-          </span>
-          <h2 className="font-display text-[19px] text-ink">{t('pick.servicesTitle')}</h2>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          {SERVICE_STAGES.map((stage) => {
-            const list = SERVICES.filter((s) => s.stage === stage)
-            if (!list.length) return null
-            return (
-              <div key={stage}>
-                <div className="eyebrow mb-2.5">{ts(`stages.${stage}`)}</div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {list.map((s) => {
-                    const owned = ownedServices.includes(s.id)
-                    const on = services.includes(s.id)
-                    const included = packageCovers(pkg, s.id)
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        disabled={owned}
-                        onClick={() => toggleService(s.id)}
-                        className={cn(
-                          'flex items-start gap-3 rounded-lg border p-3.5 text-left transition-colors',
-                          owned
-                            ? 'cursor-default border-line bg-card opacity-55'
-                            : on && included
-                              ? 'border-amber-500/60 bg-amber-500/10'
-                              : on
-                                ? 'border-accent bg-accent-bg'
-                                : included
-                                  ? 'border-line bg-card opacity-60 hover:border-accent/40'
-                                  : 'border-line bg-card hover:border-accent/40'
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border',
-                            on || owned ? 'border-accent bg-accent' : 'border-line bg-surface'
-                          )}
-                        >
-                          {(on || owned) && <Check size={12} strokeWidth={3.5} className="text-white" />}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-baseline justify-between gap-2">
-                            <span className="text-[13.5px] font-medium text-ink">
-                              {ts(`items.${s.id}.name`)}
-                            </span>
-                            <span className="shrink-0 text-[13px] font-semibold text-accent">
-                              {fmtGBP(s.price)}
-                            </span>
-                          </span>
-                          {owned ? (
-                            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-accent/12 px-2 py-0.5 text-[11px] font-medium text-accent">
-                              {t('pick.owned')}
-                            </span>
-                          ) : included ? (
-                            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                              {td('inPackage')}
-                            </span>
-                          ) : (
-                            <span className="mt-0.5 block text-[12.5px] leading-snug text-muted">
-                              {ts(`items.${s.id}.desc`)}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ---- Floating total + single checkout ----
-          Lifted off the bottom edge (safe-area + margin) so it stays comfortably
-          reachable and doesn't collide with phone/Telegram bottom bars. */}
-      <div
-        className={cn(
-          barMode === 'fixed'
-            ? 'pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] pt-2'
-            : 'sticky bottom-3 z-40 pt-3'
-        )}
-      >
-        <div
-          className={cn(
-            'mx-auto max-w-[1000px] rounded-2xl border border-line bg-surface/95 shadow-card backdrop-blur',
-            barMode === 'fixed' && 'pointer-events-auto'
-          )}
-        >
-          {dupes.length > 0 && (
-            <div className="flex items-start gap-2 border-b border-line px-5 py-2.5 text-[12.5px] leading-snug text-amber-700">
-              <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-              {td('body', { pkg: pkg ? tp(`${pkg}.name`) : '' })}
-            </div>
-          )}
-          <div className="flex items-center gap-4 px-5 py-3">
-            <div className="min-w-0 flex-1">
-              {nothingPicked ? (
-                <div className="text-[13px] text-muted">{t('pick.nothing')}</div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {pkg && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-accent/12 px-2.5 py-1 text-[12px] font-semibold text-accent">
-                      {tp(`${pkg}.name`)}
-                      <span className="font-normal opacity-70">{fmtGBP(pkgPrice)}</span>
-                    </span>
-                  )}
-                  {services.length > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-ink/[.06] px-2.5 py-1 text-[12px] font-medium text-ink-2">
-                      {t('pick.servicesCount', { count: services.length })}
-                      <span className="opacity-70">{fmtGBP(svcPrice)}</span>
-                    </span>
-                  )}
-                </div>
-              )}
-              <div className="mt-1 flex items-baseline gap-1.5">
-                <span className="text-[11.5px] uppercase tracking-wide text-gray">{t('pick.total')}</span>
-                <span className="font-display text-[21px] leading-none text-ink">{fmtGBP(total)}</span>
-              </div>
-            </div>
-            <Button variant="solid" disabled={buying || nothingPicked} onClick={submit}>
-              {t('pick.checkout')}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {warnDupes && (
-        <DuplicateWarningModal
-          pkgName={pkg ? tp(`${pkg}.name`) : ''}
-          serviceNames={dupes.map((id) => ts(`items.${id}.name`))}
-          onCancel={() => {
-            // "Remove extras" — drop just the duplicated ones, keep the rest.
-            setServices((s) => s.filter((id) => !dupes.includes(id)))
-            setWarnDupes(false)
-          }}
-          onProceed={() => {
-            setWarnDupes(false)
-            onCheckout(pkg, services)
-          }}
-        />
-      )}
-    </div>
-  )
-}
 
 /* ---------- Empty (first-time) cabinet — the picker with a welcome heading ---------- */
 function EmptyCabinet({
@@ -1828,6 +1577,9 @@ function PopulatedCabinet({
   const { toast } = useToast()
   const [arrivalOpen, setArrivalOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  // "Add services" opens the same onboarding-style picker (packages + services)
+  // in a sheet — the same experience as the empty cabinet and the /services page.
+  const [addOpen, setAddOpen] = useState(false)
 
   const steps = data.path.filter((p) => p.kind === 'step')
   const total = steps.length
@@ -1985,8 +1737,8 @@ function PopulatedCabinet({
         {/* Buy more — small/secondary while there's active work (package or
             airport service); the prominent buy panel only shows when idle. */}
         {(data.package || data.arrival.hasAirportMeet) && (
-          <Button asChild variant="outline" size="block">
-            <Link href="/services">{t('addServices')}</Link>
+          <Button variant="outline" size="block" onClick={() => setAddOpen(true)}>
+            {t('addServices')}
           </Button>
         )}
 
@@ -2313,6 +2065,15 @@ function PopulatedCabinet({
       )}
 
       {shareOpen && <ShareModal onClose={() => setShareOpen(false)} />}
+
+      {addOpen && (
+        <PurchaseSheet
+          buying={buying}
+          ownedServices={data.services.map((s) => s.id)}
+          onClose={() => setAddOpen(false)}
+          onCheckout={onCheckout}
+        />
+      )}
     </>
   )
 }

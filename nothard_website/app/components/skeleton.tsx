@@ -4,11 +4,11 @@ import { cn } from '@/app/lib/utils'
 
 /**
  * Skeleton loaders — the calm "component outlines" shown while a page's data is
- * loading, instead of a bare spinner. All pieces pulse with `animate-pulse` and
+ * loading, instead of a bare spinner. All pieces shimmer with the `nd-skeleton`
  * use the theme's `track` colour so they read the same in light and dark.
  */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-md bg-track', className)} />
+  return <div className={cn('nd-skeleton rounded-md', className)} />
 }
 
 /** A sticky top bar placeholder that mirrors AppTopbar (logo + right controls). */

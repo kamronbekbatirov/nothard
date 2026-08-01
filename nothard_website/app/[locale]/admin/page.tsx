@@ -16,7 +16,7 @@ import { ModeSelector } from '@/app/components/travel-mode'
 // Leaflet needs `window` → client-only. Used for the operator's planned-route preview.
 const AdminLiveMap = dynamic(() => import('@/app/components/live-map'), {
   ssr: false,
-  loading: () => <div className="h-[200px] animate-pulse rounded-xl border border-line bg-card" />,
+  loading: () => <div className="nd-skeleton h-[200px] rounded-xl" />,
 })
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
