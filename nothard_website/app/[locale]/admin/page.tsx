@@ -287,7 +287,10 @@ export default function AdminPage() {
           meSide="manager"
           fetchMessages={() => api.admin.messages(chatClient.id).then((r) => r.messages)}
           sendMessage={(body) => api.admin.sendMessage(chatClient.id, body)}
-          onClose={() => setChatClient(null)}
+          onClose={() => {
+            setChatClient(null)
+            loadOverview() // clear the unread badge immediately (don't wait for the poll)
+          }}
         />
       )}
     </div>

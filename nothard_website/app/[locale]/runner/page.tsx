@@ -265,7 +265,10 @@ export default function RunnerPage() {
           meSide="runner"
           fetchMessages={() => api.runner.messages(chatClient.id).then((r) => r.messages)}
           sendMessage={(body) => api.runner.sendMessage(chatClient.id, body)}
-          onClose={() => setChatClient(null)}
+          onClose={() => {
+            setChatClient(null)
+            load() // clear the unread badge immediately (don't wait for the poll)
+          }}
         />
       )}
     </div>

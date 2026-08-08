@@ -338,7 +338,10 @@ export default function ProfilePage() {
           meSide="client"
           fetchMessages={() => api.me.messages('manager').then((r) => r.messages)}
           sendMessage={(body) => api.me.sendMessage(body, 'manager')}
-          onClose={() => setChatWith(null)}
+          onClose={() => {
+            setChatWith(null)
+            refresh() // clear the unread badge immediately (don't wait for the poll)
+          }}
         />
       )}
 
@@ -353,7 +356,10 @@ export default function ProfilePage() {
           meSide="client"
           fetchMessages={() => api.me.messages('runner').then((r) => r.messages)}
           sendMessage={(body) => api.me.sendMessage(body, 'runner')}
-          onClose={() => setChatWith(null)}
+          onClose={() => {
+            setChatWith(null)
+            refresh() // clear the unread badge immediately (don't wait for the poll)
+          }}
         />
       )}
 
