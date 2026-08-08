@@ -15,7 +15,7 @@ import { TripCard } from '@/app/components/trip-card'
 import { AppShellSkeleton } from '@/app/components/skeleton'
 import { PackagePicker } from '@/app/components/package-picker'
 import { UnreadBadge } from '@/app/components/unread-badge'
-import { AddressField } from '@/app/components/address-field'
+import { LocationPicker } from '@/app/components/location-picker'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
 import { useAuth } from '@/app/lib/use-auth'
@@ -876,18 +876,20 @@ function PackageIntakeModal({
             placeholder={t('intake.flightOther')}
           />
 
-          <label className="block">
+          <div>
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.dropoff')}</span>
-            <AddressField
+            <LocationPicker
               search={(q) => api.me.geocode(q).then((r) => r.results)}
+              reverse={(lat, lng) => api.me.reverse(lat, lng)}
               value={dropoff}
+              coords={dropoffCoords}
               placeholder={t('intake.dropoffPlaceholder')}
-              onPick={(label, coords) => {
+              onChange={(label, coords) => {
                 setDropoff(label)
                 setDropoffCoords(coords)
               }}
             />
-          </label>
+          </div>
 
           <Button
             variant="solid"
@@ -2196,7 +2198,11 @@ function ArrivalEditModal({
   const [airport, setAirport] = useState(details.airport || '')
   const [flight, setFlight] = useState(details.flight || '')
   const [dropoff, setDropoff] = useState(details.dropoff || '')
-  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(
+    details.dropoffLat && details.dropoffLng
+      ? { lat: Number(details.dropoffLat), lng: Number(details.dropoffLng) }
+      : null
+  )
   const [busy, setBusy] = useState(false)
 
   return (
@@ -2235,18 +2241,20 @@ function ArrivalEditModal({
             otherLabel={t('intake.other')}
             placeholder={t('intake.flightOther')}
           />
-          <label className="block">
+          <div>
             <span className="mb-1.5 block text-[13px] font-medium text-ink-2">{t('intake.dropoff')}</span>
-            <AddressField
+            <LocationPicker
               search={(q) => api.me.geocode(q).then((r) => r.results)}
+              reverse={(lat, lng) => api.me.reverse(lat, lng)}
               value={dropoff}
+              coords={dropoffCoords}
               placeholder={t('intake.dropoffPlaceholder')}
-              onPick={(label, coords) => {
+              onChange={(label, coords) => {
                 setDropoff(label)
                 setDropoffCoords(coords)
               }}
             />
-          </label>
+          </div>
           <Button
             variant="solid"
             size="block"

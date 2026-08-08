@@ -584,6 +584,30 @@ def geocode_search(query: str, nominatim_url: Optional[str] = None,
     return []
 
 
+def reverse_geocode(lat: float, lng: float, nominatim_url: Optional[str] = None,
+                    timeout: float = 4.0) -> Optional[dict]:
+    """A dropped map pin (lat/lng) → ``{lat, lng, label}`` via Nominatim /reverse,
+    so a hand-placed destination still gets a readable address. None on error."""
+    base = (nominatim_url or DEFAULT_NOMINATIM_URL).rstrip("/")
+    try:
+        resp = requests.get(
+            f"{base}/reverse",
+            params={"lat": lat, "lon": lng, "format": "json", "zoom": 18},
+            headers=_UA,
+            timeout=timeout,
+        )
+        row = resp.json()
+        if resp.status_code == 200 and isinstance(row, dict) and row.get("display_name"):
+            return {
+                "lat": float(row.get("lat", lat)),
+                "lng": float(row.get("lon", lng)),
+                "label": row["display_name"],
+            }
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        pass
+    return None
+
+
 def geocode(query: str, nominatim_url: Optional[str] = None,
             timeout: float = 4.0, london_only: bool = False) -> Optional[dict]:
     """Address string → ``{lat, lng, label}`` via Nominatim, or None.

@@ -7,7 +7,7 @@ import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Avatar } from '@/app/components/avatar'
 import { ChatModal } from '@/app/components/chat'
-import { AddressField } from '@/app/components/address-field'
+import { LocationPicker } from '@/app/components/location-picker'
 import { TripCard } from '@/app/components/trip-card'
 import { RouteOptions } from '@/app/components/route-options'
 import { AppShellSkeleton } from '@/app/components/skeleton'
@@ -506,11 +506,13 @@ function TripArea({
       {editDest ? (
         <div className="rounded-lg border border-line bg-surface p-3">
           <span className="mb-1 block text-[12px] font-medium text-ink-2">{t('destLabel')}</span>
-          <AddressField
+          <LocationPicker
             search={(q) => api.runner.geocode(q).then((r) => r.results)}
+            reverse={(lat, lng) => api.runner.reverse(lat, lng)}
             value={newDest}
+            coords={coords}
             placeholder={t('destPlaceholder')}
-            onPick={(l, cc) => {
+            onChange={(l, cc) => {
               setNewDest(l)
               setCoords(cc)
             }}

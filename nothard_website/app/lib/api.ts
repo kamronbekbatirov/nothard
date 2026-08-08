@@ -178,6 +178,8 @@ export const api = {
     trip: () => req<{ trip: TripLive | null }>('/me/trip'),
     // Address autocomplete for the arrival intake ("where to take you").
     geocode: (q: string) => req<{ results: GeoResult[] }>(`/me/geocode?q=${encodeURIComponent(q)}`),
+    reverse: (lat: number, lng: number) =>
+      req<{ results: GeoResult[] }>(`/me/geocode?lat=${lat}&lng=${lng}`).then((r) => r.results[0] ?? null),
     checkout: (
       items: { type: 'package' | 'service'; id: string }[],
       details?: Record<string, string>
@@ -263,6 +265,8 @@ export const api = {
     endTrip: (tripId: number) => req<{ ok: boolean }>(`/admin/trips/${tripId}/end`, { method: 'POST' }),
     // Per-client live trip shown in the client drawer (+ operator editing).
     geocode: (q: string) => req<{ results: GeoResult[] }>(`/admin/geocode?q=${encodeURIComponent(q)}`),
+    reverse: (lat: number, lng: number) =>
+      req<{ results: GeoResult[] }>(`/admin/geocode?lat=${lat}&lng=${lng}`).then((r) => r.results[0] ?? null),
     clientTrip: (clientId: number) => req<{ trip: TripLive | null }>(`/admin/clients/${clientId}/trip`),
     // Planned airport → drop-off route the operator can preview before a trip starts.
     routePreview: (clientId: number, mode?: TravelMode) =>
@@ -473,6 +477,8 @@ export const api = {
     // ---- live tracking ----
     geocode: (q: string) =>
       req<{ results: GeoResult[] }>(`/runner/geocode?q=${encodeURIComponent(q)}`),
+    reverse: (lat: number, lng: number) =>
+      req<{ results: GeoResult[] }>(`/runner/geocode?lat=${lat}&lng=${lng}`).then((r) => r.results[0] ?? null),
     // Runner's latest position from Traccar Client (fallback for "My location").
     myLocation: () => req<{ location: { lat: number; lng: number; at: string | null } | null }>('/runner/my-location'),
     trackConfig: () => req<TrackConfig>('/runner/track-config'),

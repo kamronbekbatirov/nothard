@@ -1249,7 +1249,8 @@
     "clientAtPickup": "{name} chiqishda kutmoqda — «nothard» lavhasini ushlab turibdi",
     "runnerToPickup": "Mijozni kutib olishga ketyapsiz",
     "runnerWaiting": "Yetib keldingiz — mijozni kutyapsiz",
-    "runnerToDest": "Manzilga ketyapsiz"
+    "runnerToDest": "Manzilga ketyapsiz",
+    "pinHint": "Manzil kiriting yoki xaritada nuqta qo‘ying — surib ham bo‘ladi."
   },
   "Cookies": {
     "text": "Sayt to‘g‘ri ishlashi va tilingizni eslab qolishi uchun cookie’dan foydalanamiz.",

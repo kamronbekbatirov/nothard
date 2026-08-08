@@ -1249,7 +1249,8 @@
     "clientAtPickup": "{name} is waiting at the exit — holding a “nothard” sign",
     "runnerToPickup": "Heading to pick up the client",
     "runnerWaiting": "You've arrived — waiting for the client",
-    "runnerToDest": "Driving to the destination"
+    "runnerToDest": "Driving to the destination",
+    "pinHint": "Type an address or drop a pin on the map — you can drag it."
   },
   "Cookies": {
     "text": "We use cookies to keep the site working and remember your language.",

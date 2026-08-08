@@ -7,7 +7,7 @@ import { Camera, ChevronDown, Paperclip, Pencil, Plus, Search, Star, Trash2, X }
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { DateTimeInput, Field, Input, PickOrType } from '@/app/components/field'
-import { AddressField } from '@/app/components/address-field'
+import { LocationPicker } from '@/app/components/location-picker'
 import { TripCard } from '@/app/components/trip-card'
 import { TransitLegs } from '@/app/components/transit-legs'
 import { RouteOptions } from '@/app/components/route-options'
@@ -2420,7 +2420,11 @@ function ArrivalRow({
   const [airport, setAirport] = useState(details.airport || '')
   const [flight, setFlight] = useState(details.flight || '')
   const [dropoff, setDropoff] = useState(details.dropoff || '')
-  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(
+    details.dropoffLat && details.dropoffLng
+      ? { lat: Number(details.dropoffLat), lng: Number(details.dropoffLng) }
+      : null
+  )
 
   if (!editing) {
     return (
@@ -2473,12 +2477,14 @@ function ArrivalRow({
           otherLabel={ti('intake.other')}
           placeholder={ti('intake.flightOther')}
         />
-        {/* Drop-off (destination) — London-only autocomplete. */}
-        <AddressField
+        {/* Drop-off (destination) — search or drop a pin, London only. */}
+        <LocationPicker
           search={(q) => api.admin.geocode(q).then((r) => r.results)}
+          reverse={(lat, lng) => api.admin.reverse(lat, lng)}
           value={dropoff}
+          coords={dropoffCoords}
           placeholder={ti('intake.dropoffPlaceholder')}
-          onPick={(label, cc) => {
+          onChange={(label, cc) => {
             setDropoff(label)
             setDropoffCoords(cc)
           }}
@@ -2937,11 +2943,13 @@ function AdminTripSection({ clientId }: { clientId: number }) {
       {editDest ? (
         <div className="mt-2 rounded-lg border border-line bg-card p-3">
           <span className="mb-1 block text-[12px] font-medium text-ink-2">{t('destLabel')}</span>
-          <AddressField
+          <LocationPicker
             search={(q) => api.admin.geocode(q).then((r) => r.results)}
+            reverse={(lat, lng) => api.admin.reverse(lat, lng)}
             value={newDest}
+            coords={coords}
             placeholder={t('destPlaceholder')}
-            onPick={(label, c) => {
+            onChange={(label, c) => {
               setNewDest(label)
               setCoords(c)
             }}

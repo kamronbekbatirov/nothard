@@ -2691,29 +2691,41 @@ def create_app() -> Flask:
             "at": user.last_loc_at.isoformat() if user.last_loc_at else None,
         }})
 
-    @app.get("/runner/geocode")
-    def runner_geocode():
-        user, err = require_role("runner")
-        if err:
-            return err
+    def _reverse_arg():
+        """Parse ?lat=&lng= for a reverse-geocode (a dropped map pin); or None."""
+        try:
+            return float(request.args["lat"]), float(request.args["lng"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    def _geocode_response():
+        """Shared body for the role geocode endpoints: reverse (?lat&lng) → a
+        single {results:[one]} match, or forward (?q) → London autocomplete."""
+        rev = _reverse_arg()
+        if rev:
+            r = routing.reverse_geocode(rev[0], rev[1], nominatim_url=tracking_cfg()["nominatim_url"])
+            return jsonify({"results": [r] if r else []})
         q = (request.args.get("q") or "").strip()
         if len(q) < 3:
             return jsonify({"results": []})
         res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"], london_only=True)
         return jsonify({"results": res})
 
+    @app.get("/runner/geocode")
+    def runner_geocode():
+        user, err = require_role("runner")
+        if err:
+            return err
+        return _geocode_response()
+
     @app.get("/me/geocode")
     def my_geocode():
-        """Address autocomplete for the client's arrival intake ('where to take
-        you'). Any signed-in user; results feed the same picker as the runner's."""
+        """Address autocomplete + reverse-geocode for the client's arrival intake
+        ('where to take you'). Any signed-in user; feeds the same map picker."""
         user, err = require_user()
         if err:
             return err
-        q = (request.args.get("q") or "").strip()
-        if len(q) < 3:
-            return jsonify({"results": []})
-        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"], london_only=True)
-        return jsonify({"results": res})
+        return _geocode_response()
 
     @app.get("/runner/track-config")
     def runner_track_config():
@@ -3246,11 +3258,7 @@ def create_app() -> Flask:
         user, err = require_role("operator")
         if err:
             return err
-        q = (request.args.get("q") or "").strip()
-        if len(q) < 3:
-            return jsonify({"results": []})
-        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"], london_only=True)
-        return jsonify({"results": res})
+        return _geocode_response()
 
     @app.get("/admin/clients/<int:client_id>/trip")
     def admin_client_trip(client_id: int):
