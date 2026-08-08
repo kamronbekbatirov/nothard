@@ -129,7 +129,9 @@ export default function LiveMap({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-ink shadow-md ring-1 ring-black/5 transition hover:bg-white"
+      // Theme-aware surface so the icon always contrasts — on a fixed-white button
+      // the dark-theme `text-ink` icon was near-invisible and looked un-pressable.
+      className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-ink shadow-md ring-1 ring-line transition hover:bg-surface active:scale-95"
     >
       {children}
     </button>
