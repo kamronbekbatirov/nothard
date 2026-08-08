@@ -11,6 +11,7 @@ import { AddressField } from '@/app/components/address-field'
 import { TripCard } from '@/app/components/trip-card'
 import { RouteOptions } from '@/app/components/route-options'
 import { AppShellSkeleton } from '@/app/components/skeleton'
+import { UnreadBadge } from '@/app/components/unread-badge'
 import { useToast } from '@/app/components/toast'
 import { useRequireRole } from '@/app/lib/use-require-role'
 import { useTaskLabel } from '@/app/lib/task-label'
@@ -345,9 +346,10 @@ function ClientCard({
           <button
             onClick={onChat}
             aria-label={t('writeChat')}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-inverse text-inverse-fg"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-inverse text-inverse-fg"
           >
             <MessageSquare size={16} />
+            <UnreadBadge count={c.unread} className="absolute -right-1 -top-1 border-2 border-card" />
           </button>
         </div>
       </div>

@@ -1098,6 +1098,11 @@ def create_app() -> Flask:
             "documents": c.documents or {},
             "runner": runner_block(c),
             "needsRunner": needs_runner,
+            # Unread chat counts for the manager/runner thread badges.
+            "unread": {
+                "manager": unread_count(c, "manager", "client"),
+                "runner": unread_count(c, "runner", "client"),
+            },
             # Top-level arrival context (works with or without a package).
             "arrival": {
                 "hasAirportMeet": has_airport_meet,
@@ -1742,6 +1747,39 @@ def create_app() -> Flask:
         ch = (request.args.get("channel") or (request.get_json(silent=True) or {}).get("channel") or default)
         return "runner" if ch == "runner" else "manager"
 
+    def unread_count(client: Client, channel: str, viewer: str) -> int:
+        """How many messages `viewer` ('client' or 'staff') hasn't read in a thread.
+        The client's unread = messages NOT from the client; staff's unread =
+        messages FROM the client (after their last-read marker)."""
+        if viewer == "client":
+            marker = client.client_read_manager_at if channel == "manager" else client.client_read_runner_at
+            cond = Message.sender != "client"
+        else:
+            marker = client.staff_read_manager_at if channel == "manager" else client.staff_read_runner_at
+            cond = Message.sender == "client"
+        q = select(func.count(Message.id)).where(
+            Message.client_id == client.id, Message.channel == channel, cond
+        )
+        if marker is not None:
+            q = q.where(Message.created_at > marker)
+        return int(SessionLocal.execute(q).scalar_one() or 0)
+
+    def mark_thread_read(client: Client, channel: str, viewer: str) -> None:
+        """Reset the viewer's last-read marker for a thread to now (call when the
+        chat is opened/fetched, so its unread badge clears)."""
+        now = datetime.utcnow()
+        if viewer == "client":
+            if channel == "manager":
+                client.client_read_manager_at = now
+            else:
+                client.client_read_runner_at = now
+        else:
+            if channel == "manager":
+                client.staff_read_manager_at = now
+            else:
+                client.staff_read_runner_at = now
+        SessionLocal.commit()
+
     @app.get("/me/messages")
     def my_messages():
         user, err = require_user()
@@ -1750,7 +1788,10 @@ def create_app() -> Flask:
         c = SessionLocal.execute(select(Client).where(Client.user_id == user.id)).scalar_one_or_none()
         if not c:
             return jsonify({"messages": []})
-        return jsonify({"messages": [message_row(m) for m in client_messages(c.id, _channel_arg())]})
+        channel = _channel_arg()
+        rows = [message_row(m) for m in client_messages(c.id, channel)]
+        mark_thread_read(c, channel, "client")  # opening the thread clears its badge
+        return jsonify({"messages": rows})
 
     @app.post("/me/messages")
     def my_send_message():
@@ -1781,7 +1822,11 @@ def create_app() -> Flask:
         user, err = require_role("operator")
         if err:
             return err
-        return jsonify({"messages": [message_row(m) for m in client_messages(client_id, "manager")]})
+        rows = [message_row(m) for m in client_messages(client_id, "manager")]
+        c = SessionLocal.get(Client, client_id)
+        if c:
+            mark_thread_read(c, "manager", "staff")
+        return jsonify({"messages": rows})
 
     @app.post("/admin/clients/<int:client_id>/messages")
     def admin_send_message(client_id: int):
@@ -1834,7 +1879,9 @@ def create_app() -> Flask:
         c = _runner_client(user, client_id)
         if not c:
             return jsonify({"error": "not found"}), 404
-        return jsonify({"messages": [message_row(m) for m in client_messages(c.id, "runner")]})
+        rows = [message_row(m) for m in client_messages(c.id, "runner")]
+        mark_thread_read(c, "runner", "staff")
+        return jsonify({"messages": rows})
 
     @app.post("/runner/clients/<int:client_id>/messages")
     def runner_send_message(client_id: int):
@@ -1979,6 +2026,8 @@ def create_app() -> Flask:
             "email": u.email if u else None,
             "telegram": u.telegram_username if u else None,
             "phone": u.phone if u else None,
+            # Unread client messages in the manager thread (for the chat badge).
+            "unread": unread_count(c, "manager", "staff"),
         }
 
     @app.get("/admin/overview")
@@ -3055,7 +3104,21 @@ def create_app() -> Flask:
         if not trip or trip.runner_id != user.id:
             return jsonify({"error": "not found"}), 404
         trip.status = "cancelled"
+        trip.at_pickup = False
         trip.ended_at = datetime.utcnow()
+        # Roll back the airport steps this trip advanced (e.g. an accidental
+        # "start trip"): any NOT-yet-done meet/transfer step goes back to 'todo',
+        # so the client no longer sees "on the way" and the runner can start over.
+        for key in ("airportMeet", "transfer"):
+            t = SessionLocal.execute(
+                select(Task).where(
+                    Task.client_id == trip.client_id, Task.kind == "step",
+                    Task.key == key, Task.status != "done",
+                ).order_by(Task.position, Task.id)
+            ).scalars().first()
+            if t and t.status != "todo":
+                t.status = "todo"
+                t.completed_at = None
         SessionLocal.commit()
         return jsonify({"ok": True})
 
@@ -4350,6 +4413,7 @@ def create_app() -> Flask:
                 "telegram": (cu.telegram_username if cu else None),
                 "package": pkg.item_id if pkg else None,
                 "arrival": arrival_of(c.id),
+                "unread": unread_count(c, "runner", "staff"),
                 "tasks": [task_row(t) for t in by_client.get(c.id, [])],
             })
         for cid, ct in by_client.items():
@@ -4365,6 +4429,7 @@ def create_app() -> Flask:
                 "telegram": (cu.telegram_username if cu else None),
                 "package": None,
                 "arrival": arrival_of(cid),
+                "unread": unread_count(cc, "runner", "staff") if cc else 0,
                 "tasks": [task_row(t) for t in ct],
             })
 

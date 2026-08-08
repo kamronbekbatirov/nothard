@@ -734,6 +734,8 @@ export type DashboardData = {
   // True only when the active work actually needs a field companion (airport
   // meet / transport / moving). Plain services (Oyster, etc.) don't.
   needsRunner: boolean
+  // Unread chat counts for the manager/runner thread badges in the cabinet.
+  unread: { manager: number; runner: number }
   // Arrival context (works with or without a package — e.g. a standalone airport
   // service): whether there's an airport meet, and the saved arrival details.
   arrival: {
@@ -814,6 +816,8 @@ export type AdminClient = {
   email: string | null
   telegram: string | null
   phone: string | null
+  // Unread client messages in the manager thread (chat badge).
+  unread: number
 }
 export type AdminHistoryStep = {
   key: string
@@ -1013,6 +1017,8 @@ export type RunnerClientRow = {
     flight?: string
     dropoff?: string
   }
+  // Unread messages from this client in the runner chat thread.
+  unread?: number
   tasks: RunnerVisitRow[]
 }
 export type RunnerDashboard = {

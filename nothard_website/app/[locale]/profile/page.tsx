@@ -14,6 +14,7 @@ import { DuplicateWarningModal } from '@/app/components/duplicate-warning'
 import { TripCard } from '@/app/components/trip-card'
 import { AppShellSkeleton } from '@/app/components/skeleton'
 import { PackagePicker } from '@/app/components/package-picker'
+import { UnreadBadge } from '@/app/components/unread-badge'
 import { AddressField } from '@/app/components/address-field'
 import { ChatModal } from '@/app/components/chat'
 import { useToast } from '@/app/components/toast'
@@ -1800,6 +1801,7 @@ function PopulatedCabinet({
               <PersonContact telegram={manager.telegram} phone={manager.phone} />
               <Button variant="dark" size="block" className="mt-4" onClick={() => onChat('manager')}>
                 {t('writeChat')}
+                <UnreadBadge count={data.unread.manager} />
               </Button>
             </>
           ) : (
@@ -1812,6 +1814,7 @@ function PopulatedCabinet({
               </div>
               <Button variant="outline" size="block" className="mt-4" onClick={() => onChat('manager')}>
                 {t('chat.open')}
+                <UnreadBadge count={data.unread.manager} />
               </Button>
             </>
           )}
@@ -1835,6 +1838,7 @@ function PopulatedCabinet({
               <PersonContact telegram={data.runner.telegram} phone={data.runner.phone} />
               <Button variant="dark" size="block" className="mt-4" onClick={() => onChat('runner')}>
                 {t('writeChat')}
+                <UnreadBadge count={data.unread.runner} />
               </Button>
             </>
           ) : (

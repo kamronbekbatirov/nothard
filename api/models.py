@@ -99,6 +99,13 @@ class Client(Base):
     documents: Mapped[dict] = mapped_column(JSON, default=dict)
     # Opaque token for a public, read-only "share your relocation with family" page.
     share_token: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    # Per-thread "last read" markers for the unread-message badges. Two chat
+    # threads (manager, runner), each with two sides (the client, and the staff
+    # member — operator/runner). Unread = messages from the other side after this.
+    client_read_manager_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    staff_read_manager_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    client_read_runner_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    staff_read_runner_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

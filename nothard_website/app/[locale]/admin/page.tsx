@@ -19,6 +19,7 @@ const AdminLiveMap = dynamic(() => import('@/app/components/live-map'), {
   loading: () => <div className="nd-skeleton h-[200px] rounded-xl" />,
 })
 import { ChatModal } from '@/app/components/chat'
+import { UnreadBadge } from '@/app/components/unread-badge'
 import { useToast } from '@/app/components/toast'
 import { PanelLoading } from '../runner/page'
 import { useRequireRole } from '@/app/lib/use-require-role'
@@ -472,7 +473,12 @@ function ClientsTable({
               className="nd-row border-t border-line text-[13.5px]"
               onClick={() => onSelect(c.id)}
             >
-              <td className="px-5 py-3 font-medium text-ink">{c.name}</td>
+              <td className="px-5 py-3 font-medium text-ink">
+                <span className="inline-flex items-center gap-2">
+                  {c.name}
+                  <UnreadBadge count={c.unread} />
+                </span>
+              </td>
               <td className="px-3 py-3 text-ink-2">
                 <PkgName pkg={c.package} />
               </td>
@@ -2342,6 +2348,7 @@ function Drawer({
       <div className="mt-auto flex flex-col gap-2 pt-6">
         <Button variant="dark" size="block" onClick={onChat}>
           {t('drawer.writeClient')}
+          <UnreadBadge count={client.unread} />
         </Button>
         {confirmDel ? (
           <div className="rounded-lg border border-terracotta/40 bg-terracotta-bg/50 p-3.5">
