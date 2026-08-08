@@ -1021,7 +1021,9 @@
     "show": "Show",
     "visitsDoneCount": "{count} done",
     "flightShort": "flight",
-    "drivenByTrip": "Advances automatically as the trip progresses"
+    "drivenByTrip": "Advances automatically as the trip progresses",
+    "showSign": "Show sign",
+    "signHint": "Show the screen to the client · tap to close"
   },
   "Footer": {
     "tagline": "End-to-end relocation to London. Calm, human, in your language.",
@@ -1245,7 +1247,7 @@
     "routeChosen": "Route chosen",
     "hereBtn": "I've arrived",
     "phaseWaiting": "Waiting for the client:",
-    "clientAtPickup": "{name} is waiting for you at the exit with a sign",
+    "clientAtPickup": "{name} is waiting at the exit — holding a “nothard” sign",
     "runnerToPickup": "Heading to pick up the client",
     "runnerWaiting": "You've arrived — waiting for the client",
     "runnerToDest": "Driving to the destination"

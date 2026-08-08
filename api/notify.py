@@ -58,10 +58,10 @@ TEMPLATES = {
         "uz-cyrl": "🚕 {name} йўлга чиқди. Сафар ва етиб бориш вақтини кабинетда кузатинг.",
     },
     "host_arrived": {
-        "ru": "📍 {name} на месте и ждёт вас. Ищите табличку с вашим именем.",
-        "en": "📍 {name} has arrived and is waiting for you. Look for the sign with your name.",
-        "uz": "📍 {name} yetib keldi va sizni kutmoqda. Ismingiz yozilgan lavhani qidiring.",
-        "uz-cyrl": "📍 {name} етиб келди ва сизни кутмоқда. Исмингиз ёзилган лавҳани қидиринг.",
+        "ru": "📍 {name} на месте и ждёт вас — держит в руках табличку с логотипом «nothard».",
+        "en": "📍 {name} has arrived and is waiting for you — holding a “nothard” sign.",
+        "uz": "📍 {name} yetib keldi va sizni kutmoqda — qo‘lida «nothard» logotipli lavha bilan.",
+        "uz-cyrl": "📍 {name} етиб келди ва сизни кутмоқда — қўлида «nothard» логотипли лавҳа билан.",
     },
     "task_done": {
         "ru": "✅ Ещё один шаг вашего переезда выполнен.",

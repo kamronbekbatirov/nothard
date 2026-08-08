@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { ChevronDown, MapPin, MessageSquare, Navigation, Pencil, Phone, Smartphone } from 'lucide-react'
+import { ChevronDown, Contact, MapPin, MessageSquare, Navigation, Pencil, Phone, Smartphone, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Avatar } from '@/app/components/avatar'
@@ -321,6 +321,7 @@ function ClientCard({
 }) {
   const t = useTranslations('Runner')
   const tp = useTranslations('Packages')
+  const [signOpen, setSignOpen] = useState(false)
   const active = useMemo(() => c.tasks.filter((v) => v.stage !== 'done'), [c.tasks])
   const done = c.tasks.length - active.length
 
@@ -383,6 +384,15 @@ function ClientCard({
           )}
         </div>
       )}
+
+      {/* "Show sign" — a fullscreen nothard board the runner holds up so the
+          client recognises them at the airport arrivals exit. */}
+      <div className="border-b border-line px-4 py-3">
+        <Button variant="outline" size="block" className="gap-2" onClick={() => setSignOpen(true)}>
+          <Contact size={16} /> {t('showSign')}
+        </Button>
+      </div>
+      {signOpen && <MeetSignOverlay name={c.name} onClose={() => setSignOpen(false)} />}
 
       {/* Visits. Airport steps (meet/transfer) are DRIVEN by the trip buttons
           below — shown read-only here so the runner doesn't advance them twice. */}
@@ -693,6 +703,58 @@ function fmtDate(iso: string): string {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return iso
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long' })
+}
+
+/* ---------- Airport "meeting sign" the runner holds up ---------- */
+/**
+ * A fullscreen white board with the big nothard wordmark (+ the client's name),
+ * so the runner can hold their phone up at the arrivals exit and the client
+ * recognises them. Fixed light colours (it's a physical sign) regardless of theme.
+ */
+function MeetSignOverlay({ name, onClose }: { name: string; onClose: () => void }) {
+  const t = useTranslations('Runner')
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [onClose])
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-white px-6"
+    >
+      <button
+        onClick={onClose}
+        aria-label="close"
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/5 text-[#1B1A17]"
+      >
+        <X size={22} />
+      </button>
+      <span
+        className="font-display leading-none"
+        style={{ fontSize: 'clamp(56px, 20vw, 190px)', letterSpacing: '-0.02em' }}
+      >
+        <span style={{ color: '#1B1A17' }}>not</span>
+        <span style={{ color: '#2F5D45' }}>hard.</span>
+      </span>
+      {name && (
+        <div
+          className="mt-8 text-center font-semibold text-[#1B1A17]"
+          style={{ fontSize: 'clamp(22px, 7vw, 56px)' }}
+        >
+          {name}
+        </div>
+      )}
+      <p className="absolute bottom-8 left-0 right-0 px-6 text-center text-[13px] text-black/40">
+        {t('signHint')}
+      </p>
+    </div>
+  )
 }
 
 export function PanelLoading() {

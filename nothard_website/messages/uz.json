@@ -1021,7 +1021,9 @@
     "show": "Ko‘rsatish",
     "visitsDoneCount": "{count} bajarildi",
     "flightShort": "reys",
-    "drivenByTrip": "Safar davomida avtomatik yangilanadi"
+    "drivenByTrip": "Safar davomida avtomatik yangilanadi",
+    "showSign": "Lavhani ko‘rsatish",
+    "signHint": "Ekranni mijozga ko‘rsating · yopish uchun bosing"
   },
   "Footer": {
     "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",
@@ -1245,7 +1247,7 @@
     "routeChosen": "Marshrut tanlandi",
     "hereBtn": "Yetib keldim",
     "phaseWaiting": "Mijozni kutmoqda:",
-    "clientAtPickup": "{name} chiqishda ismingiz yozilgan lavha bilan kutmoqda",
+    "clientAtPickup": "{name} chiqishda kutmoqda — «nothard» lavhasini ushlab turibdi",
     "runnerToPickup": "Mijozni kutib olishga ketyapsiz",
     "runnerWaiting": "Yetib keldingiz — mijozni kutyapsiz",
     "runnerToDest": "Manzilga ketyapsiz"
