@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { LogOut, Settings } from 'lucide-react'
 import { Logo } from './logo'
-import { LangSwitcher } from './lang-switcher'
+import { LangMenu } from './lang-switcher'
 import { ThemeToggle } from './theme'
 import { Avatar } from './avatar'
 import { cn } from '@/app/lib/utils'
@@ -66,11 +66,9 @@ export function AppTopbar({
         <div className="flex items-center gap-3">
           {right}
           <ThemeToggle />
-          {!hideLang && (
-            <div className="hidden sm:block">
-              <LangSwitcher />
-            </div>
-          )}
+          {/* Compact language menu — available on every panel and every screen size
+              (was desktop-only, so mobile panels had no way to change language). */}
+          {!hideLang && <LangMenu />}
           {name && (
             <div className="flex items-center gap-2">
               <Avatar url={avatarUrl} name={name} tgId={tgId} size={32} />

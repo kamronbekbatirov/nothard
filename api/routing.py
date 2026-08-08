@@ -536,21 +536,33 @@ def route_eta(
     return out
 
 
+# Greater London bounding box (lon/lat). We only operate in London, so a
+# destination search is confined to this box (Nominatim viewbox + bounded=1):
+# left(minLon), top(maxLat), right(maxLon), bottom(minLat).
+LONDON_VIEWBOX = "-0.5300,51.7050,0.3350,51.2800"
+
+
 def geocode_search(query: str, nominatim_url: Optional[str] = None,
-                   limit: int = 6, timeout: float = 4.0) -> list[dict]:
+                   limit: int = 6, timeout: float = 4.0,
+                   london_only: bool = False) -> list[dict]:
     """Address autocomplete: up to ``limit`` UK matches as ``[{label, lat, lng}]``.
 
-    Backs the runner's "type an address, pick from a list" field so they never
-    start a trip against a mistyped/ambiguous address. Returns [] on any error.
+    Backs the "type an address, pick from a list" field so nobody starts a trip
+    against a mistyped/ambiguous address. With ``london_only`` the results are
+    confined to Greater London (this service only covers London). [] on error.
     """
     q = (query or "").strip()
     if len(q) < 3:
         return []
     base = (nominatim_url or DEFAULT_NOMINATIM_URL).rstrip("/")
+    params = {"q": q, "format": "json", "limit": limit, "countrycodes": "gb"}
+    if london_only:
+        params["viewbox"] = LONDON_VIEWBOX
+        params["bounded"] = 1
     try:
         resp = requests.get(
             f"{base}/search",
-            params={"q": q, "format": "json", "limit": limit, "countrycodes": "gb"},
+            params=params,
             headers=_UA,
             timeout=timeout,
         )
@@ -573,21 +585,26 @@ def geocode_search(query: str, nominatim_url: Optional[str] = None,
 
 
 def geocode(query: str, nominatim_url: Optional[str] = None,
-            timeout: float = 4.0) -> Optional[dict]:
+            timeout: float = 4.0, london_only: bool = False) -> Optional[dict]:
     """Address string → ``{lat, lng, label}`` via Nominatim, or None.
 
-    Biased to the UK (this is a London relocation service). Nominatim's usage
-    policy asks for a real User-Agent and ≤1 req/s — we only geocode once when a
-    trip starts, so that's comfortably within limits.
+    Biased to the UK (this is a London relocation service). With ``london_only``
+    the match is confined to Greater London, so a destination outside London
+    (e.g. Manchester) returns None. Nominatim asks for a real User-Agent and
+    ≤1 req/s — we only geocode occasionally, comfortably within limits.
     """
     q = (query or "").strip()
     if not q:
         return None
     base = (nominatim_url or DEFAULT_NOMINATIM_URL).rstrip("/")
+    params = {"q": q, "format": "json", "limit": 1, "countrycodes": "gb"}
+    if london_only:
+        params["viewbox"] = LONDON_VIEWBOX
+        params["bounded"] = 1
     try:
         resp = requests.get(
             f"{base}/search",
-            params={"q": q, "format": "json", "limit": 1, "countrycodes": "gb"},
+            params=params,
             headers=_UA,
             timeout=timeout,
         )

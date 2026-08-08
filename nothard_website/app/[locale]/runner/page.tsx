@@ -7,7 +7,6 @@ import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Avatar } from '@/app/components/avatar'
 import { ChatModal } from '@/app/components/chat'
-import { LangSwitcher } from '@/app/components/lang-switcher'
 import { AddressField } from '@/app/components/address-field'
 import { TripCard } from '@/app/components/trip-card'
 import { RouteOptions } from '@/app/components/route-options'
@@ -185,16 +184,9 @@ export default function RunnerPage() {
       />
 
       <main className="mx-auto max-w-[680px] px-4 py-6 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 truncate text-[14px] text-muted">
-            {t('greeting', { name: data?.name || user?.name || '' })}
-          </p>
-          {/* The topbar hides the language switcher on mobile; the runner panel is
-              phone-first, so surface it here too. */}
-          <div className="shrink-0">
-            <LangSwitcher />
-          </div>
-        </div>
+        <p className="min-w-0 truncate text-[14px] text-muted">
+          {t('greeting', { name: data?.name || user?.name || '' })}
+        </p>
 
         {/* Stats */}
         <div className="mt-3 grid grid-cols-4 gap-2.5">

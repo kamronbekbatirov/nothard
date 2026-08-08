@@ -2633,7 +2633,7 @@ def create_app() -> Flask:
         q = (request.args.get("q") or "").strip()
         if len(q) < 3:
             return jsonify({"results": []})
-        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"])
+        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"], london_only=True)
         return jsonify({"results": res})
 
     @app.get("/me/geocode")
@@ -2646,7 +2646,7 @@ def create_app() -> Flask:
         q = (request.args.get("q") or "").strip()
         if len(q) < 3:
             return jsonify({"results": []})
-        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"])
+        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"], london_only=True)
         return jsonify({"results": res})
 
     @app.get("/runner/track-config")
@@ -2771,7 +2771,7 @@ def create_app() -> Flask:
         dest_lat = d.get("dest_lat") if d.get("dest_lat") is not None else arr["dropoff_lat"]
         dest_lng = d.get("dest_lng") if d.get("dest_lng") is not None else arr["dropoff_lng"]
         if (dest_lat is None or dest_lng is None) and dest_label:
-            geo = routing.geocode(dest_label, nominatim_url=cfg["nominatim_url"])
+            geo = routing.geocode(dest_label, nominatim_url=cfg["nominatim_url"], london_only=True)
             if geo:
                 dest_lat, dest_lng = geo["lat"], geo["lng"]
 
@@ -2819,7 +2819,7 @@ def create_app() -> Flask:
         label = (d.get("dest_label") or "").strip()
         lat, lng = d.get("dest_lat"), d.get("dest_lng")
         if (lat is None or lng is None) and label:
-            geo = routing.geocode(label, nominatim_url=tracking_cfg()["nominatim_url"])
+            geo = routing.geocode(label, nominatim_url=tracking_cfg()["nominatim_url"], london_only=True)
             if geo:
                 lat, lng = geo["lat"], geo["lng"]
                 label = label or geo["label"]
@@ -3169,7 +3169,7 @@ def create_app() -> Flask:
         q = (request.args.get("q") or "").strip()
         if len(q) < 3:
             return jsonify({"results": []})
-        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"])
+        res = routing.geocode_search(q, nominatim_url=tracking_cfg()["nominatim_url"], london_only=True)
         return jsonify({"results": res})
 
     @app.get("/admin/clients/<int:client_id>/trip")
@@ -3233,7 +3233,7 @@ def create_app() -> Flask:
         label = (d.get("dest_label") or "").strip()
         lat, lng = d.get("dest_lat"), d.get("dest_lng")
         if (lat is None or lng is None) and label:
-            geo = routing.geocode(label, nominatim_url=tracking_cfg()["nominatim_url"])
+            geo = routing.geocode(label, nominatim_url=tracking_cfg()["nominatim_url"], london_only=True)
             if geo:
                 lat, lng = geo["lat"], geo["lng"]
                 label = label or geo["label"]

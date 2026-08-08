@@ -57,6 +57,15 @@ import { cn } from '@/app/lib/utils'
 
 const DOC_KEYS = ['passport', 'visa', 'lease', 'bank', 'nhs'] as const
 
+// Where a non-client (staff) account belongs — the client cabinet is for clients
+// only, so these roles are redirected to their own panel.
+const STAFF_DASH: Record<string, string> = {
+  operator: '/admin',
+  admin: '/admin',
+  agency: '/agency',
+  runner: '/runner',
+}
+
 // Display a YYYY-MM-DD date as DD.MM.YYYY.
 function fmtDate(d?: string): string {
   if (!d) return ''
@@ -140,6 +149,11 @@ export default function ProfilePage() {
     // just set (e.g. by the Mini App initData exchange) whoami is still in-flight
     // — `user` is momentarily null but a token exists, so don't redirect yet.
     if (!loading && !user && !getAccess()) router.replace('/login')
+    // Staff accounts don't use the client cabinet — send them to their own panel
+    // (so a role change from client → runner/operator/agency takes effect here).
+    else if (!loading && user && user.role !== 'client') {
+      router.replace((STAFF_DASH[user.role] || '/login') as any)
+    }
   }, [loading, user, router])
 
   const refresh = () => api.me.dashboard().then(setData).catch(() => {})
@@ -234,7 +248,9 @@ export default function ProfilePage() {
     window.location.href = '/'
   }
 
-  if (loading || !user) {
+  // Staff accounts are being redirected to their panel — show the skeleton, never
+  // the client cabinet, while the redirect happens.
+  if (loading || !user || user.role !== 'client') {
     return <AppShellSkeleton />
   }
 
@@ -1655,8 +1671,8 @@ function PopulatedCabinet({
                     {t('arrival.edit')}
                   </button>
                 </div>
-                {data.package.details?.arrivalDate || data.package.details?.flight ? (
-                  <div className="mt-1.5 text-[13px] text-white/90">
+                {data.package.details?.arrivalDate || data.package.details?.flight || data.package.details?.dropoff ? (
+                  <div className="mt-1.5 space-y-0.5 text-[13px] text-white/90">
                     {data.package.details.arrivalDate && (
                       <div>
                         ✈️ {fmtDate(data.package.details.arrivalDate)} {data.package.details.arrivalTime}
@@ -1666,6 +1682,7 @@ function PopulatedCabinet({
                     {data.package.details.flight && (
                       <div className="text-white/75">{t('intake.flight')}: {data.package.details.flight}</div>
                     )}
+                    {data.package.details.dropoff && <div>🏠 {data.package.details.dropoff}</div>}
                   </div>
                 ) : (
                   <div className="mt-1 text-[12.5px] text-white/60">{t('arrival.none')}</div>

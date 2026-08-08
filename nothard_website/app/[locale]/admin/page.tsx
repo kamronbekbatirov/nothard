@@ -2409,6 +2409,8 @@ function ArrivalRow({
   const [time, setTime] = useState(details.arrivalTime || '')
   const [airport, setAirport] = useState(details.airport || '')
   const [flight, setFlight] = useState(details.flight || '')
+  const [dropoff, setDropoff] = useState(details.dropoff || '')
+  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   if (!editing) {
     return (
@@ -2419,8 +2421,8 @@ function ArrivalRow({
             {t('manage.edit')}
           </button>
         </div>
-        {details.arrivalDate || details.flight ? (
-          <>
+        {details.arrivalDate || details.flight || details.dropoff ? (
+          <div className="space-y-0.5">
             {details.arrivalDate && (
               <div className="text-ink-2">
                 ✈️ {fmtDMY(details.arrivalDate)} {details.arrivalTime}
@@ -2428,7 +2430,8 @@ function ArrivalRow({
               </div>
             )}
             {details.flight && <div className="text-ink-2">{t('flightNo')}: {details.flight}</div>}
-          </>
+            {details.dropoff && <div className="text-ink-2">🏠 {details.dropoff}</div>}
+          </div>
         ) : (
           <div className="text-gray-lt">—</div>
         )}
@@ -2460,11 +2463,30 @@ function ArrivalRow({
           otherLabel={ti('intake.other')}
           placeholder={ti('intake.flightOther')}
         />
+        {/* Drop-off (destination) — London-only autocomplete. */}
+        <AddressField
+          search={(q) => api.admin.geocode(q).then((r) => r.results)}
+          value={dropoff}
+          placeholder={ti('intake.dropoffPlaceholder')}
+          onPick={(label, cc) => {
+            setDropoff(label)
+            setDropoffCoords(cc)
+          }}
+        />
       </div>
       <div className="mt-2 flex gap-2">
         <button
           onClick={() => {
-            onSave({ arrivalDate: date, arrivalTime: time, airport, flight: flight.trim() })
+            onSave({
+              arrivalDate: date,
+              arrivalTime: time,
+              airport,
+              flight: flight.trim(),
+              dropoff: dropoff.trim(),
+              ...(dropoffCoords
+                ? { dropoffLat: String(dropoffCoords.lat), dropoffLng: String(dropoffCoords.lng) }
+                : {}),
+            })
             setEditing(false)
           }}
           className="rounded-md bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white"
