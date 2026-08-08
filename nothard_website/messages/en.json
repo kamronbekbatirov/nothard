@@ -1022,8 +1022,7 @@
     "visitsDoneCount": "{count} done",
     "flightShort": "flight",
     "drivenByTrip": "Advances automatically as the trip progresses",
-    "showSign": "Show sign",
-    "signHint": "Show the screen to the client · tap to close"
+    "showSign": "Show sign"
   },
   "Footer": {
     "tagline": "End-to-end relocation to London. Calm, human, in your language.",

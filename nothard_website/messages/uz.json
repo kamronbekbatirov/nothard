@@ -1022,8 +1022,7 @@
     "visitsDoneCount": "{count} bajarildi",
     "flightShort": "reys",
     "drivenByTrip": "Safar davomida avtomatik yangilanadi",
-    "showSign": "Lavhani ko‘rsatish",
-    "signHint": "Ekranni mijozga ko‘rsating · yopish uchun bosing"
+    "showSign": "Lavhani ko‘rsatish"
   },
   "Footer": {
     "tagline": "Londonga to‘liq ko‘chish xizmati. Xotirjam, insoniy, sizning tilingizda.",

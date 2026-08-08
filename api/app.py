@@ -2488,6 +2488,19 @@ def create_app() -> Flask:
                 plan_trip_route(trip, ping.lat, ping.lng)
                 SessionLocal.commit()
             return
+        # Auto-reroute: if the runner clearly left the drawn road route (a wrong or
+        # different turn), replan from their current position so the line follows
+        # the real path — like a car GPS. Only for road modes (not transit, where
+        # being between stations isn't "off route"); throttled by route_at so it
+        # doesn't replan faster than pings arrive.
+        _, _, eff_mode = _phase_target(trip)
+        if ping and eff_mode != "transit":
+            d = _route_dist_km(trip, ping)
+            if (d is not None and d > 0.12
+                    and (not trip.route_at or (now - trip.route_at).total_seconds() > 8)):
+                plan_trip_route(trip, ping.lat, ping.lng)
+                SessionLocal.commit()
+                return
         # Route is fixed — just recompute the remaining-time number from the live
         # position (the line is untouched).
         if ping and (not trip.eta_at
@@ -2507,19 +2520,23 @@ def create_app() -> Flask:
         trip.origin_lng = None
         trip.eta_at = None
 
-    def _off_route(trip: Trip, ping: TripPing | None) -> bool:
-        """True when the live position is far (>400 m) from the planned route — a
-        cue to offer 'rebuild the route from my current position'."""
+    def _route_dist_km(trip: Trip, ping: TripPing | None):
+        """Shortest distance (km) from the live position to the drawn route, or None."""
         if not ping or not trip.route_json:
-            return False
+            return None
         try:
-            d = min(
+            return min(
                 routing.haversine_km(ping.lat, ping.lng, pt[0], pt[1])
                 for pt in trip.route_json
             )
         except (TypeError, ValueError, IndexError):
-            return False
-        return d > 0.4
+            return None
+
+    def _off_route(trip: Trip, ping: TripPing | None) -> bool:
+        """True when the live position is far (>400 m) from the planned route — a
+        cue to offer 'rebuild the route from my current position'."""
+        d = _route_dist_km(trip, ping)
+        return d is not None and d > 0.4
 
     def _client_step_task(client_id: int, key: str) -> Task | None:
         """The client's not-yet-done airport step task (airportMeet/transfer). The

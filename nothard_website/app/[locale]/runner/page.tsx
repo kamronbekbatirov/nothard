@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { ChevronDown, Contact, MapPin, MessageSquare, Navigation, Pencil, Phone, Smartphone, X } from 'lucide-react'
+import { ChevronDown, Contact, MapPin, MessageSquare, Navigation, Pencil, Phone, RotateCw, Smartphone, X } from 'lucide-react'
 import { AppTopbar } from '@/app/components/app-topbar'
 import { Button } from '@/app/components/button'
 import { Avatar } from '@/app/components/avatar'
@@ -712,7 +712,11 @@ function fmtDate(iso: string): string {
  * recognises them. Fixed light colours (it's a physical sign) regardless of theme.
  */
 function MeetSignOverlay({ name, onClose }: { name: string; onClose: () => void }) {
-  const t = useTranslations('Runner')
+  // Controls are hidden for a clean board; a tap toggles them. A rotate button
+  // spins the sign 90° at a time — useful to show it landscape when the phone's
+  // auto-rotate is locked.
+  const [showCtl, setShowCtl] = useState(false)
+  const [deg, setDeg] = useState(0)
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -723,36 +727,64 @@ function MeetSignOverlay({ name, onClose }: { name: string; onClose: () => void 
       document.removeEventListener('keydown', onKey)
     }
   }, [onClose])
+  const sideways = deg % 180 !== 0
   return (
     <div
-      onClick={onClose}
-      className="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-white px-6"
+      onClick={() => setShowCtl((s) => !s)}
+      className="fixed inset-0 z-[100000] flex items-center justify-center overflow-hidden bg-white"
     >
-      <button
-        onClick={onClose}
-        aria-label="close"
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/5 text-[#1B1A17]"
+      {/* Rotatable board — when sideways, swap width/height to fill the screen. */}
+      <div
+        className="flex flex-col items-center justify-center px-6 transition-transform duration-300"
+        style={{
+          width: sideways ? '100dvh' : '100dvw',
+          height: sideways ? '100dvw' : '100dvh',
+          transform: `rotate(${deg}deg)`,
+        }}
       >
-        <X size={22} />
-      </button>
-      <span
-        className="font-display leading-none"
-        style={{ fontSize: 'clamp(56px, 20vw, 190px)', letterSpacing: '-0.02em' }}
-      >
-        <span style={{ color: '#1B1A17' }}>not</span>
-        <span style={{ color: '#2F5D45' }}>hard.</span>
-      </span>
-      {name && (
-        <div
-          className="mt-8 text-center font-semibold text-[#1B1A17]"
-          style={{ fontSize: 'clamp(22px, 7vw, 56px)' }}
+        <span
+          className="font-display leading-none"
+          style={{ fontSize: 'clamp(56px, 22vmin, 200px)', letterSpacing: '-0.02em' }}
         >
-          {name}
-        </div>
+          <span style={{ color: '#1B1A17' }}>not</span>
+          <span style={{ color: '#2F5D45' }}>hard.</span>
+        </span>
+        {name && (
+          <div
+            className="mt-8 text-center font-semibold text-[#1B1A17]"
+            style={{ fontSize: 'clamp(30px, 11vmin, 84px)' }}
+          >
+            {name}
+          </div>
+        )}
+      </div>
+
+      {/* Controls appear only after a tap. stopPropagation so tapping a button
+          performs its action without also toggling the controls off. */}
+      {showCtl && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setDeg((d) => (d + 90) % 360)
+            }}
+            aria-label="rotate"
+            className="absolute left-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-black/5 text-[#1B1A17]"
+          >
+            <RotateCw size={22} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onClose()
+            }}
+            aria-label="close"
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-black/5 text-[#1B1A17]"
+          >
+            <X size={22} />
+          </button>
+        </>
       )}
-      <p className="absolute bottom-8 left-0 right-0 px-6 text-center text-[13px] text-black/40">
-        {t('signHint')}
-      </p>
     </div>
   )
 }
