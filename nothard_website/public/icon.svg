@@ -1,11 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
-  <rect width="96" height="96" rx="22" fill="#ECE7DD"/>
-  <!-- black "n" (the 'not' part) -->
-  <path d="M28 72 V47 C28 40 33 37 41 37 C49 37 55 42 55 49 V72"
-        fill="none" stroke="#1B1A17" stroke-width="13"
-        stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- green ascender tail turning the n into an h (the 'hard' part) -->
-  <path d="M28 46 V22" fill="none" stroke="#2F5D45" stroke-width="13" stroke-linecap="round"/>
-  <!-- green dot -->
-  <circle cx="71" cy="67" r="6.5" fill="#2F5D45"/>
+  <!-- green "h" underneath (left tall stem + shoulder/right) -->
+  <path d="M30 73 V21" fill="none" stroke="#2F5D45" stroke-width="13" stroke-linecap="round"/>
+  <path d="M30 47 C30 40 35 37 43 37 C51 37 57 42 57 49 V73" fill="none" stroke="#2F5D45" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- black "n" laid on top → only the green ascender tail shows -->
+  <path d="M30 73 V47 C30 40 35 37 43 37 C51 37 57 42 57 49 V73" fill="none" stroke="#1B1A17" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- green dot bottom-right, its base level with the stems' rounded feet -->
+  <circle cx="72" cy="73" r="6.5" fill="#2F5D45"/>
 </svg>
